@@ -42,3 +42,8 @@ next-env.d.ts
 
 # Keep the placeholder template tracked
 !.env.example
+
+# Local test artifacts
+.playwright-mcp/
+*.png
+!public/**/*.png

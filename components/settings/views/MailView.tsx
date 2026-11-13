@@ -21,7 +21,7 @@ type Protocol = "smtp" | "imap";
 type LineState =
   | { status: "idle" }
   | { status: "testing" }
-  | { status: "ok"; latency: number }
+  | { status: "ok" }
   | { status: "error"; message: string };
 
 const PROTOCOLS: Array<{
@@ -32,8 +32,8 @@ const PROTOCOLS: Array<{
   icon: typeof Server;
   idleNote: string;
 }> = [
-  { key: "smtp", label: "SMTP — outgoing", host: "smtp.hostinger.com", port: 587, icon: Server, idleNote: "OK — smtp.hostinger.com:587 (demo)" },
-  { key: "imap", label: "IMAP — incoming", host: "imap.hostinger.com", port: 993, icon: Inbox, idleNote: "OK — imap.hostinger.com:993 (demo)" },
+  { key: "smtp", label: "SMTP — outgoing", host: "smtp.hostinger.com", port: 587, icon: Server, idleNote: "Not tested yet — click Test" },
+  { key: "imap", label: "IMAP — incoming", host: "imap.hostinger.com", port: 993, icon: Inbox, idleNote: "Not tested yet — click Test" },
 ];
 
 const UNAVAILABLE_MSG = "Mail test unavailable — set .env then redeploy (or ask your admin)";
@@ -48,11 +48,7 @@ export function MailView() {
   const runTest = async (protocol: Protocol) => {
     setLines((prev) => ({ ...prev, [protocol]: { status: "testing" } }));
     try {
-      const res = await fetch("/api/mail/test", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ protocol }),
-      });
+      const res = await fetch("/api/mail/test");
       let record: Record<string, unknown> | null = null;
       try {
         const data: unknown = await res.json();
@@ -61,21 +57,23 @@ export function MailView() {
         record = null;
       }
       if (record === null) {
-        // Route missing / HTML error page — treat as unconfigured environment.
         setLines((prev) => ({ ...prev, [protocol]: { status: "error", message: UNAVAILABLE_MSG } }));
         return;
       }
-      const latency = typeof record.latencyMs === "number" ? record.latencyMs : 0;
-      if (res.ok && record.ok !== false) {
-        setLines((prev) => ({
-          ...prev,
-          [protocol]: { status: "ok", latency: latency > 0 ? latency : Math.round(120 + Math.random() * 380) },
-        }));
-        push(`${protocol.toUpperCase()} test passed (demo)`);
-      } else {
-        const message = typeof record.message === "string" ? record.message : `Test failed — server responded ${res.status}`;
-        setLines((prev) => ({ ...prev, [protocol]: { status: "error", message } }));
-      }
+      // Route returns { smtp: { ok, code? }, imap: { ok, code?, message? }, demo? }
+      const smtpRec = (record.smtp ?? {}) as Record<string, unknown>;
+      const imapRec = (record.imap ?? {}) as Record<string, unknown>;
+      const next = (pick: Record<string, unknown>, other: Record<string, unknown>): Record<Protocol, LineState> => ({
+        smtp: pick === smtpRec
+          ? (smtpRec.ok ? { status: "ok" } : { status: "error", message: typeof smtpRec.code === "string" ? "SMTP check failed — " + smtpRec.code : "SMTP check failed" })
+          : (other.ok ? { status: "ok" } : { status: "error", message: typeof other.code === "string" ? "SMTP check failed — " + other.code : "SMTP check failed" }),
+        imap: pick === imapRec
+          ? (imapRec.ok ? { status: "ok" } : { status: "error", message: typeof imapRec.message === "string" ? imapRec.message : (typeof imapRec.code === "string" ? "IMAP check failed — " + imapRec.code : "IMAP check failed") })
+          : (other.ok ? { status: "ok" } : { status: "error", message: typeof other.message === "string" ? other.message : (typeof other.code === "string" ? "IMAP check failed — " + other.code : "IMAP check failed") }),
+      });
+      setLines(next(protocol === "smtp" ? smtpRec : imapRec, protocol === "smtp" ? imapRec : smtpRec));
+      const focusRec = protocol === "smtp" ? smtpRec : imapRec;
+      if (focusRec.ok) push(`${protocol.toUpperCase()} connection verified`);
     } catch {
       setLines((prev) => ({ ...prev, [protocol]: { status: "error", message: UNAVAILABLE_MSG } }));
     }
@@ -142,7 +140,7 @@ export function MailView() {
                         {line.status === "ok" && (
                           <p className="flex items-center gap-1.5 text-[11px] font-semibold text-tint-fg-green">
                             <CircleCheck size={13} strokeWidth={2.4} aria-hidden="true" />
-                            {key.toUpperCase()} OK — authenticated &amp; handshake in {line.latency} ms
+                            {key.toUpperCase()} OK — authenticated &amp; handshake complete
                           </p>
                         )}
                         {line.status === "error" && (
@@ -193,7 +191,7 @@ export function MailView() {
               {[
                 "Keys live in Vercel env vars — SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD — scoped per environment.",
                 "A server-only route reads them on demand and opens a real connection to Hostinger.",
-                "The result — latency or the exact failure — is rendered right here. No guessing.",
+                "The result — verified or the exact failure code — is rendered right here. No guessing.",
               ].map((step, i) => (
                 <li key={i} className="flex gap-2.5">
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-pill bg-canvas font-mono text-[10px] font-bold text-obsidian">{i + 1}</span>
