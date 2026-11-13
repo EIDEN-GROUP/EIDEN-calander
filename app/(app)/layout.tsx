@@ -17,7 +17,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       </Suspense>
       <div className="lg:pl-[76px]">
         {!supabaseConfigured && <DemoBanner />}
-        <TopBar notificationCount={3} />
+        <Suspense fallback={<div className="frosted sticky top-0 z-30 h-[68px]" aria-hidden="true" />}>
+          <TopBar />
+        </Suspense>
         <main className="px-4 pb-24 pt-5 sm:px-6 sm:pt-6 lg:px-7 lg:pb-10 lg:pt-7">
           {children}
         </main>

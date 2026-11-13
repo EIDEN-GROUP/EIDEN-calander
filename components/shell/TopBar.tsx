@@ -1,11 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Search, Bell } from "lucide-react";
+import { unreadNotificationCountAction } from "@/app/actions/notifications";
 
-export function TopBar({ notificationCount = 3 }: { notificationCount?: number }) {
+export function TopBar({ notificationCount: initialCount }: { notificationCount?: number }) {
   const [locale, setLocale] = useState<"en" | "fr">("en");
+  const [notificationCount, setNotificationCount] = useState(initialCount ?? 0);
+
+  useEffect(() => {
+    let active = true;
+    unreadNotificationCountAction()
+      .then((n) => {
+        if (active) setNotificationCount(n);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <header className="frosted sticky top-0 z-30 flex h-[68px] items-center gap-3 px-4 sm:px-6">

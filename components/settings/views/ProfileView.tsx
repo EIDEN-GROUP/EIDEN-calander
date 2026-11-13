@@ -15,6 +15,9 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { PageHeader } from "@/components/settings/PageHeader";
+import { updateProfileAction, changePasswordAction } from "@/app/actions/profile";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 import { ToastViewport, useToast } from "@/components/settings/Toast";
 
 type Locale = "en" | "fr";
@@ -37,12 +40,28 @@ const STRENGTH: Array<{ label: string; bar: string; text: string }> = [
   { label: "Excellent", bar: "bg-success", text: "text-tint-fg-green" },
 ];
 
-export function ProfileView() {
-  const { toasts, push } = useToast();
+export interface LiveProfile {
+  fullName: string;
+  email: string;
+  phone: string | null;
+  locale: "en" | "fr";
+  role: "admin" | "staff";
+  memberSince: string | null;
+}
 
-  const [name, setName] = useState("Marouane A.");
-  const [phone, setPhone] = useState("+212 5 22 00 00 00");
-  const [locale, setLocale] = useState<Locale>("en");
+export function ProfileView({ firstLogin = false, profile = null }: { firstLogin?: boolean; profile?: LiveProfile | null }) {
+  const router = useRouter();
+  const { toasts, push } = useToast();
+  const initials = (profile?.fullName ?? "MA")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? "")
+    .join("");
+
+  const [name, setName] = useState(profile?.fullName ?? "Marouane A.");
+  const [phone, setPhone] = useState(profile?.phone ?? "");
+  const [locale, setLocale] = useState<Locale>(profile?.locale ?? "en");
 
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
@@ -54,7 +73,7 @@ export function ProfileView() {
   const score = useMemo(() => passwordScore(newPw), [newPw]);
   const strength = STRENGTH[score];
 
-  const submitPassword = (event: FormEvent<HTMLFormElement>) => {
+  const submitPassword = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!currentPw) {
       setPwError("Enter your current password.");
@@ -69,10 +88,15 @@ export function ProfileView() {
       return;
     }
     setPwError(null);
+    const res = await changePasswordAction({ currentPassword: currentPw, newPassword: newPw });
+    if (!res.ok) {
+      setPwError(res.error.code === "current_password" ? "Your current password is incorrect." : res.error.message);
+      return;
+    }
     setCurrentPw("");
     setNewPw("");
     setConfirmPw("");
-    push("Password updated (demo) — other sessions would be revoked");
+    push("✓ Password updated — other sessions were revoked.");
   };
 
   return (
@@ -84,6 +108,19 @@ export function ProfileView() {
         parentHref="/settings"
       />
 
+      {firstLogin && (
+        <div
+          role="alert"
+          className="mt-4 flex items-start gap-3 rounded-sm border border-warning/50 bg-warning-tint px-4 py-3 text-[13px] font-semibold leading-snug text-[#a34d00]"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <span>
+            Welcome to CALENDAR. — your account was created with a temporary password.
+            Set your own password below to finish setting up your workspace.
+          </span>
+        </div>
+      )}
+
       {/* Identity header card */}
       <div className="card mt-5 flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:p-6">
         <div className="relative shrink-0">
@@ -91,11 +128,11 @@ export function ProfileView() {
             aria-hidden="true"
             className="flex h-24 w-24 select-none items-center justify-center rounded-pill bg-electric text-[30px] font-extrabold tracking-[-0.02em] text-white shadow-electric ring-4 ring-electric-tint"
           >
-            MA
+            {initials || "MA"}
           </span>
           <button
             type="button"
-            onClick={() => push("Avatar upload ships with the live build (demo)")}
+            onClick={() => push("Avatar upload is coming soon — your initials work great for now")}
             aria-label="Edit avatar"
             className="absolute -bottom-1.5 -right-1.5 flex h-9 w-9 items-center justify-center rounded-pill border border-border bg-white text-obsidian-light shadow-sm transition-all hover:scale-105 hover:text-obsidian"
           >
@@ -113,19 +150,19 @@ export function ProfileView() {
             autoComplete="name"
           />
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <span className="chip bg-obsidian text-[10px] uppercase tracking-[0.12em] text-white">Admin</span>
+            <span className="chip bg-obsidian text-[10px] uppercase tracking-[0.12em] text-white">{profile?.role === "admin" ? "Admin" : "Staff"}</span>
             <span className="flex items-center gap-1 text-[11px] font-semibold text-muted">
               <Building2 size={11} strokeWidth={2.2} aria-hidden="true" />
               Eiden Group
             </span>
             <span className="flex items-center gap-1 text-[11px] font-semibold text-muted">
               <CalendarDays size={11} strokeWidth={2.2} aria-hidden="true" />
-              Member since March 2025
+              {profile?.memberSince ? "Member since " + new Date(profile.memberSince).toLocaleDateString("en-GB", { month: "long", year: "numeric" }) : "Member since 2025"}
             </span>
           </div>
           <p className="mt-2 flex flex-wrap items-center gap-1.5 font-mono text-[12px] font-semibold text-obsidian-light">
             <Lock size={12} strokeWidth={2.4} aria-hidden="true" className="text-muted" />
-            contact@eiden-group.com
+            {profile?.email ?? "contact@eiden-group.com"}
             <span
               title="Managed by your administrator — contact support to change"
               aria-label="Managed by your administrator — contact support to change"
@@ -165,7 +202,15 @@ export function ProfileView() {
             <p className="mt-1.5 text-[11px] font-medium text-muted">Employer is managed by your administrator</p>
           </div>
           <div className="border-t border-divider pt-3">
-            <button type="button" onClick={() => push("Contact details saved (demo)")} className="btn btn-primary h-10 w-full text-[13px]">
+            <button
+              type="button"
+              onClick={async () => {
+                const res = await updateProfileAction({ fullName: name.trim(), phone: phone.trim() || null, locale });
+                push(res.ok ? "✓ Contact details saved" : res.error.message);
+                if (res.ok) router.refresh();
+              }}
+              className="btn btn-primary h-10 w-full text-[13px]"
+            >
               Save contact
             </button>
           </div>
@@ -204,7 +249,15 @@ export function ProfileView() {
             </div>
           </div>
           <div className="border-t border-divider pt-3">
-            <button type="button" onClick={() => push("Preferences saved (demo)")} className="btn btn-primary h-10 w-full text-[13px]">
+            <button
+              type="button"
+              onClick={async () => {
+                const res = await updateProfileAction({ fullName: name.trim(), phone: phone.trim() || null, locale });
+                push(res.ok ? "✓ Preferences saved" : res.error.message);
+                if (res.ok) router.refresh();
+              }}
+              className="btn btn-primary h-10 w-full text-[13px]"
+            >
               Save preferences
             </button>
           </div>
@@ -277,7 +330,12 @@ export function ProfileView() {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => { setConfirmSignOut(false); push("Signed out of 2 other sessions (demo)"); }}
+                    onClick={async () => {
+                      const supabase = createClient();
+                      if (supabase) await supabase.auth.signOut({ scope: "others" });
+                      setConfirmSignOut(false);
+                      push("Signed out everywhere else ✓");
+                    }}
                     className="inline-flex h-9 items-center gap-1.5 rounded-pill bg-error px-3 text-[11px] font-bold text-white transition-opacity hover:opacity-90"
                   >
                     <LogOut size={12} strokeWidth={2.4} aria-hidden="true" />
