@@ -1,0 +1,236 @@
+@import "tailwindcss";
+
+/* ============================================================
+   CALENDAR. by Eiden Group — Brand tokens (brand book, v1.1)
+   Source: brand-book-calander.html — "Architecture for Time."
+   ============================================================ */
+
+@theme {
+  /* Brand color system */
+  --color-canvas: #f5f5f7;
+  --color-surface: #ffffff;
+  --color-surface-elevated: rgba(255, 255, 255, 0.8);
+  --color-track: rgba(118, 118, 128, 0.12);
+  --color-hover-fill: #e5e5ea;
+
+  --color-obsidian: #1d1d1f;
+  --color-obsidian-light: #424245;
+  --color-muted: #6e6e73;
+
+  --color-electric: #0066cc;
+  --color-electric-hover: #005bb5;
+  --color-electric-tint: rgba(0, 102, 204, 0.1);
+  --color-electric-tint-strong: rgba(0, 102, 204, 0.16);
+
+  --color-success: #34c759;
+  --color-success-tint: rgba(52, 199, 89, 0.14);
+  --color-warning: #ff9f0a;
+  --color-warning-tint: rgba(255, 159, 10, 0.16);
+  --color-error: #ff3b30;
+  --color-error-tint: rgba(255, 59, 48, 0.12);
+
+  /* Category tint presets (muted, WCAG-friendly) */
+  --color-tint-blue: rgba(0, 102, 204, 0.12);
+  --color-tint-green: rgba(36, 138, 61, 0.12);
+  --color-tint-purple: rgba(94, 92, 230, 0.12);
+  --color-tint-amber: rgba(201, 106, 0, 0.12);
+  --color-tint-teal: rgba(10, 132, 255, 0.12);
+  --color-tint-rose: rgba(216, 27, 96, 0.1);
+  --color-tint-fg-blue: #005bb5;
+  --color-tint-fg-green: #1e6b31;
+  --color-tint-fg-purple: #4b49c8;
+  --color-tint-fg-amber: #a34d00;
+  --color-tint-fg-teal: #0066cc;
+  --color-tint-fg-rose: #b0256b;
+
+  /* Hairlines */
+  --color-border: rgba(0, 0, 0, 0.08);
+  --color-divider: rgba(0, 0, 0, 0.04);
+
+  /* Typography — native SF stack (brand book), no webfonts */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+
+  /* Geometry (brand book) */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 32px;
+  --radius-pill: 999px;
+
+  /* Elevation (brand book) */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.08);
+  --shadow-electric: 0 8px 24px rgba(0, 102, 204, 0.3);
+
+  /* Motion (brand book) */
+  --ease-apple: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: var(--color-canvas);
+    color: var(--color-obsidian);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+  }
+  ::selection {
+    background: var(--color-electric-tint-strong);
+  }
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px var(--color-canvas), 0 0 0 6px rgba(0, 102, 204, 0.45);
+    border-radius: var(--radius-xs);
+  }
+}
+
+@layer components {
+  /* Frosted sticky bars (brand book nav spec) */
+  .frosted {
+    background: var(--color-surface-elevated);
+    backdrop-filter: blur(24px) saturate(1.6);
+    -webkit-backdrop-filter: blur(24px) saturate(1.6);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  /* Buttons */
+  .btn {
+    @apply inline-flex h-11 select-none items-center justify-center gap-2 whitespace-nowrap rounded-pill px-6 text-[15px] font-semibold transition-all duration-200;
+    transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+  }
+  .btn-primary {
+    background: var(--color-electric);
+    color: #fff;
+  }
+  .btn-primary:hover {
+    background: var(--color-electric-hover);
+    transform: scale(1.02);
+    box-shadow: var(--shadow-electric);
+  }
+  .btn-secondary {
+    background: var(--color-canvas);
+    color: var(--color-obsidian);
+  }
+  .btn-secondary:hover {
+    background: var(--color-hover-fill);
+  }
+  .btn-ghost {
+    background: transparent;
+    color: var(--color-obsidian-light);
+  }
+  .btn-ghost:hover {
+    background: rgba(0, 0, 0, 0.04);
+  }
+
+  /* Inputs */
+  .label {
+    @apply mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-obsidian-light;
+  }
+  .input {
+    @apply h-11 w-full rounded-[14px] border border-border bg-white px-4 text-[15px] text-obsidian outline-none transition-shadow placeholder:text-black/30;
+  }
+  .input:focus {
+    border-color: rgba(0, 102, 204, 0.5);
+    box-shadow: 0 0 0 4px var(--color-electric-tint);
+  }
+  .input-pill {
+    @apply h-12 w-full rounded-pill border border-border bg-white px-5 text-[16px] text-obsidian outline-none transition-shadow placeholder:text-black/30;
+  }
+  .input-pill:focus {
+    border-color: rgba(0, 102, 204, 0.6);
+    box-shadow: 0 0 0 4px var(--color-electric-tint);
+  }
+
+  /* Cards & surfaces */
+  .card {
+    @apply rounded-md border border-border bg-white;
+    box-shadow: var(--shadow-sm);
+  }
+  .card-hover {
+    transition: transform 0.25s var(--ease-apple), box-shadow 0.25s var(--ease-apple);
+  }
+  .card-hover:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* The Now Principle — 4px Electric Blue bar on active elements */
+  .now-bar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--color-electric);
+  }
+
+  /* iOS segmented control (brand book) */
+  .segmented {
+    @apply inline-flex rounded-[9px] p-1;
+    background: var(--color-track);
+  }
+  .segment {
+    @apply flex h-8 cursor-pointer select-none items-center rounded-[7px] px-4 text-[13px] font-semibold text-obsidian transition-all;
+    background: transparent;
+  }
+  .segment-active {
+    background: #fff;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.04);
+  }
+
+  /* Chips */
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-semibold;
+  }
+
+  /* Icon rail buttons */
+  .rail-btn {
+    @apply relative flex h-12 w-12 items-center justify-center rounded-pill border border-border bg-white text-obsidian-light transition-all duration-200;
+    box-shadow: var(--shadow-sm);
+  }
+  .rail-btn:hover {
+    transform: translateY(-2px);
+    color: var(--color-obsidian);
+    box-shadow: var(--shadow-md);
+  }
+  .rail-btn[data-active="true"] {
+    background: var(--color-electric-tint);
+    color: var(--color-electric);
+    border-color: rgba(0, 102, 204, 0.25);
+  }
+
+  /* Login artwork floating cards */
+  @keyframes floaty {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+  .floaty {
+    animation: floaty 7s var(--ease-apple) infinite;
+  }
+  .floaty-delay {
+    animation: floaty 8.5s var(--ease-apple) 1.2s infinite;
+  }
+  .floaty-slow {
+    animation: floaty 10s var(--ease-apple) 0.6s infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .floaty, .floaty-delay, .floaty-slow {
+      animation: none;
+    }
+  }
+
+  /* Blueprint grid background (brand book stage) */
+  .blueprint-grid {
+    background-image:
+      linear-gradient(to right, var(--color-divider) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--color-divider) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+}

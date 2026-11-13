@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          # Build must succeed without secrets: app degrades to "setup mode".
+          NEXT_PUBLIC_SUPABASE_URL: ""
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ""
+
+      - name: Audit (high severity)
+        run: npm audit --audit-level=high || echo "::warning::npm audit found high-severity issues — review before launch (non-blocking during pre-launch)"
+
+      - name: i18n key parity (en/fr)
+        run: |
+          node -e '
+            const en = require("./messages/en.json"), fr = require("./messages/fr.json");
+            const flat = (o, p = "") => Object.entries(o).flatMap(([k, v]) => v && typeof v === "object" ? flat(v, p + k + ".") : [p + k]);
+            const a = flat(en), b = flat(fr);
+            const missA = a.filter(k => !b.includes(k)), missB = b.filter(k => !a.includes(k));
+            if (missA.length || missB.length) {
+              console.error("Missing in fr.json:", missA, "Missing in en.json:", missB);
+              process.exit(1);
+            }
+            console.log("i18n parity OK (" + a.length + " keys)");
+          '
+        if: ${{ hashFiles('messages/en.json') != '' }}
