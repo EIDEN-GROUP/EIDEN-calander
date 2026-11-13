@@ -67,7 +67,9 @@ export function StatTile({
           )}
         </p>
         <div className="mt-1.5 flex h-[18px] items-center">
-          {comparison ? (
+          {delta === "" ? (
+            <p className="text-[11px] font-medium text-muted">No prior period in data yet</p>
+          ) : comparison ? (
             <p
               className={`inline-flex items-center gap-0.5 text-[11px] font-semibold ${deltaTone}`}
             >

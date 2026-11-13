@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ReportsView } from "@/components/charts/ReportsView";
+import { loadReports } from "@/lib/reports-live";
 
 export const metadata: Metadata = { title: "Reports" };
-// Chart buckets derive from today — stream the client view in, don't prerender it.
+// Reads live data at request time — block prerender.
 export const instant = false;
 
 function ReportsFallback() {
@@ -24,10 +25,11 @@ function ReportsFallback() {
   );
 }
 
-export default function ReportsPage() {
+export default async function ReportsPage() {
+  const live = await loadReports();
   return (
     <Suspense fallback={<ReportsFallback />}>
-      <ReportsView />
+      <ReportsView live={live} />
     </Suspense>
   );
 }

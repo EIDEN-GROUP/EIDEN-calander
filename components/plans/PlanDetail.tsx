@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { FormEvent, KeyboardEvent } from "react";
 import {
@@ -22,6 +22,17 @@ import { Toast } from "@/components/bookings/Toast";
 import { useDemoToast } from "@/components/charts/useDemoToast";
 import { Switch } from "@/components/charts/Switch";
 import { useDemoStore, useDemoStoreReady } from "./useDemoStore";
+import { setLiveStaff } from "./demo-staff";
+import {
+  addPlanTaskAction,
+  cyclePlanTaskAction,
+  deletePlanTaskAction,
+  reorderPlanTasksAction,
+  togglePlanCalendarMarkerAction,
+  updatePlanStatusAction,
+} from "@/app/actions/plans";
+import { useRouter } from "next/navigation";
+import type { PlansData } from "@/lib/plans-live";
 import { deriveProgress } from "./demo-store";
 import type { PlanRow, PlanStatus, PlanTaskRow, TaskStatus } from "@/lib/types/db";
 import { getStaff } from "./demo-staff";
@@ -51,20 +62,35 @@ const dueCompare = (a: PlanTaskRow, b: PlanTaskRow) => {
   return a.position - b.position;
 };
 
-export function PlanDetail({ id }: { id: string }) {
+export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }) {
+  const router = useRouter();
+  const live = data?.live === true;
   const { toast, showToast, dismiss } = useDemoToast();
 
+  useEffect(() => {
+    if (data?.members?.length) setLiveStaff(data.members);
+  }, [data]);
+
   const { plans, tasks, commitPlans, commitTasks } = useDemoStore();
-  const hydrated = useDemoStoreReady();
+  const storeHydrated = useDemoStoreReady();
+  const hydrated = live || storeHydrated;
+  const [livePlans, setLivePlans] = useState<PlanRow[]>(data?.plans ?? []);
+  const [liveTasks, setLiveTasks] = useState<PlanTaskRow[]>(data?.tasks ?? []);
+  useEffect(() => {
+    setLivePlans(data?.plans ?? []);
+    setLiveTasks(data?.tasks ?? []);
+  }, [data]);
+  const plansView = live ? livePlans : plans;
+  const tasksView = live ? liveTasks : tasks;
   const [sort, setSort] = useState<TaskSort>("manual");
   const [draft, setDraft] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [dragTaskId, setDragTaskId] = useState<string | null>(null);
   const [dropHint, setDropHint] = useState<{ id: string; before: boolean } | null>(null);
 
-  const plan = plans.find((p) => p.id === id) ?? null;
+  const plan = plansView.find((p) => p.id === id) ?? null;
 
-  const planTasks = useMemo(() => tasks.filter((t) => t.plan_id === id), [tasks, id]);
+  const planTasks = useMemo(() => tasksView.filter((t) => t.plan_id === id), [tasksView, id]);
 
   const visibleTasks = useMemo(() => {
     const list = [...planTasks];
@@ -77,15 +103,34 @@ export function PlanDetail({ id }: { id: string }) {
 
   const updatePlan = useCallback(
     (patch: Partial<PlanRow>) => {
+      if (live) {
+        if (patch.status) {
+          setLivePlans((prev) => prev.map((p) => (p.id === id ? { ...p, status: patch.status! } : p)));
+          void updatePlanStatusAction({ planId: id, status: patch.status }).then(() => router.refresh());
+        }
+        if (patch.target_date_marker !== undefined) {
+          setLivePlans((prev) => prev.map((p) => (p.id === id ? { ...p, target_date_marker: patch.target_date_marker! } : p)));
+          void togglePlanCalendarMarkerAction({ planId: id, on: patch.target_date_marker }).then(() => router.refresh());
+        }
+        return;
+      }
       commitPlans((prev) => prev.map((p) => (p.id === id ? { ...p, ...patch } : p)));
     },
-    [commitPlans, id],
+    [commitPlans, id, live, router],
   );
 
   /* ---------- task mutations ---------- */
 
   const toggleTask = (task: PlanTaskRow) => {
     const nextDone = task.status !== "done";
+    if (live) {
+      const next = nextDone ? "done" : "todo";
+      setLiveTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? { ...t, status: next, completed_at: nextDone ? new Date().toISOString() : null } : t)),
+      );
+      void cyclePlanTaskAction({ taskId: task.id, status: next }).then(() => router.refresh());
+      return;
+    }
     commitTasks((prev) =>
       prev.map((t) =>
         t.id === task.id
@@ -103,6 +148,13 @@ export function PlanDetail({ id }: { id: string }) {
   const cycleStatus = (task: PlanTaskRow) => {
     const idx = TASK_CYCLE.indexOf(task.status);
     const next = TASK_CYCLE[(idx + 1) % TASK_CYCLE.length];
+    if (live) {
+      setLiveTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? { ...t, status: next, completed_at: next === "done" ? new Date().toISOString() : null } : t)),
+      );
+      void cyclePlanTaskAction({ taskId: task.id, status: next }).then(() => router.refresh());
+      return;
+    }
     commitTasks((prev) =>
       prev.map((t) =>
         t.id === task.id
@@ -118,6 +170,12 @@ export function PlanDetail({ id }: { id: string }) {
   };
 
   const deleteTask = (taskId: string) => {
+    if (live) {
+      setLiveTasks((prev) => prev.filter((t) => t.id !== taskId));
+      void deletePlanTaskAction({ taskId }).then(() => router.refresh());
+      setConfirmDeleteId(null);
+      return;
+    }
     commitTasks((prev) => {
       const remaining = prev.filter((t) => t.id !== taskId && t.plan_id === id);
       const others = prev.filter((t) => t.plan_id !== id);
@@ -133,7 +191,18 @@ export function PlanDetail({ id }: { id: string }) {
     e?.preventDefault();
     const title = draft.trim();
     if (!title || !plan) return;
-    // TODO(WIRE): insert into plan_tasks (position = max+1), then refresh.
+    if (live) {
+      const position = planTasks.reduce((m, t) => Math.max(m, t.position), 0) + 1;
+      void addPlanTaskAction({ planId: plan.id, title, assigneeId: plan.owner_id }).then((res) => {
+        if (!res.ok) {
+          showToast(res.error.message, undefined, "warning");
+          return;
+        }
+        router.refresh();
+      });
+      setDraft("");
+      return;
+    }
     commitTasks((prev) => {
       const mine = prev.filter((t) => t.plan_id === plan.id);
       const position = mine.reduce((m, t) => Math.max(m, t.position), 0) + 1;
@@ -156,6 +225,21 @@ export function PlanDetail({ id }: { id: string }) {
 
   const reorderTasks = (dragId: string, targetId: string, before: boolean) => {
     if (dragId === targetId) return;
+    if (live) {
+      const mine = [...planTasks].sort((a, b) => a.position - b.position);
+      const dragged = mine.find((t) => t.id === dragId);
+      const rest = mine.filter((t) => t.id !== dragId);
+      const targetIdx = rest.findIndex((t) => t.id === targetId);
+      if (!dragged || targetIdx === -1) return;
+      const insertAt = before ? targetIdx : targetIdx + 1;
+      const ordered = [...rest.slice(0, insertAt), dragged, ...rest.slice(insertAt)].map((t, i) => ({ ...t, position: i + 1 }));
+      setLiveTasks(ordered);
+      void reorderPlanTasksAction({ planId: id, orderedIds: ordered.map((t) => t.id) }).then(() => router.refresh());
+      setSort("manual");
+      setDragTaskId(null);
+      setDropHint(null);
+      return;
+    }
     commitTasks((prev) => {
       const mine = prev
         .filter((t) => t.plan_id === id)

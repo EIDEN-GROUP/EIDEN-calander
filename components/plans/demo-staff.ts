@@ -46,10 +46,21 @@ export interface ResolvedStaff {
   tint: string;
 }
 
+/** Module-level live directory — populated by server-fed pages so live UUIDs render as names. */
+let LIVE_STAFF: Array<{ id: string; full_name: string; role: string }> = [];
+
+export function setLiveStaff(members: Array<{ id: string; full_name: string; role: string }>): void {
+  LIVE_STAFF = members;
+}
+
 /** Resolve an id from demo bookings/plans to a display identity. Unknown ids degrade to their raw value, never crash. */
 export function getStaff(id: string | null | undefined): ResolvedStaff {
   if (!id) {
     return { id: null, name: "Unassigned", initials: "–", tint: "bg-track text-muted" };
+  }
+  const live = LIVE_STAFF.find((m) => m.id === id);
+  if (live) {
+    return { id, name: live.full_name.split(" ")[0] ?? live.full_name, initials: initialsOf(live.full_name), tint: FALLBACK_TINTS[Math.abs(hashCode(id)) % FALLBACK_TINTS.length] };
   }
   const known = DEMO_STAFF.find((m) => m.id === id);
   if (known) {
@@ -64,4 +75,10 @@ export function getStaff(id: string | null | undefined): ResolvedStaff {
     .replace(/[-_]+/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
   return { id, name, initials: initialsOf(name), tint };
+}
+
+function hashCode(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i += 1) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return h;
 }

@@ -35,6 +35,7 @@ import { downloadCsv } from "./csv";
 import { formatDayLong, formatMoney, shareOf } from "./format";
 import { seededSeries, walkSeries } from "./seed";
 import { DEMO_ROOMS, getDemoBookings } from "@/lib/demo-data";
+import type { ReportsLive } from "@/lib/reports-live";
 
 /* ------------------------------------------------------------------ */
 /* Controls                                                            */
@@ -149,6 +150,75 @@ function buildBuckets(range: RangeKey, loc: LocationKey): DayBucket[] {
   return buckets;
 }
 
+
+/* ------------------------------------------------------------------ */
+/* Live aggregates — derived from the server-provided daily series      */
+/* ------------------------------------------------------------------ */
+
+function locKey(loc: LocationKey): "all" | "casa" | "agadir" {
+  return loc === "casa" ? "casa" : loc === "agadir" ? "agadir" : "all";
+}
+
+function liveBuckets(live: ReportsLive, range: RangeKey, loc: LocationKey): DayBucket[] {
+  const days = RANGE_DAYS[range];
+  const bucketCount = days > 45 ? Math.ceil(days / 7) : days;
+  const key = locKey(loc);
+  const cur = live.daily.slice(-days);
+  const prev = live.daily.slice(-2 * days, -days);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const startDay = new Date(today);
+  startDay.setDate(today.getDate() - (days - 1));
+
+  const buckets: DayBucket[] = Array.from({ length: bucketCount }, (_, i) => {
+    const sOffset = Math.floor((i * days) / bucketCount);
+    const eOffset = Math.floor(((i + 1) * days) / bucketCount) - 1;
+    let count = 0, revenue = 0, prevCount = 0;
+    for (let d = sOffset; d <= eOffset; d++) {
+      count += cur[d]?.[key]?.[0] ?? 0;
+      revenue += cur[d]?.[key]?.[1] ?? 0;
+      prevCount += prev[d]?.[key]?.[0] ?? 0;
+    }
+    const bucketStart = new Date(startDay);
+    bucketStart.setDate(startDay.getDate() + sOffset);
+    const bucketEnd = new Date(startDay);
+    bucketEnd.setDate(startDay.getDate() + eOffset);
+    const isWeek = bucketCount < days;
+    return {
+      label: bucketStart.toLocaleDateString("en-GB", isWeek ? { day: "numeric", month: "short" } : { weekday: "short", day: "numeric" }),
+      fullLabel: isWeek
+        ? `${formatDayLong(bucketStart)} – ${formatDayLong(bucketEnd)}`
+        : formatDayLong(bucketStart),
+      count,
+      revenue,
+      prevCount,
+    };
+  });
+  return buckets;
+}
+
+function liveTotals(live: ReportsLive, range: RangeKey, loc: LocationKey) {
+  const days = RANGE_DAYS[range];
+  const key = locKey(loc);
+  const cur = live.daily.slice(-days);
+  const prev = live.daily.slice(-2 * days, -days);
+  const sum = (rows: typeof cur, idx: 0 | 1) => rows.reduce((s, r) => s + (r?.[key]?.[idx] ?? 0), 0);
+  return {
+    bookings: sum(cur, 0),
+    revenue: sum(cur, 1),
+    prevBookings: sum(prev, 0),
+    prevRevenue: sum(prev, 1),
+    spark: cur.slice(-12).map((r) => r?.[key]?.[0] ?? 0),
+    sparkRevenue: cur.slice(-12).map((r) => r?.[key]?.[1] ?? 0),
+  };
+}
+
+function fmtDelta(cur: number, prev: number): { text: string; up: boolean } {
+  if (prev <= 0) return { text: cur > 0 ? "+100%" : "0%", up: cur >= 0 };
+  const pct = Math.round(((cur - prev) / prev) * 100);
+  return { text: (pct >= 0 ? "+" : "") + pct + "%", up: pct >= 0 };
+}
+
 /* ------------------------------------------------------------------ */
 /* Static demo datasets (range/location-scaled deterministically)      */
 /* ------------------------------------------------------------------ */
@@ -251,14 +321,18 @@ function UtilTooltip({
 /* View                                                                */
 /* ------------------------------------------------------------------ */
 
-export function ReportsView() {
+export function ReportsView({ live }: { live?: ReportsLive | null }) {
   const { toast, showToast, dismiss } = useDemoToast();
   const [range, setRange] = useState<RangeKey>("30D");
   const [location, setLocation] = useState<LocationKey>("all");
   const [compare, setCompare] = useState(true);
 
   /* ----- derived dataset (deterministic) ----- */
-  const buckets = useMemo(() => buildBuckets(range, location), [range, location]);
+  const buckets = useMemo(
+    () => (live ? liveBuckets(live, range, location) : buildBuckets(range, location)),
+    [live, range, location],
+  );
+  const totals = useMemo(() => (live ? liveTotals(live, range, location) : null), [live, range, location]);
   const totalBookingsInChart = useMemo(() => buckets.reduce((s, b) => s + b.count, 0), [buckets]);
   const peak = useMemo(
     () => buckets.reduce((best, b) => (b.count > best.count ? b : best), buckets[0]),
@@ -266,10 +340,12 @@ export function ReportsView() {
   );
 
   const revenueScale = (HEADLINE[range].revenue / 48_650) * LOC_SCALE[location];
-  const categoryData = CATEGORY_BASE.map((c) => ({
-    ...c,
-    value: Math.round(c.value * revenueScale),
-  }));
+  const categoryData = live
+    ? live.byCategory.map((c) => ({ name: c.name, value: c.revenue, color: c.color }))
+    : CATEGORY_BASE.map((c) => ({
+        ...c,
+        value: Math.round(c.value * revenueScale),
+      }));
   const categoryTotal = categoryData.reduce((s, c) => s + c.value, 0);
   const categoryDataWithShare = categoryData.map((c) => ({
     ...c,
@@ -278,30 +354,53 @@ export function ReportsView() {
 
   const utilData = useMemo(
     () =>
-      ROOM_UTIL_BASE.filter((r) => location === "all" || r.location === location).map((r) => ({
-        ...r,
-        pct: Math.min(96, Math.max(4, r.pct + UTIL_RANGE_TWEAK[range])),
-      })),
-    [location, range],
+      live
+        ? live.byRoom
+            .filter((r) => location === "all" || r.location === location)
+            .map((r) => ({ room: r.room, pct: r.pct, hours: r.hours, location: r.location }))
+        : ROOM_UTIL_BASE.filter((r) => location === "all" || r.location === location).map((r) => ({
+            ...r,
+            pct: Math.min(96, Math.max(4, r.pct + UTIL_RANGE_TWEAK[range])),
+          })),
+    [live, location, range],
   );
 
-  const formationRows = useMemo(() => (location === "agadir" ? [] : FORMATION_ROWS), [location]);
+  const formationRows = useMemo(
+    () =>
+      live
+        ? live.formations.filter((f) => location === "all" || f.location === location)
+        : location === "agadir"
+          ? []
+          : FORMATION_ROWS,
+    [live, location],
+  );
 
   /* ----- KPIs ----- */
   const headline = HEADLINE[range];
-  const bookingsKpi = Math.round(headline.bookings * LOC_SCALE[location]);
-  const revenueKpi = Math.round((headline.revenue * LOC_SCALE[location]) / 10) * 10;
-  const utilKpi = utilFor(range, location);
-  const fillKpi = fillFor(range, location);
+  const bookingsKpi = live && totals ? totals.bookings : Math.round(headline.bookings * LOC_SCALE[location]);
+  const revenueKpi = live && totals ? totals.revenue : Math.round((headline.revenue * LOC_SCALE[location]) / 10) * 10;
+  const utilKpi = live
+    ? utilData.length > 0
+      ? Math.round(utilData.reduce((s, r) => s + r.pct, 0) / utilData.length)
+      : 0
+    : utilFor(range, location);
+  const formationAgg = live ? live.formations.filter((f) => location === "all" || f.location === location) : [];
+  const fillKpi = live
+    ? formationAgg.length > 0
+      ? Math.round(formationAgg.reduce((s, f) => s + f.fill, 0) / formationAgg.length)
+      : 0
+    : fillFor(range, location);
+  const bookingsDelta = live && totals ? fmtDelta(totals.bookings, totals.prevBookings) : null;
+  const revenueDelta = live && totals ? fmtDelta(totals.revenue, totals.prevRevenue) : null;
 
   const tiles = [
     {
       label: "Bookings",
       value: formatMoney(bookingsKpi),
-      delta: "+12%",
-      trend: "up" as const,
+      delta: bookingsDelta?.text ?? "+12%",
+      trend: (bookingsDelta?.up ?? true) ? ("up" as const) : ("down" as const),
       iconTint: "bg-tint-blue text-electric",
-      series: walkSeries(`spark:bk:${range}:${location}`, 12, 9, 4),
+      series: live && totals ? totals.spark : walkSeries(`spark:bk:${range}:${location}`, 12, 9, 4),
       sparkLabel: "Bookings trend — gently rising over the period",
       icon: CalendarDays,
     },
@@ -309,10 +408,10 @@ export function ReportsView() {
       label: "Revenue",
       value: formatMoney(revenueKpi),
       prefix: "MAD",
-      delta: "+8%",
-      trend: "up" as const,
+      delta: revenueDelta?.text ?? "+8%",
+      trend: (revenueDelta?.up ?? true) ? ("up" as const) : ("down" as const),
       iconTint: "bg-tint-green text-tint-fg-green",
-      series: walkSeries(`spark:rev:${range}:${location}`, 12, 120, 34),
+      series: live && totals ? totals.sparkRevenue : walkSeries(`spark:rev:${range}:${location}`, 12, 120, 34),
       sparkLabel: "Revenue trend — gently rising over the period",
       icon: Wallet,
     },
@@ -320,10 +419,10 @@ export function ReportsView() {
       label: "Room utilization",
       value: String(utilKpi),
       suffix: "%",
-      delta: "+5 pts",
+      delta: live ? "" : "+5 pts",
       trend: "up" as const,
       iconTint: "bg-tint-purple text-tint-fg-purple",
-      series: walkSeries(`spark:util:${range}:${location}`, 12, 52, 5),
+      series: live && totals ? totals.spark : walkSeries(`spark:util:${range}:${location}`, 12, 52, 5),
       sparkLabel: "Room utilization trend — gently rising over the period",
       icon: DoorOpen,
     },
@@ -331,10 +430,10 @@ export function ReportsView() {
       label: "Formation fill-rate",
       value: String(fillKpi),
       suffix: "%",
-      delta: "+9 pts",
+      delta: live ? "" : "+9 pts",
       trend: "up" as const,
       iconTint: "bg-tint-amber text-tint-fg-amber",
-      series: walkSeries(`spark:fill:${range}:${location}`, 12, 62, 6),
+      series: live && totals ? totals.spark : walkSeries(`spark:fill:${range}:${location}`, 12, 62, 6),
       sparkLabel: "Fill-rate trend — gently rising over the period",
       icon: GraduationCap,
     },
@@ -475,7 +574,7 @@ export function ReportsView() {
           title="Bookings per day"
           icon={BarChart3}
           onExport={exportBookings}
-          caption={`${RANGE_CAPTION[range]} · ${LOC_LABEL[location]}. Demo bookings bucketed by day on a seeded baseline — wire to a bookings daily-aggregate view.`}
+          caption={`${RANGE_CAPTION[range]} · ${LOC_LABEL[location]}. ${live ? "Live — aggregated from your bookings table." : "Demo baseline — seeded sample."}`}
         >
           <div
             role="img"
@@ -666,7 +765,7 @@ export function ReportsView() {
                         <span className="whitespace-nowrap text-[12.5px] font-bold text-obsidian">
                           {row.name}
                         </span>
-                        {row.full && (
+                        {(row.fill ?? 0) >= 100 && (
                           <span className="chip bg-error-tint text-[9.5px] font-extrabold uppercase tracking-[0.08em] text-error">
                             Full
                           </span>

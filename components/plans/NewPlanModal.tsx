@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { useModalA11y } from "@/components/bookings/focus-trap";
 import { Switch } from "@/components/charts/Switch";
 import { DEMO_STAFF } from "./demo-staff";
+import type { ResolvedStaff } from "./demo-staff";
 import type { PlanPriority, PlanStatus } from "@/lib/types/db";
 
 const STATUS_OPTIONS: Array<{ value: PlanStatus; label: string }> = [
@@ -39,9 +40,11 @@ export interface NewPlanDraft {
 export function NewPlanModal({
   onClose,
   onCreate,
+  members = DEMO_STAFF,
 }: {
   onClose: () => void;
   onCreate: (draft: NewPlanDraft) => void;
+  members?: Array<{ id: string; name: string }>;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   useModalA11y(panelRef, onClose);
@@ -172,7 +175,7 @@ export function NewPlanModal({
                 onChange={(e) => setOwnerId(e.target.value)}
                 className="input"
               >
-                {DEMO_STAFF.map((m) => (
+                {members.map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name}
                   </option>

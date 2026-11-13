@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PlansBoard } from "@/components/plans/PlansBoard";
+import { loadPlans } from "@/lib/plans-live";
 
 export const metadata: Metadata = { title: "Plans" };
-// Board derives overdue state from today — stream the client view in, don't prerender it.
+// Reads live data at request time — block prerender.
 export const instant = false;
 
 function BoardFallback() {
@@ -19,10 +20,11 @@ function BoardFallback() {
   );
 }
 
-export default function PlansPage() {
+export default async function PlansPage() {
+  const data = await loadPlans();
   return (
     <Suspense fallback={<BoardFallback />}>
-      <PlansBoard />
+      <PlansBoard data={data} />
     </Suspense>
   );
 }

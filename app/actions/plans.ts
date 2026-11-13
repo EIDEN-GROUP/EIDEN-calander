@@ -167,3 +167,44 @@ export async function deletePlanAction(raw: unknown): Promise<ActionResult<{ del
     return failUnexpected(err);
   }
 }
+
+/** Toggle the "show on calendar" marker for a plan. */
+export async function togglePlanCalendarMarkerAction(raw: unknown): Promise<ActionResult<{ on: boolean }>> {
+  try {
+    await requireUser();
+    const parsed = z.object({ planId: z.string().uuid(), on: z.boolean() }).safeParse(raw);
+    if (!parsed.success) return fail("validation", "Invalid input");
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { error } = await supabase.from("plans").update({ target_date_marker: parsed.data.on }).eq("id", parsed.data.planId);
+    if (error) throw error;
+    revalidatePath(`/plans/${parsed.data.planId}`);
+    revalidatePath("/plans");
+    return { ok: true, data: { on: parsed.data.on } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/** Persist task order after drag-reorder. */
+export async function reorderPlanTasksAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
+  try {
+    await requireUser();
+    const parsed = z.object({
+      planId: z.string().uuid(),
+      orderedIds: z.array(z.string().uuid()).min(1).max(200),
+    }).safeParse(raw);
+    if (!parsed.success) return fail("validation", "Invalid input");
+    const { planId, orderedIds } = parsed.data;
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    for (let i = 0; i < orderedIds.length; i++) {
+      const { error } = await supabase.from("plan_tasks").update({ position: i + 1 }).eq("id", orderedIds[i]).eq("plan_id", planId);
+      if (error) throw error;
+    }
+    revalidatePath(`/plans/${planId}`);
+    return { ok: true, data: { ok: true } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}

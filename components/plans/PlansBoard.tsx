@@ -2,7 +2,11 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { DragEvent, KeyboardEvent } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { setLiveStaff } from "./demo-staff";
+import { createPlanAction, updatePlanStatusAction } from "@/app/actions/plans";
+import type { PlansData } from "@/lib/plans-live";
 import {
   CalendarDays,
   CheckCircle2,
@@ -45,11 +49,19 @@ const COLUMNS: Array<{
   { status: "completed", label: "Completed", icon: CheckCircle2, emptyHint: "Nothing completed yet — finish something today" },
 ];
 
-export function PlansBoard() {
+export function PlansBoard({ data }: { data?: PlansData | null }) {
   const router = useRouter();
+  const live = data?.live === true;
+  const liveMembers = (data?.members ?? []).map((m) => ({ id: m.id, name: m.full_name.split(" ")[0] ?? m.full_name }));
   const { toast, showToast, dismiss } = useDemoToast();
 
-  const { plans, tasks, commitPlans } = useDemoStore();
+  useEffect(() => {
+    if (data?.members?.length) setLiveStaff(data.members);
+  }, [data]);
+
+  const { plans: demoPlans, tasks: demoTasks, commitPlans } = useDemoStore();
+  const plans = data?.plans ?? demoPlans;
+  const tasks = data?.tasks ?? demoTasks;
   const [view, setView] = useState<View>("board");
   const [overdueOnly, setOverdueOnly] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -78,6 +90,13 @@ export function PlansBoard() {
 
   const movePlanTo = useCallback(
     (planId: string, status: PlanStatus) => {
+      if (live) {
+        void updatePlanStatusAction({ planId, status }).then((res) => {
+          if (!res.ok) showToast(res.error.message, undefined, "warning");
+          router.refresh();
+        });
+        return;
+      }
       commitPlans((prev) =>
         prev.map((p) =>
           p.id === planId
@@ -86,7 +105,7 @@ export function PlansBoard() {
         ),
       );
     },
-    [commitPlans],
+    [commitPlans, live, router, showToast],
   );
 
   const handleDrop = useCallback(
@@ -105,7 +124,24 @@ export function PlansBoard() {
 
   const createPlan = useCallback(
     (draft: NewPlanDraft) => {
-      // TODO(WIRE): insert into plans table, then router.refresh().
+      if (live) {
+        void createPlanAction({
+          title: draft.title,
+          description: draft.description || null,
+          ownerId: draft.owner_id,
+          status: draft.status,
+          priority: draft.priority,
+          startDate: draft.start_date || null,
+          targetDate: draft.target_date || null,
+          showOnCalendar: draft.target_date_marker,
+        }).then((res) => {
+          if (!res.ok) showToast(res.error.message, undefined, "warning");
+          else showToast("Plan created", draft.title, "success");
+          setModalOpen(false);
+          router.refresh();
+        });
+        return;
+      }
       const plan: PlanRow = {
         id: `plan-${Date.now().toString(36)}`,
         title: draft.title,
@@ -120,9 +156,9 @@ export function PlansBoard() {
       };
       commitPlans((prev) => [plan, ...prev]);
       setModalOpen(false);
-      showToast("Plan created (demo)", plan.title);
+      showToast("Plan created", plan.title, "success");
     },
-    [commitPlans, showToast],
+    [commitPlans, showToast, live, router],
   );
 
   const isPlanOverdue = useCallback(
@@ -392,7 +428,7 @@ export function PlansBoard() {
 
       {/* New plan modal */}
       {modalOpen && (
-        <NewPlanModal onClose={() => setModalOpen(false)} onCreate={createPlan} />
+        <NewPlanModal onClose={() => setModalOpen(false)} onCreate={createPlan} members={live ? liveMembers : undefined} />
       )}
 
       {/* Demo toast */}
