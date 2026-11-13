@@ -5,6 +5,8 @@ import { listAuditLogAction } from "@/app/actions/settings";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Audit Log · Settings" };
+// Reads live data at request time — block prerender.
+export const instant = false;
 
 type Verb = "create" | "update" | "delete" | "auth" | "settings";
 

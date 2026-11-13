@@ -102,8 +102,8 @@ function buildEntries(): AuditEntry[] {
   return entries;
 }
 
-const source = buildEntries();
-const ACTOR_OPTIONS = Array.from(new Set(source.map((e) => e.actor))).sort();
+const ALL_ENTRIES = buildEntries();
+const ACTOR_OPTIONS = Array.from(new Set(ALL_ENTRIES.map((e) => e.actor))).sort();
 const PAGE_SIZE = 12;
 
 export interface AuditEntryLive {
@@ -219,7 +219,7 @@ export function AuditView({
           <label htmlFor="audit-actor" className="label">Actor</label>
           <select id="audit-actor" className="input h-10 w-36 px-2.5 text-[13px]" value={actor} onChange={(e) => resetAndSet(setActor)(e.target.value)}>
             <option value="all">All actors</option>
-            {ACTOR_OPTIONS.map((a) => (
+            {actorOptions.map((a) => (
               <option key={a} value={a}>{a}</option>
             ))}
           </select>
