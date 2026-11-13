@@ -60,7 +60,7 @@ import {
   type FormationVM,
 } from "./model";
 import type { FormationListData } from "@/lib/formation-vms";
-import { downloadBlob, isLocalFormationId, getFormationsSnapshot, getServerFormationsSnapshot, subscribeFormations } from "./store";
+import { downloadBlob, getFormationsSnapshot, getServerFormationsSnapshot, subscribeFormations } from "./store";
 import { duplicateFormation } from "./duplicate";
 import { Avatar } from "./Avatar";
 import { Modal } from "./Modal";
@@ -208,7 +208,6 @@ function FormationDetailView({
   live: boolean;
 }) {
   const router = useRouter();
-  const id = vm.booking.id;
   const { toasts, push, dismiss } = useToast();
   const [participants, setParticipants] = useState<FormationParticipantRow[]>(
     () => vm.participants,

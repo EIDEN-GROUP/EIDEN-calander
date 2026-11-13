@@ -76,10 +76,12 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
   const hydrated = live || storeHydrated;
   const [livePlans, setLivePlans] = useState<PlanRow[]>(data?.plans ?? []);
   const [liveTasks, setLiveTasks] = useState<PlanTaskRow[]>(data?.tasks ?? []);
-  useEffect(() => {
+  const [prevData, setPrevData] = useState(data);
+  if (prevData !== data) {
+    setPrevData(data);
     setLivePlans(data?.plans ?? []);
     setLiveTasks(data?.tasks ?? []);
-  }, [data]);
+  }
   const plansView = live ? livePlans : plans;
   const tasksView = live ? liveTasks : tasks;
   const [sort, setSort] = useState<TaskSort>("manual");
@@ -192,7 +194,6 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
     const title = draft.trim();
     if (!title || !plan) return;
     if (live) {
-      const position = planTasks.reduce((m, t) => Math.max(m, t.position), 0) + 1;
       void addPlanTaskAction({ planId: plan.id, title, assigneeId: plan.owner_id }).then((res) => {
         if (!res.ok) {
           showToast(res.error.message, undefined, "warning");

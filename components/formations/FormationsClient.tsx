@@ -131,7 +131,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
       }
       return true;
     });
-  }, [vms, segment, query]);
+  }, [vms, segment, query, rooms]);
 
   /* ---------- duplicate ---------- */
   async function handleDuplicate(vm: FormationVM) {

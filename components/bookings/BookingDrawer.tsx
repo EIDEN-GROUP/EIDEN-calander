@@ -137,7 +137,6 @@ export function BookingDrawer({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
-  const localIdRef = useRef(0);
   const [mounted, setMounted] = useState(false);
   const [view, setView] = useState(mode);
   const [conflictModalOpen, setConflictModalOpen] = useState(false);

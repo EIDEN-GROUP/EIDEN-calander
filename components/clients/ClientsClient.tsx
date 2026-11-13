@@ -98,10 +98,11 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
     getServerClientsSnapshot,
   );
   const clients = useMemo(() => {
+    if (liveClients) return liveClients;
     if (storedClients.length === 0) return DEMO_CLIENTS;
     const storedIds = new Set(storedClients.map((c) => c.id));
     return [...storedClients, ...DEMO_CLIENTS.filter((c) => !storedIds.has(c.id))];
-  }, [storedClients]);
+  }, [liveClients, storedClients]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ClientStatusFilter>("all");
   const [activeTags, setActiveTags] = useState<string[]>([]);
@@ -244,7 +245,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
   function quickBooking(client: ClientRow) {
     router.push('/calendar?client=' + encodeURIComponent(client.id));
   }
-  function quickEnroll(client: ClientRow) {
+  function quickEnroll() {
     router.push('/formations');
   }
 
@@ -427,7 +428,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
                         <button type="button" onClick={() => quickBooking(client)} aria-label={`New booking for ${client.full_name}`} title="New booking (demo)" className="flex h-8 w-8 items-center justify-center rounded-pill text-obsidian-light transition-colors hover:bg-hover-fill hover:text-obsidian">
                           <CalendarPlus size={16} aria-hidden="true" />
                         </button>
-                        <button type="button" onClick={() => quickEnroll(client)} aria-label={`Add ${client.full_name} to a formation`} title="Add to formation (demo)" className="flex h-8 w-8 items-center justify-center rounded-pill text-obsidian-light transition-colors hover:bg-hover-fill hover:text-obsidian">
+                        <button type="button" onClick={() => quickEnroll()} aria-label={`Add ${client.full_name} to a formation`} title="Add to formation (demo)" className="flex h-8 w-8 items-center justify-center rounded-pill text-obsidian-light transition-colors hover:bg-hover-fill hover:text-obsidian">
                           <GraduationCap size={16} aria-hidden="true" />
                         </button>
                         <Link href={`/clients/${client.id}`} aria-label={`Open ${client.full_name}`} className="flex h-8 w-8 items-center justify-center rounded-pill text-electric transition-colors hover:bg-electric-tint">

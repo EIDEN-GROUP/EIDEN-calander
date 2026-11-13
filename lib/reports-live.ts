@@ -164,7 +164,6 @@ export async function loadReports(): Promise<ReportsLive | null> {
       .sort((a, b) => b.pct - a.pct);
 
     // ---- formation performance (group repeated sessions by title)
-    const formationBookingIds = new Set((formationRows ?? []).map((f) => f.booking_id as string));
     const capacityByBooking = new Map((formationRows ?? []).map((f) => [f.booking_id as string, Number(f.capacity)]));
     const participantsByBooking = new Map<string, typeof participantRows>();
     for (const p of participantRows ?? []) {

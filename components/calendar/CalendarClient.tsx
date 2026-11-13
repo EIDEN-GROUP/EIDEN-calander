@@ -68,8 +68,9 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
   // Deep link: /calendar?client=<id> — open the create drawer prefilled.
   useEffect(() => {
     if (!prefillClientId) return;
-    setDrawer({ mode: "create", key: Date.now(), clientId: prefillClientId });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    Promise.resolve().then(() => {
+      setDrawer({ mode: "create", key: Date.now(), clientId: prefillClientId });
+    });
   }, [prefillClientId]);
   const [toast, setToast] = useState<ToastData | null>(null);
 

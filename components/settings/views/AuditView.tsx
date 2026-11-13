@@ -156,7 +156,7 @@ export function AuditView({
       }
       return true;
     });
-  }, [actor, verb, from, to, query]);
+  }, [source, actor, verb, from, to, query]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const effectivePage = Math.min(Math.max(1, page), totalPages);
