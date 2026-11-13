@@ -23,6 +23,8 @@ import { ToastViewport, useToast } from "@/components/settings/Toast";
 import { Modal } from "@/components/settings/Modal";
 import { Switch } from "@/components/settings/Switch";
 import { DEMO_CATEGORIES } from "@/lib/demo-data";
+import { useRouter } from "next/navigation";
+import { createCategoryAction, toggleCategoryActiveAction, updateCategoryAction, deleteCategoryAction } from "@/app/actions/settings";
 
 type TintColor = "blue" | "green" | "purple" | "amber" | "teal" | "rose";
 type CategoryType = "standard" | "formation";
@@ -83,9 +85,27 @@ const INITIAL_CATEGORIES: CategoryVM[] = [
   { id: "cat-maintenance", name_en: "Maintenance", name_fr: "Maintenance", type: "standard", icon: "wrench", color: "amber", is_system: false, is_active: true },
 ];
 
-export function CategoriesView() {
+export interface LiveCategory {
+  id: string; name_en: string; name_fr: string | null; color: string; icon: string; type: "standard" | "formation"; is_system: boolean; is_active: boolean; sort: number;
+}
+
+export function CategoriesView({
+  initialCategories,
+  live,
+}: {
+  initialCategories?: LiveCategory[];
+  live?: boolean;
+}) {
   const { toasts, push } = useToast();
-  const [categories, setCategories] = useState<CategoryVM[]>(INITIAL_CATEGORIES);
+  const router = useRouter();
+  const isLive = live === true && !!initialCategories;
+  const [categories, setCategories] = useState<CategoryVM[]>(
+    initialCategories
+      ? initialCategories.map((c) => ({
+          id: c.id, name_en: c.name_en, name_fr: c.name_fr ?? c.name_en, type: c.type, icon: c.icon as IconKey, color: (["blue", "green", "purple", "amber", "teal", "rose"].includes(c.color) ? c.color : "blue") as TintColor, is_system: c.is_system, is_active: c.is_active,
+        }))
+      : INITIAL_CATEGORIES,
+  );
   const [editing, setEditing] = useState<{ id: string; name_en: string; name_fr: string } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -104,14 +124,36 @@ export function CategoriesView() {
     if (!current) return;
     const next = TINT_ORDER[(TINT_ORDER.indexOf(current.color) + 1) % TINT_ORDER.length];
     setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, color: next } : c)));
-    push(`Color updated to ${TINTS[next].label} (demo)`);
+    if (isLive) {
+      void (async () => {
+        const res = await updateCategoryAction({ categoryId: id, color: next });
+        if (!res.ok) push(res.error.message);
+        else router.refresh();
+      })();
+      return;
+    }
+    push(`Color updated to ${TINTS[next].label}`);
   };
 
   const toggleActive = (id: string) => {
     const current = categories.find((c) => c.id === id);
     if (!current) return;
-    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, is_active: !c.is_active } : c)));
-    push(`${current.name_en} ${current.is_active ? "deactivated" : "activated"} (demo)`);
+    const next = !current.is_active;
+    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, is_active: next } : c)));
+    if (isLive) {
+      void (async () => {
+        const res = await toggleCategoryActiveAction({ categoryId: id, isActive: next });
+        if (!res.ok) {
+          push(res.error.message);
+          setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, is_active: !next } : c)));
+          return;
+        }
+        push(`${current.name_en} ${next ? "activated" : "deactivated"}`);
+        router.refresh();
+      })();
+      return;
+    }
+    push(`${current.name_en} ${next ? "activated" : "deactivated"}`);
   };
 
   const move = (id: string, direction: -1 | 1) => {
@@ -126,7 +168,17 @@ export function CategoriesView() {
       [next[from], next[to]] = [next[to], next[from]];
       return next;
     });
-    push("Category order updated (demo)");
+    if (isLive) {
+      const nextList = categories.map((c, i) => (c.id === id ? { ...c, sort: i } : c));
+      void (async () => {
+        for (let i = 0; i < nextList.length; i++) {
+          await updateCategoryAction({ categoryId: nextList[i].id, sort: i });
+        }
+        router.refresh();
+      })();
+      return;
+    }
+    push("Category order updated");
   };
 
   const startRename = (c: CategoryVM) => {
@@ -143,15 +195,41 @@ export function CategoriesView() {
         c.id === editing.id ? { ...c, name_en: nameEn, name_fr: editing.name_fr.trim() || nameEn } : c,
       ),
     );
-    push("Category renamed (demo)");
+    if (isLive) {
+      void (async () => {
+        const res = await updateCategoryAction({ categoryId: editing!.id, nameEn, nameFr: editing!.name_fr.trim() || nameEn });
+        if (!res.ok) {
+          push(res.error.message);
+          return;
+        }
+        push("Category renamed");
+        setEditing(null);
+        router.refresh();
+      })();
+      return;
+    }
+    push("Category renamed");
     setEditing(null);
   };
 
   const deleteCategory = (id: string) => {
     const target = categories.find((c) => c.id === id);
-    setCategories((prev) => prev.filter((c) => c.id !== id));
     setConfirmDeleteId(null);
-    if (target) push(`${target.name_en} deleted (demo)`);
+    if (isLive) {
+      void (async () => {
+        const res = await deleteCategoryAction({ categoryId: id });
+        if (!res.ok) {
+          push(res.error.message);
+          return;
+        }
+        setCategories((prev) => prev.filter((c) => c.id !== id));
+        if (target) push(`${target.name_en} deleted`);
+        router.refresh();
+      })();
+      return;
+    }
+    setCategories((prev) => prev.filter((c) => c.id !== id));
+    if (target) push(`${target.name_en} deleted`);
   };
 
   const openAdd = () => {
@@ -172,6 +250,19 @@ export function CategoriesView() {
       return;
     }
     const nameFr = draftNameFr.trim() || nameEn;
+    if (isLive) {
+      void (async () => {
+        const res = await createCategoryAction({ nameEn, nameFr, type: draftType, color: draftTint, icon: draftIcon });
+        if (!res.ok) {
+          setDraftError(res.error.message);
+          return;
+        }
+        setAddOpen(false);
+        push("Category added");
+        router.refresh();
+      })();
+      return;
+    }
     setCategories((prev) => [
       ...prev,
       {
@@ -186,7 +277,7 @@ export function CategoriesView() {
       },
     ]);
     setAddOpen(false);
-    push("Category added (demo)");
+    push("Category added");
   };
 
   return (

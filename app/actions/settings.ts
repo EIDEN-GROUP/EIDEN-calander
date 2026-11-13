@@ -73,28 +73,45 @@ export async function updateBusinessProfileAction(raw: unknown): Promise<ActionR
   }
 }
 
-/* ---------------- Working hours (7 rows) ---------------- */
+/* ---------------- Working hours (7 rows) + availability prefs ---------------- */
+const workingHoursInput = z.object({
+  weekdays: z.array(z.object({
+    weekday: z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]),
+    is_open: z.boolean(),
+    open_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
+    close_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
+  })).length(7),
+  slotIncrementMin: z.union([z.literal(15), z.literal(30), z.literal(60)]).optional(),
+  bufferMin: z.number().int().min(0).max(120).optional(),
+  minNoticeHours: z.number().int().min(0).max(720).optional(),
+});
+
 export async function updateWorkingHoursAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
   try {
     const admin = await requireAdmin();
-    const weekday = z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
-    const parsed = z.array(z.object({
-      weekday,
-      is_open: z.boolean(),
-      open_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
-      close_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
-    })).length(7).safeParse(raw);
+    const parsed = workingHoursInput.safeParse(raw);
     if (!parsed.success) return fail("validation", "Provide all 7 weekdays");
-    for (const row of parsed.data) {
+    const { weekdays, slotIncrementMin, bufferMin, minNoticeHours } = parsed.data;
+    for (const row of weekdays) {
       if (row.is_open && row.open_time >= row.close_time) {
         return fail("validation", `${row.weekday}: open time must be before close time`);
       }
     }
     const supabase = await createClient();
     if (!supabase) return notConfigured();
-    const { error } = await supabase.from("working_hours").upsert(parsed.data, { onConflict: "weekday" });
+    const { error } = await supabase.from("working_hours").upsert(weekdays, { onConflict: "weekday" });
     if (error) throw error;
-    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "settings.working_hours", entity_type: "settings", entity_id: "working_hours" });
+    if (slotIncrementMin !== undefined || bufferMin !== undefined || minNoticeHours !== undefined) {
+      const patch: Record<string, number> = {};
+      if (slotIncrementMin !== undefined) patch.slot_increment_min = slotIncrementMin;
+      if (bufferMin !== undefined) patch.buffer_min = bufferMin;
+      if (minNoticeHours !== undefined) patch.min_notice_hours = minNoticeHours;
+      if (Object.keys(patch).length > 0) {
+        const { error: sErr } = await supabase.from("business_settings").update({ ...patch, updated_by: admin.id, updated_at: new Date().toISOString() }).eq("id", true);
+        if (sErr) throw sErr;
+      }
+    }
+    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "settings.working_hours", entity_type: "settings", entity_id: "working_hours", meta: { slotIncrementMin, bufferMin, minNoticeHours } });
     revalidatePath("/settings/working-hours");
     return { ok: true, data: { ok: true } };
   } catch (err) {
@@ -219,6 +236,15 @@ export async function createTeamUserAction(raw: unknown): Promise<ActionResult<{
       actor_id: admin.id, action: "user.create", entity_type: "user", entity_id: userId,
       meta: { email, role },
     });
+    // Best-effort welcome email with the one-time credentials (bilingual EN).
+    try {
+      const { sendMail } = await import("@/lib/email/send");
+      const { welcomeTempPassword } = await import("@/lib/email/templates");
+      const tpl = welcomeTempPassword({ name: fullName, email, tempPassword, loginUrl: "https://calendar.eiden-group.com/login", locale: "en" });
+      await sendMail({ to: email, subject: tpl.subject, html: tpl.html, text: tpl.text });
+    } catch (e) {
+      console.error("[settings] welcome email failed (account still created)", e);
+    }
     revalidatePath("/settings/team");
     return { ok: true, data: { userId, tempPassword } };
   } catch (err) {
@@ -339,6 +365,149 @@ export async function listAuditLogAction(filters: {
     const { data, error } = await q;
     if (error) throw error;
     return { ok: true, data: { entries: data ?? [] } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/** Update a team member (name, role, phone) — admin only. */
+export async function updateTeamUserAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
+  try {
+    const admin = await requireAdmin();
+    const parsed = z.object({
+      userId: z.string().uuid(),
+      fullName: z.string().trim().min(2).max(120),
+      role: z.enum(["admin", "staff"]),
+      phone: z.string().max(40).nullable().optional(),
+    }).safeParse(raw);
+    if (!parsed.success) return fail("validation", parsed.error.issues[0]?.message ?? "Invalid input");
+    const { userId, fullName, role, phone } = parsed.data;
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    // Last-admin guard: demoting the last admin is blocked.
+    if (role !== "admin") {
+      const { data: target } = await supabase.from("profiles").select("role").eq("id", userId).single();
+      if (target?.role === "admin") {
+        const { count } = await supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "admin").eq("is_active", true);
+        if ((count ?? 0) <= 1) return fail("validation", "You cannot demote the last active admin.");
+      }
+    }
+    const { error } = await supabase.from("profiles").update({ full_name: fullName, role, phone: phone ?? null, updated_at: new Date().toISOString() }).eq("id", userId);
+    if (error) throw error;
+    const service = createServiceClient();
+    await service.auth.admin.updateUserById(userId, { user_metadata: { role } });
+    await supabase.from("audit_log").insert({
+      actor_id: admin.id, action: "user.update", entity_type: "user", entity_id: userId,
+      meta: { role, full_name: fullName },
+    });
+    revalidatePath("/settings/team");
+    return { ok: true, data: { ok: true } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/** Update a room's amenities / notes / rate / capacity / name — admin only. */
+export async function updateRoomAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
+  try {
+    const admin = await requireAdmin();
+    const parsed = z.object({
+      roomId: z.string().uuid(),
+      amenities: z.array(z.string().max(40)).max(20).optional(),
+      notes: z.string().max(500).nullable().optional(),
+      hourlyRate: z.number().min(0).max(100_000).optional(),
+      capacity: z.number().int().min(1).max(1000).optional(),
+      name: z.string().trim().min(2).max(120).optional(),
+    }).safeParse(raw);
+    if (!parsed.success) return fail("validation", "Invalid input");
+    const { roomId, ...patch } = parsed.data;
+    const update: Record<string, unknown> = {};
+    if (patch.amenities !== undefined) update.amenities = patch.amenities;
+    if (patch.notes !== undefined) update.notes = patch.notes;
+    if (patch.hourlyRate !== undefined) update.hourly_rate = patch.hourlyRate;
+    if (patch.capacity !== undefined) update.capacity = patch.capacity;
+    if (patch.name !== undefined) update.name = patch.name;
+    if (Object.keys(update).length === 0) return { ok: true, data: { ok: true } };
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { error } = await supabase.from("rooms").update({ ...update, updated_at: new Date().toISOString() }).eq("id", roomId);
+    if (error) throw error;
+    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "room.update", entity_type: "room", entity_id: roomId, meta: update });
+    revalidatePath("/settings/rooms");
+    return { ok: true, data: { ok: true } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/** Toggle a category active/inactive. */
+export async function toggleCategoryActiveAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
+  try {
+    const admin = await requireAdmin();
+    const parsed = z.object({ categoryId: z.string().uuid(), isActive: z.boolean() }).safeParse(raw);
+    if (!parsed.success) return fail("validation", "Invalid input");
+    const { categoryId, isActive } = parsed.data;
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { error } = await supabase.from("categories").update({ is_active: isActive }).eq("id", categoryId);
+    if (error) throw error;
+    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "category.toggle", entity_type: "category", entity_id: categoryId, meta: { is_active: isActive } });
+    revalidatePath("/settings/categories");
+    return { ok: true, data: { ok: true } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/** Rename / recolor a category. */
+export async function updateCategoryAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
+  try {
+    const admin = await requireAdmin();
+    const parsed = z.object({
+      categoryId: z.string().uuid(),
+      nameEn: z.string().trim().min(2).max(80).optional(),
+      nameFr: z.string().trim().max(80).nullable().optional(),
+      color: z.string().max(30).optional(),
+      icon: z.string().max(60).optional(),
+      sort: z.number().int().min(0).max(999).optional(),
+    }).safeParse(raw);
+    if (!parsed.success) return fail("validation", "Invalid input");
+    const { categoryId, ...patch } = parsed.data;
+    const update: Record<string, unknown> = {};
+    if (patch.nameEn !== undefined) update.name_en = patch.nameEn;
+    if (patch.nameFr !== undefined) update.name_fr = patch.nameFr;
+    if (patch.color !== undefined) update.color = patch.color;
+    if (patch.icon !== undefined) update.icon = patch.icon;
+    if (patch.sort !== undefined) update.sort = patch.sort;
+    if (Object.keys(update).length === 0) return { ok: true, data: { ok: true } };
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { error } = await supabase.from("categories").update(update).eq("id", categoryId);
+    if (error) throw error;
+    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "category.update", entity_type: "category", entity_id: categoryId, meta: update });
+    revalidatePath("/settings/categories");
+    return { ok: true, data: { ok: true } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/** Delete a NON-system category (system entries refuse). */
+export async function deleteCategoryAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
+  try {
+    const admin = await requireAdmin();
+    const parsed = z.object({ categoryId: z.string().uuid() }).safeParse(raw);
+    if (!parsed.success) return fail("validation", "Invalid input");
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { data: cat } = await supabase.from("categories").select("is_system,name_en").eq("id", parsed.data.categoryId).single();
+    if (!cat) return fail("not_found", "Category not found.");
+    if (cat.is_system) return fail("forbidden", "System categories cannot be deleted — rename them instead.");
+    const { error } = await supabase.from("categories").delete().eq("id", parsed.data.categoryId);
+    if (error) throw error;
+    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "category.delete", entity_type: "category", entity_id: parsed.data.categoryId, meta: { name_en: cat.name_en } });
+    revalidatePath("/settings/categories");
+    return { ok: true, data: { ok: true } };
   } catch (err) {
     return failUnexpected(err);
   }

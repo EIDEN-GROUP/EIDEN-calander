@@ -1,8 +1,25 @@
 import type { Metadata } from "next";
 import { TeamView } from "@/components/settings/views/TeamView";
+import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Team & Users" };
+export const metadata: Metadata = { title: "Team & Users · Settings" };
+export const instant = false;
 
-export default function Page() {
-  return <TeamView />;
+export default async function TeamPage() {
+  let members: Array<{ id: string; full_name: string; email: string; phone: string | null; role: "admin" | "staff"; is_active: boolean; created_at: string }> | null = null;
+  let currentUserId: string | null = null;
+  let live = false;
+
+  const supabase = await createClient();
+  if (supabase) {
+    const [{ data: { user } }, { data: profiles }] = await Promise.all([
+      supabase.auth.getUser(),
+      supabase.from("profiles").select("id,full_name,email,phone,role,is_active,created_at").order("created_at", { ascending: true }),
+    ]);
+    currentUserId = user?.id ?? null;
+    members = (profiles ?? []) as NonNullable<typeof members>;
+    live = true;
+  }
+
+  return <TeamView members={members ?? undefined} currentUserId={currentUserId} live={live} />;
 }

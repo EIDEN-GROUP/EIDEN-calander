@@ -15,7 +15,9 @@ import {
   UserRoundX,
   ArrowRight,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/settings/PageHeader";
+import { createTeamUserAction, setTeamUserActiveAction, updateTeamUserAction } from "@/app/actions/settings";
 import { ToastViewport, useToast } from "@/components/settings/Toast";
 import { Modal } from "@/components/settings/Modal";
 
@@ -40,6 +42,16 @@ const INITIAL_TEAM: TeamMember[] = [
   { id: "usr-sofia", name: "Sofia T.", email: "sofia.t@eiden-group.com", phone: "+212 6 55 44 33 22", role: "staff", lastActive: "3 weeks ago", status: "deactivated" },
 ];
 
+export interface LiveMember {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  role: Role;
+  is_active: boolean;
+  created_at: string;
+}
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
 
@@ -58,9 +70,31 @@ function generateTempPassword(length = 14): string {
   return out;
 }
 
-export function TeamView() {
+export function TeamView({
+  members,
+  currentUserId,
+  live,
+}: {
+  members?: LiveMember[];
+  currentUserId?: string | null;
+  live?: boolean;
+}) {
+  const router = useRouter();
+  const isLive = live === true && !!members;
+  const initialTeam: TeamMember[] = isLive
+    ? members!.map((m) => ({
+        id: m.id,
+        name: m.full_name,
+        email: m.email,
+        phone: m.phone ?? "",
+        role: m.role,
+        lastActive: m.is_active ? "Active" : "Deactivated",
+        status: m.is_active ? ("active" as const) : ("deactivated" as const),
+        you: m.id === currentUserId,
+      }))
+    : INITIAL_TEAM;
   const { toasts, push } = useToast();
-  const [team, setTeam] = useState<TeamMember[]>(INITIAL_TEAM);
+  const [team, setTeam] = useState<TeamMember[]>(initialTeam);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   // Edit modal
@@ -99,22 +133,44 @@ export function TeamView() {
       setEditError("Name is required.");
       return;
     }
+    if (isLive) {
+      void (async () => {
+        const res = await updateTeamUserAction({ userId: editing.id, fullName: trimmed, role: editRole, phone: editPhone.trim() || null });
+        if (!res.ok) {
+          setEditError(res.error.message);
+          return;
+        }
+        push("User updated");
+        setEditing(null);
+        router.refresh();
+      })();
+      return;
+    }
     setTeam((prev) =>
       prev.map((m) => (m.id === editing.id ? { ...m, name: trimmed, role: editRole, phone: editPhone.trim() } : m)),
     );
     setEditing(null);
-    push("User updated (demo)");
+    push("User updated");
   };
 
   const toggleDeactivate = (member: TeamMember) => {
     const next: Status = member.status === "active" ? "deactivated" : "active";
-    setTeam((prev) => prev.map((m) => (m.id === member.id ? { ...m, status: next } : m)));
     setConfirmId(null);
-    push(
-      next === "deactivated"
-        ? `${member.name} deactivated (demo) — all sessions revoked`
-        : `${member.name} reactivated (demo)`,
-    );
+    if (isLive) {
+      void (async () => {
+        const res = await setTeamUserActiveAction({ userId: member.id, isActive: next === "active" });
+        if (!res.ok) {
+          push(res.error.message);
+          return;
+        }
+        push(next === "deactivated" ? member.name + " deactivated — sessions revoked" : member.name + " reactivated");
+        setTeam((prev) => prev.map((m) => (m.id === member.id ? { ...m, status: next } : m)));
+        router.refresh();
+      })();
+      return;
+    }
+    setTeam((prev) => prev.map((m) => (m.id === member.id ? { ...m, status: next } : m)));
+    push(next === "deactivated" ? member.name + " deactivated — sessions revoked" : member.name + " reactivated");
   };
 
   const openCreate = () => {
@@ -129,7 +185,7 @@ export function TeamView() {
     setCreateOpen(true);
   };
 
-  const submitCreate = (event: FormEvent<HTMLFormElement>) => {
+  const submitCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmedName = name.trim();
     const trimmedEmail = email.trim().toLowerCase();
@@ -142,7 +198,27 @@ export function TeamView() {
       return;
     }
     if (team.some((m) => m.email.toLowerCase() === trimmedEmail)) {
-      setFormError(`A user with ${trimmedEmail} already exists.`);
+      setFormError("A user with " + trimmedEmail + " already exists.");
+      return;
+    }
+    if (isLive) {
+      const res = await createTeamUserAction({ fullName: trimmedName, email: trimmedEmail, role });
+      if (!res.ok) {
+        setFormError(res.error.code === "duplicate" ? "An account with this email already exists." : res.error.message);
+        return;
+      }
+      setTempPassword(res.data.tempPassword);
+      setPendingMember({
+        id: res.data.userId,
+        name: trimmedName,
+        email: trimmedEmail,
+        phone: "",
+        role,
+        lastActive: "Just now",
+        status: "active",
+      });
+      setCreateStage("password");
+      router.refresh();
       return;
     }
     const password = generateTempPassword(14);
@@ -172,7 +248,7 @@ export function TeamView() {
   const finishCreate = () => {
     if (pendingMember) {
       setTeam((prev) => [...prev, pendingMember]);
-      push(`${pendingMember.name} created (demo) — temp password shown once`);
+      push(`${pendingMember.name} created — temp password shown once`);
     }
     setCreateOpen(false);
   };

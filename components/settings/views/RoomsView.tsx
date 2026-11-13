@@ -19,6 +19,8 @@ import { ToastViewport, useToast } from "@/components/settings/Toast";
 import { Modal } from "@/components/settings/Modal";
 import { Switch } from "@/components/settings/Switch";
 import { DEMO_ROOMS } from "@/lib/demo-data";
+import { useRouter } from "next/navigation";
+import { createRoomAction, toggleRoomActiveAction, updateRoomAction } from "@/app/actions/settings";
 
 const AMENITIES = [
   { key: "wifi", label: "Wi-Fi", Icon: Wifi },
@@ -64,9 +66,17 @@ function utilization(id: string): number {
   return 34 + (Math.abs(h) % 52);
 }
 
-export function RoomsView() {
+export function RoomsView({
+  initialRooms,
+  live,
+}: {
+  initialRooms?: RoomVM[];
+  live?: boolean;
+}) {
+  const router = useRouter();
+  const isLive = live === true && !!initialRooms;
   const { toasts, push } = useToast();
-  const [rooms, setRooms] = useState<RoomVM[]>(INITIAL_ROOMS);
+  const [rooms, setRooms] = useState<RoomVM[]>(initialRooms ?? INITIAL_ROOMS);
   const [addOpen, setAddOpen] = useState(false);
 
   const [draftName, setDraftName] = useState("");
@@ -85,20 +95,39 @@ export function RoomsView() {
   };
 
   const toggleAmenity = (id: string, key: AmenityKey) => {
-    setRooms((prev) =>
-      prev.map((r) =>
-        r.id === id
-          ? { ...r, amenities: r.amenities.includes(key) ? r.amenities.filter((a) => a !== key) : [...r.amenities, key] }
-          : r,
-      ),
-    );
+    const current = rooms.find((r) => r.id === id);
+    if (!current) return;
+    const nextAmenities = current.amenities.includes(key)
+      ? current.amenities.filter((a) => a !== key)
+      : [...current.amenities, key];
+    setRooms((prev) => prev.map((r) => (r.id === id ? { ...r, amenities: nextAmenities } : r)));
+    if (isLive) {
+      void (async () => {
+        const res = await updateRoomAction({ roomId: id, amenities: nextAmenities });
+        if (!res.ok) push(res.error.message);
+      })();
+    }
   };
 
   const toggleActive = (id: string) => {
     const current = rooms.find((r) => r.id === id);
     if (!current) return;
-    updateRoom(id, { is_active: !current.is_active });
-    push(`${current.name.replace(/\s*\(DEMO\)\s*/i, "")} ${current.is_active ? "deactivated" : "activated"} (demo)`);
+    const next = !current.is_active;
+    updateRoom(id, { is_active: next });
+    if (isLive) {
+      void (async () => {
+        const res = await toggleRoomActiveAction({ roomId: id, isActive: next });
+        if (!res.ok) {
+          updateRoom(id, { is_active: !next });
+          push(res.error.message);
+          return;
+        }
+        push(`${current.name.replace(/\s*\(DEMO\)\s*/i, "")} ${next ? "activated" : "deactivated"}`);
+        router.refresh();
+      })();
+      return;
+    }
+    push(`${current.name.replace(/\s*\(DEMO\)\s*/i, "")} ${next ? "activated" : "deactivated"}`);
   };
 
   const toggleDraftAmenity = (key: AmenityKey) => {
@@ -134,6 +163,19 @@ export function RoomsView() {
       setDraftError("Hourly rate must be 0 or more.");
       return;
     }
+    if (isLive) {
+      void (async () => {
+        const res = await createRoomAction({ name, location: draftLocation, capacity: Math.floor(capacity), hourlyRate: Math.round(rate), amenities: draftAmenities });
+        if (!res.ok) {
+          setDraftError(res.error.message);
+          return;
+        }
+        setAddOpen(false);
+        push("Room added");
+        router.refresh();
+      })();
+      return;
+    }
     setRooms((prev) => [
       ...prev,
       {
@@ -148,7 +190,7 @@ export function RoomsView() {
       },
     ]);
     setAddOpen(false);
-    push("Room added (demo)");
+    push("Room added");
   };
 
   return (

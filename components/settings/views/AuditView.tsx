@@ -102,9 +102,19 @@ function buildEntries(): AuditEntry[] {
   return entries;
 }
 
-const ALL_ENTRIES = buildEntries();
-const ACTOR_OPTIONS = Array.from(new Set(ALL_ENTRIES.map((e) => e.actor))).sort();
+const source = buildEntries();
+const ACTOR_OPTIONS = Array.from(new Set(source.map((e) => e.actor))).sort();
 const PAGE_SIZE = 12;
+
+export interface AuditEntryLive {
+  id: number;
+  at: Date;
+  actor: string;
+  verb: Verb;
+  entity: string;
+  details: string;
+  meta: { requestId: string; ip: string; userAgent: string; entityId: string };
+}
 
 const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short" });
 const timeFmt = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -113,7 +123,15 @@ function csvCell(value: string): string {
   return `"${value.replace(/"/g, '""')}"`;
 }
 
-export function AuditView() {
+export function AuditView({
+  entries: entriesProp,
+  live,
+}: {
+  entries?: AuditEntryLive[];
+  live?: boolean;
+}) {
+  const source: AuditEntry[] = entriesProp ?? ALL_ENTRIES;
+  const actorOptions = live ? Array.from(new Set(source.map((e) => e.actor))).sort() : ACTOR_OPTIONS;
   const { toasts, push } = useToast();
   const [actor, setActor] = useState<string>("all");
   const [verb, setVerb] = useState<string>("all");
@@ -127,7 +145,7 @@ export function AuditView() {
     const q = query.trim().toLowerCase();
     const fromDate = from ? new Date(`${from}T00:00:00`) : null;
     const toDate = to ? new Date(`${to}T23:59:59`) : null;
-    return ALL_ENTRIES.filter((entry) => {
+    return source.filter((entry) => {
       if (actor !== "all" && entry.actor !== actor) return false;
       if (verb !== "all" && entry.verb !== verb) return false;
       if (fromDate && entry.at < fromDate) return false;
@@ -257,7 +275,7 @@ export function AuditView() {
       <div className="card mt-4 overflow-hidden">
         <div className="flex items-center justify-between gap-2 border-b border-divider px-4 py-3 sm:px-5">
           <p className="text-[12px] font-semibold text-obsidian-light">
-            <span className="font-mono text-obsidian">{filtered.length}</span> of {ALL_ENTRIES.length} entries
+            <span className="font-mono text-obsidian">{filtered.length}</span> of {source.length} entries
           </p>
           <p className="text-[11px] font-medium text-muted">Click a row for request metadata</p>
         </div>

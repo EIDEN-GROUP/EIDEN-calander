@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { updateWorkingHoursAction } from "@/app/actions/settings";
 import {
   ArrowRight,
   CalendarDays,
@@ -49,12 +51,43 @@ function windowPct(mins: number): number {
   return ((clamped - WINDOW_START) / (WINDOW_END - WINDOW_START)) * 100;
 }
 
-export function WorkingHoursView() {
+export interface WorkingHoursInitial {
+  week: Array<{ key: DayKey; isOpen: boolean; open: string; close: string }>;
+  slot: 15 | 30 | 60;
+  buffer: number;
+  minNotice: number;
+}
+
+const toHHMM = (t: string) => (t ?? "08:00").slice(0, 5);
+
+export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursInitial | null }) {
+  const router = useRouter();
   const { toasts, push } = useToast();
-  const [week, setWeek] = useState<DayHours[]>(DEFAULT_WEEK);
-  const [slot, setSlot] = useState<(typeof SLOT_OPTIONS)[number]>(30);
-  const [buffer, setBuffer] = useState("15");
-  const [minNotice, setMinNotice] = useState("2");
+  const baseWeek = initial
+    ? initial.week.map((d) => ({ ...DEFAULT_WEEK.find((w) => w.key === d.key)!, isOpen: d.isOpen, open: toHHMM(d.open), close: toHHMM(d.close) }))
+    : DEFAULT_WEEK;
+  const [week, setWeek] = useState<DayHours[]>(baseWeek);
+  const [slot, setSlot] = useState<(typeof SLOT_OPTIONS)[number]>(initial?.slot ?? 30);
+  const [buffer, setBuffer] = useState(String(initial?.buffer ?? 0));
+  const [minNotice, setMinNotice] = useState(String(initial?.minNotice ?? 2));
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    const res = await updateWorkingHoursAction({
+      weekdays: week.map((d) => ({ weekday: d.key, is_open: d.isOpen, open_time: d.open, close_time: d.close })),
+      slotIncrementMin: slot,
+      bufferMin: Math.max(0, Number(buffer) || 0),
+      minNoticeHours: Math.max(0, Number(minNotice) || 0),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      push(res.error.message);
+      return;
+    }
+    push("Working hours saved");
+    router.refresh();
+  };
 
   const invalidKeys = useMemo(
     () =>
@@ -75,7 +108,7 @@ export function WorkingHoursView() {
     const monday = week.find((d) => d.key === "mon");
     if (!monday) return;
     updateDay(key, { isOpen: monday.isOpen, open: monday.open, close: monday.close });
-    push("Monday hours copied (demo)");
+    push("Monday hours copied");
   };
 
   const applyMondayTo = (keys: DayKey[], label: string) => {
@@ -198,7 +231,7 @@ export function WorkingHoursView() {
                   "Opening must be before closing — enforced per row."
                 )}
               </p>
-              <button type="button" disabled={hasErrors} onClick={() => push("Working hours saved (demo)")} className="btn btn-primary h-11 disabled:cursor-not-allowed disabled:opacity-40">
+              <button type="button" disabled={hasErrors || saving} onClick={save} className="btn btn-primary h-11 disabled:cursor-not-allowed disabled:opacity-40">
                 Save hours
               </button>
             </div>
