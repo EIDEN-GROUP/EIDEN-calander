@@ -4,16 +4,23 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Search, Bell } from "lucide-react";
 import { unreadNotificationCountAction } from "@/app/actions/notifications";
+import { getProfileSummaryAction, type ProfileSummary } from "@/app/actions/session";
 
 export function TopBar({ notificationCount: initialCount }: { notificationCount?: number }) {
   const [locale, setLocale] = useState<"en" | "fr">("en");
   const [notificationCount, setNotificationCount] = useState(initialCount ?? 0);
+  const [me, setMe] = useState<ProfileSummary | null>(null);
 
   useEffect(() => {
     let active = true;
     unreadNotificationCountAction()
       .then((n) => {
         if (active) setNotificationCount(n);
+      })
+      .catch(() => {});
+    getProfileSummaryAction()
+      .then((p) => {
+        if (active && p) setMe(p);
       })
       .catch(() => {});
     return () => {
@@ -85,12 +92,12 @@ export function TopBar({ notificationCount: initialCount }: { notificationCount?
           className="flex items-center gap-2.5 rounded-pill border border-border bg-white p-1 pr-1 transition-shadow hover:shadow-md sm:pr-3"
         >
           <span className="flex h-9 w-9 items-center justify-center rounded-pill bg-obsidian text-[13px] font-bold text-white">
-            M
+            {me?.initials ?? "…"}
           </span>
           <span className="hidden text-left leading-tight sm:block">
-            <span className="block text-[13px] font-bold text-obsidian">Marouane A.</span>
+            <span className="block text-[13px] font-bold text-obsidian">{me?.fullName ?? "…"}</span>
             <span className="block text-[10px] font-semibold uppercase tracking-[0.08em] text-muted">
-              Admin
+              {me?.role === "admin" ? "Admin" : me?.role === "staff" ? "Staff" : ""}
             </span>
           </span>
         </Link>

@@ -145,7 +145,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
           </div>
 
           {/* Day strip */}
-          <div className="grid grid-cols-7 gap-1.5 border-b border-divider p-3 sm:gap-2 sm:p-4">
+          <div className="grid grid-cols-7 gap-1.5 overflow-x-auto border-b border-divider p-3 sm:gap-2 sm:p-4">
             {days.map((d, i) => {
               const today = d.isToday;
               const weekend = d.weekend;

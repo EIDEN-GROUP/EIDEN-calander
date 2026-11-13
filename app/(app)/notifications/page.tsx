@@ -5,7 +5,6 @@ import {
   Bell,
   CalendarClock,
   CheckCheck,
-  CreditCard,
   GraduationCap,
   Mail,
   UserPlus,
