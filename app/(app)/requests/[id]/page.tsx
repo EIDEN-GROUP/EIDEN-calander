@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { BookingRow } from "@/lib/types/db";
 
 export const metadata: Metadata = { title: "Change request" };
+// Reads live data at request time — block prerender.
+export const instant = false;
 
 async function loadLiveRequest(id: string): Promise<LiveChangeRequest | null> {
   const supabase = await createClient();
