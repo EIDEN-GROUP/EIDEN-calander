@@ -58,6 +58,12 @@ export async function changePasswordAction(raw: unknown): Promise<ActionResult<{
     const { error: updateError } = await supabase.auth.updateUser({ password: parsed.data.newPassword });
     if (updateError) throw updateError;
 
+    // Clear the first-login flag so the proxy lets them through next request.
+    await supabase
+      .from("profiles")
+      .update({ must_change_password: false, updated_at: new Date().toISOString() })
+      .eq("id", profile.id);
+
     await supabase.auth.signOut({ scope: "others" });
     await supabase.from("audit_log").insert({ actor_id: profile.id, action: "auth.password_change", entity_type: "user", entity_id: profile.id });
     return { ok: true, data: { ok: true } };
