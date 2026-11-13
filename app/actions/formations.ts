@@ -211,3 +211,45 @@ export async function importParticipantsAction(raw: unknown): Promise<ActionResu
     return failUnexpected(err);
   }
 }
+
+/** Remove a participant from the roster (staff/admin — shared ops). */
+export async function removeParticipantAction(raw: unknown): Promise<ActionResult<{ removed: true }>> {
+  try {
+    const profile = await requireUser();
+    const parsed = z.object({ participantId: z.string().uuid() }).safeParse(raw);
+    if (!parsed.success) return fail("validation", "Invalid input");
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { data: existing } = await supabase
+      .from("formation_participants").select("id,booking_id,full_name").eq("id", parsed.data.participantId).single();
+    if (!existing) return fail("not_found", "Participant not found.");
+    const { error } = await supabase.from("formation_participants").delete().eq("id", parsed.data.participantId);
+    if (error) throw error;
+    await supabase.from("audit_log").insert({
+      actor_id: profile.id, action: "formation.participant_remove", entity_type: "participant",
+      entity_id: existing.id, meta: { booking_id: existing.booking_id, full_name: existing.full_name },
+    });
+    revalidatePath(`/formations/${existing.booking_id}`);
+    return { ok: true, data: { removed: true } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/** Set waitlist flag (e.g. promote from waitlist when a seat frees). */
+export async function setParticipantWaitlistAction(raw: unknown): Promise<ActionResult<{ waitlist: boolean }>> {
+  try {
+    await requireUser();
+    const parsed = z.object({ participantId: z.string().uuid(), waitlist: z.boolean() }).safeParse(raw);
+    if (!parsed.success) return fail("validation", "Invalid input");
+    const { participantId, waitlist } = parsed.data;
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { error } = await supabase.from("formation_participants").update({ waitlist }).eq("id", participantId);
+    if (error) throw error;
+    revalidatePath("/formations");
+    return { ok: true, data: { waitlist } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}

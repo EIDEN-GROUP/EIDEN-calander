@@ -10,6 +10,9 @@
 
 import { useEffect, useMemo, useState, useSyncExternalStore, type ChangeEvent, type FormEvent, type MouseEvent as ReactMouseEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createFormationAction, enrollParticipantAction, importParticipantsAction, markAttendanceAction, removeParticipantAction, setParticipantWaitlistAction } from "@/app/actions/formations";
+import { cancelBookingAction } from "@/app/actions/bookings";
 import Papa from "papaparse";
 import {
   AlertTriangle,
@@ -36,6 +39,7 @@ import { NowBarMark } from "@/components/brand/NowBar";
 import {
   DEMO_CLIENTS,
   DEMO_FORMATIONS,
+  DEMO_ROOMS,
   getDemoBookings,
   getDemoParticipants,
 } from "@/lib/demo-data";
@@ -55,6 +59,7 @@ import {
   waitlistCount,
   type FormationVM,
 } from "./model";
+import type { FormationListData } from "@/lib/formation-vms";
 import { downloadBlob, isLocalFormationId, getFormationsSnapshot, getServerFormationsSnapshot, subscribeFormations } from "./store";
 import { duplicateFormation } from "./duplicate";
 import { Avatar } from "./Avatar";
@@ -116,7 +121,15 @@ function resolveFromDemo(id: string): FormationVM | null {
 /** Stable subscribe for the mounted-flag store. */
 const subscribeMounted = () => () => {};
 
-export function FormationDetailClient({ id }: { id: string }) {
+export function FormationDetailClient({
+  id,
+  data,
+}: {
+  id: string;
+  data?: FormationListData | null;
+}) {
+  const liveVm = data?.vms[0] ?? null;
+  const live = data?.live === true;
   // Demo formations render identically on server and client.
   const demoVm = useMemo<FormationVM | null>(() => resolveFromDemo(id), [id]);
   // SSR + first client render see an empty snapshot (skeleton below);
@@ -136,8 +149,17 @@ export function FormationDetailClient({ id }: { id: string }) {
     return hit ? { booking: hit.booking, formation: hit.formation, participants: [] } : null;
   }, [id, stored]);
 
-  const vm = demoVm ?? localVm;
-  if (vm) return <FormationDetailView key={vm.booking.id} vm={vm} />;
+  const vm = liveVm ?? demoVm ?? localVm;
+  if (vm)
+    return (
+      <FormationDetailView
+        key={vm.booking.id}
+        vm={vm}
+        rooms={data?.rooms ?? DEMO_ROOMS}
+        clients={data?.clients ?? DEMO_CLIENTS}
+        live={live}
+      />
+    );
   if (!mounted) {
     return (
       <div className="mx-auto max-w-[1440px]" aria-busy="true">
@@ -174,11 +196,22 @@ export function FormationDetailClient({ id }: { id: string }) {
   );
 }
 
-function FormationDetailView({ vm }: { vm: FormationVM }) {
+function FormationDetailView({
+  vm,
+  rooms,
+  clients,
+  live,
+}: {
+  vm: FormationVM;
+  rooms: import("@/lib/types/db").RoomRow[];
+  clients: import("@/lib/types/db").ClientRow[];
+  live: boolean;
+}) {
+  const router = useRouter();
   const id = vm.booking.id;
   const { toasts, push, dismiss } = useToast();
   const [participants, setParticipants] = useState<FormationParticipantRow[]>(
-    () => (isLocalFormationId(id) ? [] : vm.participants),
+    () => vm.participants,
   );
 
   /* ---------- session-cancelled local state ---------- */
@@ -200,7 +233,7 @@ function FormationDetailView({ vm }: { vm: FormationVM }) {
   const capacity = vm.formation.capacity;
   const left = Math.max(0, capacity - active);
   const pct = fillPercent(vm.formation, participants);
-  const room = roomById(vm.booking.room_id);
+  const room = roomById(vm.booking.room_id, rooms);
 
   const visible = useMemo(() => {
     const q = rosterQuery.trim().toLowerCase();
@@ -239,26 +272,51 @@ function FormationDetailView({ vm }: { vm: FormationVM }) {
     ? (participants.find((p) => p.id === removeTarget.id) ?? null)
     : null;
 
-  function cycleCheckIn(participant: FormationParticipantRow) {
+  async function cycleCheckIn(participant: FormationParticipantRow) {
     if (participant.status === "cancelled") return;
     const next: ParticipantStatus = participant.status === "attended" ? "no_show" : "attended";
-    // TODO(WIRE): markAttendance action — updates status + checked_in_at.
     patchParticipant(participant.id, {
       status: next,
       checked_in_at: next === "attended" ? new Date().toISOString() : null,
     });
+    if (live) {
+      const res = await markAttendanceAction({ participantId: participant.id, status: next });
+      if (!res.ok) {
+        push("Could not save attendance — try again", "error");
+        router.refresh();
+      }
+    }
   }
 
-  function removeParticipant(participantId: string) {
+  async function removeParticipant(participantId: string) {
     setParticipants((current) => current.filter((p) => p.id !== participantId));
     setRemoveTarget(null);
-    push("Participant removed from the roster (demo)", "info");
+    if (live) {
+      const res = await removeParticipantAction({ participantId });
+      if (!res.ok) {
+        push(res.error.message, "error");
+        router.refresh();
+        return;
+      }
+      push("Participant removed from the roster", "info");
+      return;
+    }
+    push("Participant removed from the roster", "info");
   }
 
-  function promoteWaitlist(participant: FormationParticipantRow) {
-    // TODO(WIRE): promoteFromWaitlist action — server enforces capacity.
+  async function promoteWaitlist(participant: FormationParticipantRow) {
     patchParticipant(participant.id, { waitlist: false });
-    push(`${participant.full_name} promoted from the waitlist (demo)`);
+    if (live) {
+      const res = await setParticipantWaitlistAction({ participantId: participant.id, waitlist: false });
+      if (!res.ok) {
+        push(res.error.message, "error");
+        router.refresh();
+        return;
+      }
+      push(`${participant.full_name} promoted from the waitlist`);
+      return;
+    }
+    push(`${participant.full_name} promoted from the waitlist`);
   }
 
   function markAllPresent() {
@@ -270,7 +328,12 @@ function FormationDetailView({ vm }: { vm: FormationVM }) {
       return;
     }
     const now = new Date().toISOString();
-    // TODO(WIRE): bulkMarkAttendance action.
+    if (live) {
+      for (const p of eligible) {
+        void markAttendanceAction({ participantId: p.id, status: "attended" });
+      }
+      router.refresh();
+    }
     setParticipants((current) =>
       current.map((p) =>
         (p.status === "enrolled" || p.status === "confirmed") && !p.waitlist
@@ -278,7 +341,7 @@ function FormationDetailView({ vm }: { vm: FormationVM }) {
           : p,
       ),
     );
-    push(`${eligible.length} marked present (demo)`);
+    push(`${eligible.length} marked present`);
   }
 
   /* ---------- enroll modal ---------- */
@@ -296,7 +359,7 @@ function FormationDetailView({ vm }: { vm: FormationVM }) {
   }
 
   function linkClient(clientId: string) {
-    const client = DEMO_CLIENTS.find((c) => c.id === clientId);
+    const client = clients.find((c) => c.id === clientId);
     if (!client) {
       setEnroll((current) => ({ ...current, clientId }));
       return;
@@ -311,12 +374,36 @@ function FormationDetailView({ vm }: { vm: FormationVM }) {
     }));
   }
 
-  function submitEnroll(event: FormEvent<HTMLFormElement>) {
+  async function submitEnroll(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const name = enroll.name.trim();
     const email = enroll.email.trim();
     if (!name) return setEnrollError("Full name is required.");
     if (!EMAIL_RE.test(email)) return setEnrollError("Enter a valid email address.");
+
+    if (live) {
+      const res = await enrollParticipantAction({
+        bookingId: vm.booking.id,
+        fullName: name,
+        email,
+        phone: enroll.phone.trim() || null,
+        company: enroll.company.trim() || null,
+        clientId: enroll.clientId || null,
+      });
+      if (!res.ok) {
+        setEnrollError(res.error.message);
+        return;
+      }
+      push(
+        res.data.waitlisted ? `${name} added to the waitlist — session is full` : `${name} enrolled`,
+        res.data.waitlisted ? "info" : "success",
+      );
+      router.refresh();
+      setEnrollOpen(false);
+      setEnroll(EMPTY_ENROLL);
+      setEnrollError(null);
+      return;
+    }
 
     const waitlist = full || enroll.waitlist;
     const participant: FormationParticipantRow = {
@@ -332,7 +419,6 @@ function FormationDetailView({ vm }: { vm: FormationVM }) {
       enrolled_at: new Date().toISOString(),
       checked_in_at: null,
     };
-    // TODO(WIRE): enrollParticipant action — server re-checks the capacity race.
     setParticipants((current) => [...current, participant]);
     push(
       waitlist ? `${name} added to the waitlist — session is full` : `${name} enrolled`,
@@ -412,8 +498,23 @@ function FormationDetailView({ vm }: { vm: FormationVM }) {
   const duplicateImportCount = (csvRows ?? []).filter((r) => r.duplicate).length;
   const errorImportCount = (csvRows ?? []).filter((r) => r.errors.length > 0).length;
 
-  function confirmImport() {
+  async function confirmImport() {
     if (validImportRows.length === 0) return;
+    if (live) {
+      const res = await importParticipantsAction({
+        bookingId: vm.booking.id,
+        rows: validImportRows.map((r) => ({ full_name: r.fullName, email: r.email, phone: r.phone || null, company: r.company || null })),
+      });
+      if (!res.ok) {
+        push(res.error.message, "error");
+        return;
+      }
+      push(`Enrolled ${res.data.enrolled}${res.data.skipped ? ` (${res.data.skipped} skipped duplicates)` : ""}`);
+      router.refresh();
+      setImportOpen(false);
+      resetImport();
+      return;
+    }
     let seats = left;
     const newbies: FormationParticipantRow[] = validImportRows.map((row) => {
       const waitlist = seats <= 0;
@@ -435,7 +536,7 @@ function FormationDetailView({ vm }: { vm: FormationVM }) {
     // TODO(WIRE): bulkEnrollParticipants action — server dedupes + enforces capacity atomically.
     setParticipants((current) => [...current, ...newbies]);
     push(
-      `Enrolled ${newbies.length}${duplicateImportCount ? ` (${duplicateImportCount} skipped duplicates)` : ""} (demo)`,
+      `Enrolled ${newbies.length}${duplicateImportCount ? ` (${duplicateImportCount} skipped duplicates)` : ""}`,
     );
     setImportOpen(false);
     resetImport();
@@ -491,7 +592,7 @@ function FormationDetailView({ vm }: { vm: FormationVM }) {
         >
           <AlertTriangle size={18} aria-hidden="true" className="mt-0.5 shrink-0" />
           <div>
-            <p>Session cancelled (demo) — participants would be notified.</p>
+            <p>Session cancelled — participants would be notified.</p>
             <p className="mt-0.5 font-medium text-error/80">Reason: {cancelledReason ?? "Cancelled"}</p>
           </div>
         </div>
@@ -595,11 +696,29 @@ function FormationDetailView({ vm }: { vm: FormationVM }) {
           <div className="print:hidden mt-5 flex flex-wrap items-center gap-2 border-t border-divider pt-5">
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
+                if (live) {
+                  const starts = new Date(vm.booking.starts_at);
+                  starts.setDate(starts.getDate() + 7);
+                  const ends = new Date(vm.booking.ends_at);
+                  ends.setDate(ends.getDate() + 7);
+                  const res = await createFormationAction({
+                    title: vm.booking.title + " (copy)",
+                    categoryId: vm.booking.category_id,
+                    roomId: vm.booking.room_id,
+                    startsAt: starts.toISOString(),
+                    endsAt: ends.toISOString(),
+                    capacity: vm.formation.capacity,
+                    priceLabel: vm.formation.price_label ?? null,
+                    description: vm.formation.description ?? null,
+                  });
+                  if (!res.ok) return push(res.error.message, "error");
+                  push("Duplicated as next week — roster ready to fill", "success");
+                  router.refresh();
+                  return;
+                }
                 const duplicated = duplicateFormation(vm);
-                // Persisting emits the change event the Formations list subscribes to.
-                // TODO(WIRE): duplicateFormation action — server clones booking + formation.
-                push(`Duplicated as “${duplicated.booking.title}” (+1 week, demo)`, "info");
+                push(`Duplicated as “${duplicated.booking.title}” (+1 week)`, "info");
               }}
               className="btn btn-secondary h-11 px-5 text-[13px]"
             >
@@ -905,7 +1024,7 @@ function FormationDetailView({ vm }: { vm: FormationVM }) {
               <label htmlFor="en-client" className="label">Link existing client <span className="font-medium normal-case text-muted">(optional)</span></label>
               <select id="en-client" value={enroll.clientId} onChange={(e) => linkClient(e.target.value)} className="input">
                 <option value="">No linked client — new contact</option>
-                {DEMO_CLIENTS.map((client) => (
+                {clients.map((client) => (
                   <option key={client.id} value={client.id}>
                     {client.full_name}{client.company && client.company !== client.full_name ? ` — ${client.company}` : ""}
                   </option>
@@ -1120,11 +1239,15 @@ function FormationDetailView({ vm }: { vm: FormationVM }) {
             </button>
             <button
               type="button"
-              onClick={() => {
-                // TODO(WIRE): cancelFormation action — formations.status='cancelled' + participant notifications.
+              onClick={async () => {
+                if (live) {
+                  const res = await cancelBookingAction({ bookingId: vm.booking.id, reason: cancelReason });
+                  if (!res.ok) return push(res.error.message, "error");
+                }
                 setCancelledReason(cancelReason);
                 setCancelOpen(false);
-                push("Session cancelled (demo) — participants would be notified", "error");
+                push("Session cancelled — participants would be notified", "error");
+                if (live) router.refresh();
               }}
               className="btn h-11 bg-error px-6 text-[14px] font-bold text-white transition-opacity hover:opacity-90"
             >

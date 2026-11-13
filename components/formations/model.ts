@@ -14,8 +14,9 @@ export interface FormationVM {
   participants: FormationParticipantRow[];
 }
 
-export function roomById(roomId: string | null): RoomRow | undefined {
-  return DEMO_ROOMS.find((r) => r.id === roomId);
+export function roomById(roomId: string | null, rooms?: RoomRow[]): RoomRow | undefined {
+  const source = rooms ?? DEMO_ROOMS;
+  return source.find((r) => r.id === roomId);
 }
 
 export function stripDemoSuffix(name: string): string {

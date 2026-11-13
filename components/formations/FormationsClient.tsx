@@ -8,9 +8,12 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { CalendarDays, Plus, Search } from "lucide-react";
 import { NowBarMark } from "@/components/brand/NowBar";
 import { DEMO_ROOMS } from "@/lib/demo-data";
+import type { FormationListData } from "@/lib/formation-vms";
+import { createFormationAction } from "@/app/actions/formations";
 import type { BookingRow, FormationRow } from "@/lib/types/db";
 import {
   buildDemoVMs,
@@ -51,7 +54,7 @@ interface CreateFormState {
 
 const EMPTY_FORM: CreateFormState = {
   title: "",
-  roomId: DEMO_ROOMS[0]?.id ?? "room-formation",
+  roomId: "",
   date: "",
   start: "09:00",
   end: "12:00",
@@ -66,7 +69,16 @@ function localTodayISO(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-export function FormationsClient() {
+export function FormationsClient({ data }: { data?: FormationListData | null }) {
+  const router = useRouter();
+  const live = data != null && data.live;
+  const rooms = data?.rooms ?? DEMO_ROOMS;
+  const categories = data?.categories ?? [];
+  const formationCategory =
+    categories.find((c) => c.type === "formation" && c.is_system) ??
+    categories.find((c) => c.type === "formation") ??
+    categories[0] ??
+    null;
   const { toasts, push, dismiss } = useToast();
   // Locally created formations (sessionStorage) + demo dataset, merged.
   const storedFormations = useSyncExternalStore(
@@ -75,6 +87,7 @@ export function FormationsClient() {
     getServerFormationsSnapshot,
   );
   const vms = useMemo<FormationVM[]>(() => {
+    if (data) return data.vms;
     const demo = buildDemoVMs();
     if (storedFormations.length === 0) return demo;
     const demoIds = new Set(demo.map((vm) => vm.booking.id));
@@ -82,7 +95,7 @@ export function FormationsClient() {
       .filter((stored) => !demoIds.has(stored.booking.id))
       .map((stored) => ({ booking: stored.booking, formation: stored.formation, participants: [] }));
     return [...extras, ...demo];
-  }, [storedFormations]);
+  }, [data, storedFormations]);
   const [segment, setSegment] = useState<Segment>("all");
   const [query, setQuery] = useState("");
 
@@ -105,7 +118,7 @@ export function FormationsClient() {
       if (segment === "full" && status !== "full") return false;
       if (segment === "completed" && status !== "completed") return false;
       if (q) {
-        const room = roomById(vm.booking.room_id);
+        const room = roomById(vm.booking.room_id, rooms);
         const haystack = [
           vm.booking.title,
           room ? stripDemoSuffix(room.name) : "",
@@ -121,10 +134,30 @@ export function FormationsClient() {
   }, [vms, segment, query]);
 
   /* ---------- duplicate ---------- */
-  function handleDuplicate(vm: FormationVM) {
+  async function handleDuplicate(vm: FormationVM) {
+    if (live) {
+      const starts = new Date(vm.booking.starts_at);
+      starts.setDate(starts.getDate() + 7);
+      const ends = new Date(vm.booking.ends_at);
+      ends.setDate(ends.getDate() + 7);
+      const res = await createFormationAction({
+        title: vm.booking.title + " (copy)",
+        categoryId: formationCategory?.id ?? vm.booking.category_id,
+        roomId: vm.booking.room_id,
+        startsAt: starts.toISOString(),
+        endsAt: ends.toISOString(),
+        capacity: vm.formation.capacity,
+        priceLabel: vm.formation.price_label ?? null,
+        description: vm.formation.description ?? null,
+      });
+      if (!res.ok) return push(res.error.message, "error");
+      push(`Duplicated — same session ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(starts)}`);
+      router.refresh();
+      return;
+    }
     const { booking } = duplicateFormation(vm);
     // Persisting emits the change event this list subscribes to.
-    push(`Duplicated — moved to ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(booking.starts_at))} (demo)`);
+    push(`Duplicated — moved to ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(booking.starts_at))}`);
   }
 
   /* ---------- create ---------- */
@@ -133,7 +166,10 @@ export function FormationsClient() {
   const [formError, setFormError] = useState<string | null>(null);
 
   function openCreate() {
-    setForm((current) => (current.date ? current : { ...current, date: localTodayISO() }));
+    setForm((current) => {
+      const base = { ...EMPTY_FORM, date: localTodayISO(), roomId: rooms[0]?.id ?? "" };
+      return current.date ? { ...current, roomId: current.roomId || base.roomId } : { ...base, ...current, date: current.date || base.date };
+    });
     setFormError(null);
     setCreateOpen(true);
   }
@@ -143,7 +179,7 @@ export function FormationsClient() {
     setFormError(null);
   }
 
-  function submitCreate(event: FormEvent<HTMLFormElement>) {
+  async function submitCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const title = form.title.trim();
     if (!title) return setFormError("Give the session a title.");
@@ -179,14 +215,32 @@ export function FormationsClient() {
       status: "open",
     };
 
-    // TODO(WIRE): create booking + formation rows via server action
-    // (app/actions/formations.ts) once the backend is connected —
-    // replaces sessionStorage demo persistence.
+    if (live) {
+      const res = await createFormationAction({
+        title,
+        categoryId: formationCategory?.id ?? "",
+        roomId: form.roomId || null,
+        startsAt: booking.starts_at,
+        endsAt: booking.ends_at,
+        capacity: Math.floor(capacity),
+        priceLabel: form.price.trim() ? Number(form.price) : null,
+        description: form.description.trim() || null,
+      });
+      if (!res.ok) {
+        setFormError(res.error.code === "room_conflict" ? "That room is already taken at that time — pick another slot or room." : res.error.message);
+        return;
+      }
+      setCreateOpen(false);
+      setForm({ ...EMPTY_FORM, roomId: rooms[0]?.id ?? "", date: localTodayISO() });
+      push("Formation created — roster ready to fill");
+      router.refresh();
+      return;
+    }
     appendStoredFormation({ booking, formation });
 
     setCreateOpen(false);
     setForm({ ...EMPTY_FORM, date: localTodayISO() });
-    push("Formation created (demo) — roster ready to fill");
+    push("Formation created — roster ready to fill");
   }
 
   const hasActiveFilters = segment !== "all" || query.trim() !== "";
@@ -247,7 +301,7 @@ export function FormationsClient() {
       {filtered.length > 0 ? (
         <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((vm) => (
-            <FormationCard key={vm.booking.id} vm={vm} onDuplicate={handleDuplicate} />
+            <FormationCard key={vm.booking.id} vm={vm} onDuplicate={handleDuplicate} rooms={rooms} />
           ))}
         </div>
       ) : (

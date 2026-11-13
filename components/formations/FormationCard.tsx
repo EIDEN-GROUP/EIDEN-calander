@@ -12,21 +12,24 @@ import {
   stripDemoSuffix,
   type FormationVM,
 } from "./model";
+import type { RoomRow } from "@/lib/types/db";
 import { FillRing } from "./FillRing";
 import { FormationStatusChip, StatusChip } from "./StatusChip";
 
 export function FormationCard({
   vm,
   onDuplicate,
+  rooms,
 }: {
   vm: FormationVM;
   onDuplicate: (vm: FormationVM) => void;
+  rooms?: RoomRow[];
 }) {
   const { booking, formation, participants } = vm;
   const status = effectiveStatus(vm);
   const left = seatsLeft(formation, participants);
   const pct = fillPercent(formation, participants);
-  const room = roomById(booking.room_id);
+  const room = roomById(booking.room_id, rooms);
 
   return (
     <article className="card card-hover flex flex-col p-5" aria-label={booking.title}>
