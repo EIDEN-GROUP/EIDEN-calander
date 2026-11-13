@@ -24,9 +24,9 @@ import {
   DEMO_CATEGORIES,
   DEMO_CLIENTS,
   DEMO_ROOMS,
-  getDemoBookings,
 } from "@/lib/demo-data";
 import { findOverlaps } from "@/lib/conflict";
+import { createBookingAction, requestChangeAction } from "@/app/actions/bookings";
 import {
   suggestSlots,
   type SlotSuggestion,
@@ -43,8 +43,6 @@ import {
 } from "@/components/calendar/calendar-utils";
 import { useModalA11y } from "./focus-trap";
 import { ConflictModal } from "./ConflictModal";
-
-const DEMO_BOOKINGS = getDemoBookings();
 
 /** Default working hours — Mon–Sat 08:00–20:00, Sunday closed. */
 const DEFAULT_WH: WorkingHoursEntry[] = [
@@ -78,6 +76,13 @@ export interface BookingDrawerProps {
   initial?: { startsAt: string; endsAt: string } | null;
   onClose: () => void;
   onSaved?: (payload: BookingPayload, opts: { conflict: boolean }) => void;
+  /** All active bookings (used by the live conflict preview). */
+  bookings?: BookingRow[];
+  rooms?: Array<import("@/lib/types/db").RoomRow>;
+  categories?: Array<import("@/lib/types/db").CategoryRow>;
+  clients?: Array<import("@/lib/types/db").ClientRow>;
+  workingHours?: WorkingHoursEntry[];
+  live?: boolean;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -118,7 +123,16 @@ export function BookingDrawer({
   initial,
   onClose,
   onSaved,
+  bookings,
+  rooms = DEMO_ROOMS,
+  categories = DEMO_CATEGORIES,
+  clients = DEMO_CLIENTS,
+  workingHours = DEFAULT_WH,
+  live = false,
 }: BookingDrawerProps) {
+  const existing = bookings ?? [];
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const localIdRef = useRef(0);
   const [mounted, setMounted] = useState(false);
@@ -144,9 +158,9 @@ export function BookingDrawer({
   const [type, setType] = useState<BookingType>(booking?.type ?? "standard");
   const [title, setTitle] = useState(booking?.title ?? "");
   const [categoryId, setCategoryId] = useState(
-    booking?.category_id ?? "cat-room-rental",
+    booking?.category_id ?? categories[0]?.id ?? "",
   );
-  const [roomId, setRoomId] = useState<string>(booking?.room_id ?? DEMO_ROOMS[0]?.id ?? "");
+  const [roomId, setRoomId] = useState<string>(booking?.room_id ?? rooms[0]?.id ?? "");
   const [clientId, setClientId] = useState<string>(booking?.client_id ?? "");
   const [date, setDate] = useState(() => toDateInput(initialTimes.start));
   const [startTime, setStartTime] = useState(() => toTimeInput(initialTimes.start));
@@ -176,7 +190,7 @@ export function BookingDrawer({
   const conflicts = useMemo(() => {
     if (!timesValid || !roomId || !start || !end) return [];
     // Exclude self on edit; active bookings only (findOverlaps does that).
-    return findOverlaps(roomId, start, end, DEMO_BOOKINGS, booking?.id);
+    return findOverlaps(roomId, start, end, existing, booking?.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, startMs, endMs, booking?.id]);
 
@@ -184,7 +198,7 @@ export function BookingDrawer({
     if (!timesValid || !roomId || !start || !end) return [];
     const durationMin = Math.round((endMs - startMs) / 60000);
     if (durationMin <= 0) return [];
-    const sameRoom = DEMO_BOOKINGS.filter((b) => b.room_id === roomId);
+    const sameRoom = existing.filter((b) => b.room_id === roomId);
     return suggestSlots({
       roomId,
       desiredStart: start,
@@ -194,7 +208,7 @@ export function BookingDrawer({
       daysAhead: 7,
       limit: 4,
       existing: sameRoom,
-      workingHours: DEFAULT_WH,
+      workingHours,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [roomId, startMs, endMs]);
@@ -217,13 +231,13 @@ export function BookingDrawer({
     requestedBy: creatorName(c.created_by),
   }));
 
-  const selectedRoom = roomId ? DEMO_ROOMS.find((r) => r.id === roomId) : null;
+  const selectedRoom = roomId ? rooms.find((r) => r.id === roomId) : null;
   const selectedRoomName = selectedRoom ? roomLabel(selectedRoom.name) : "No room / off-site";
   const selectedClient = clientId
-    ? DEMO_CLIENTS.find((c) => c.id === clientId)
+    ? clients.find((c) => c.id === clientId)
     : null;
   const selectedCategory = categoryId
-    ? DEMO_CATEGORIES.find((c) => c.id === categoryId)
+    ? categories.find((c) => c.id === categoryId)
     : null;
 
   const canSubmit = title.trim().length >= 2 && timesValid;
@@ -238,41 +252,56 @@ export function BookingDrawer({
     setEndTime(toTimeInput(sEnd));
   };
 
-  const handleSubmit = (e?: FormEvent) => {
+  const handleSubmit = async (e?: FormEvent) => {
     e?.preventDefault();
     setSubmitted(true);
+    setError(null);
     if (!canSubmit || !start || !end) return;
-    const status: BookingStatus = hasConflicts
-      ? "pending_conflict"
-      : view === "edit" && booking?.status === "completed"
-        ? "completed"
-        : "confirmed";
-    // TODO(WIRE): replace with server action `saveBooking(payload)` once Supabase is connected.
-    // The DB trigger `guard_booking_overlap()` remains the seatbelt; this payload mirrors it.
-    onSaved?.(
-      {
-        id: booking?.id ?? `bk-local-${(localIdRef.current += 1)}`,
-        type,
-        title: title.trim(),
-        categoryId,
-        roomId: roomId || null,
-        clientId: clientId || null,
-        startsAt: start.toISOString(),
-        endsAt: end.toISOString(),
-        price: price.trim() === "" ? null : Number(price),
-        notes: notes.trim() === "" ? null : notes.trim(),
-        status,
-      },
-      { conflict: hasConflicts },
-    );
-    onClose();
+
+    const payload = {
+      type,
+      title: title.trim(),
+      categoryId,
+      roomId: roomId || null,
+      clientId: clientId || null,
+      startsAt: start.toISOString(),
+      endsAt: end.toISOString(),
+      price: price.trim() === "" ? null : Number(price),
+      notes: notes.trim() === "" ? null : notes.trim(),
+    };
+    setSaving(true);
+    try {
+      if (hasConflicts) {
+        const res = await requestChangeAction({ ...payload, conflictingBookingId: conflicts[0].id, message: notes.trim() || undefined });
+        if (!res.ok) { setError(res.error.message); return; }
+        onSaved?.(
+          { ...payload, id: res.data.bookingId, status: "pending_conflict" },
+          { conflict: true },
+        );
+        onClose();
+        return;
+      }
+      const res = await createBookingAction(payload);
+      if (!res.ok) { setError(res.error.message); return; }
+      if (res.data.conflict) {
+        // Race lost between preview and submit — server wins; show its conflicts.
+        setError("That slot was just taken — pick a suggested time.");
+        return;
+      }
+      onSaved?.({ ...payload, id: res.data.bookingId, status: "confirmed" }, { conflict: false });
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong — try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const statusMeta = STATUS_META[booking?.status ?? "confirmed"];
   const heading =
     view === "view" ? "Booking details" : view === "edit" ? "Edit booking" : "New booking";
   const kicker =
-    view === "view" ? "Preview · demo data" : view === "edit" ? "Edit · demo data" : "Create · demo data";
+    view === "view" ? (live ? "Live" : "Offline preview") : view === "edit" ? (live ? "Live · edit" : "Offline preview · edit") : live ? "Create · live" : "Create · offline preview";
 
   return (
     <div className="fixed inset-0 z-50">
@@ -388,7 +417,7 @@ export function BookingDrawer({
                     value={categoryId}
                     onChange={(e) => setCategoryId(e.target.value)}
                   >
-                    {DEMO_CATEGORIES.map((c) => (
+                    {categories.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name_en}
                       </option>
@@ -409,7 +438,7 @@ export function BookingDrawer({
                   onChange={(e) => setRoomId(e.target.value)}
                 >
                   <option value="">No room / off-site</option>
-                  {DEMO_ROOMS.map((r) => (
+                  {rooms.map((r) => (
                     <option key={r.id} value={r.id}>
                       {roomLabel(r.name)} · {r.location} · {r.capacity}p
                     </option>
@@ -427,7 +456,7 @@ export function BookingDrawer({
                   onChange={(e) => setClientId(e.target.value)}
                 >
                   <option value="">No client</option>
-                  {DEMO_CLIENTS.map((c) => (
+                  {clients.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.full_name}
                     </option>
@@ -580,7 +609,6 @@ export function BookingDrawer({
 
                   {/* Actions */}
                   <div className="mt-3 flex flex-wrap items-center gap-2 pl-[30px]">
-                    {/* TODO(WIRE): same server action as submit — sends the change request. */}
                     <button
                       type="button"
                       onClick={() => handleSubmit()}
@@ -616,6 +644,18 @@ export function BookingDrawer({
           </form>
         )}
 
+        {/* Error surface */}
+        {error && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mx-5 mb-2 flex items-start gap-2.5 rounded-sm border border-error/25 bg-error-tint px-4 py-3 text-[13px] font-medium leading-snug text-[#c22a22]"
+          >
+            <TriangleAlert size={16} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <span>{error}</span>
+          </div>
+        )}
+
         {/* Footer */}
         <div className="flex shrink-0 items-center justify-end gap-2 border-t border-divider px-5 py-4">
           {isView ? (
@@ -636,16 +676,16 @@ export function BookingDrawer({
               <button type="button" onClick={onClose} className="btn btn-secondary">
                 Cancel
               </button>
-              {/* TODO(WIRE): submit → server action (see handleSubmit). */}
               <button
                 type="submit"
                 form="booking-form"
-                className={`btn ${hasConflicts ? "bg-warning text-obsidian hover:brightness-95" : "btn-primary"}`}
+                disabled={saving}
+                className={`btn disabled:cursor-wait disabled:opacity-75 ${hasConflicts ? "bg-warning text-obsidian hover:brightness-95" : "btn-primary"}`}
               >
                 {hasConflicts && (
                   <Send size={16} strokeWidth={2.4} aria-hidden="true" />
                 )}
-                {submitLabel}
+                {saving ? "Saving…" : submitLabel}
               </button>
             </>
           )}

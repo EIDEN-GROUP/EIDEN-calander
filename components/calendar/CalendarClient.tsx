@@ -17,13 +17,9 @@ import {
   TriangleAlert,
   X,
 } from "lucide-react";
-import {
-  DEMO_CATEGORIES,
-  DEMO_CLIENTS,
-  DEMO_ROOMS,
-  getDemoBookings,
-} from "@/lib/demo-data";
 import type { BookingRow } from "@/lib/types/db";
+import type { CalendarData } from "@/lib/live-data";
+import { useRouter } from "next/navigation";
 import {
   addDays,
   addMonths,
@@ -56,11 +52,12 @@ interface DrawerState {
   key: number;
 }
 
-export function CalendarClient({ serverNow }: { serverNow: string }) {
+export function CalendarClient({ serverNow, data }: { serverNow: string; data: CalendarData }) {
+  const router = useRouter();
   const today = useMemo(() => startOfDay(new Date(serverNow)), [serverNow]);
   const [view, setView] = useState<CalendarView>("week");
   const [anchor, setAnchor] = useState<Date>(today);
-  const [bookings, setBookings] = useState<BookingRow[]>(() => getDemoBookings());
+  const [bookings, setBookings] = useState<BookingRow[]>(() => data.bookings);
   const [query, setQuery] = useState("");
   const [roomFilter, setRoomFilter] = useState<string>("all");
   const [locationFilter, setLocationFilter] = useState<"all" | "Casablanca" | "Agadir">("all");
@@ -69,8 +66,8 @@ export function CalendarClient({ serverNow }: { serverNow: string }) {
   const [toast, setToast] = useState<ToastData | null>(null);
 
   const lookup = useMemo(
-    () => buildLookup(DEMO_ROOMS, DEMO_CATEGORIES, DEMO_CLIENTS),
-    [],
+    () => buildLookup(data.rooms, data.categories, data.clients),
+    [data.rooms, data.categories, data.clients],
   );
 
   const filtered = useMemo(() => {
@@ -135,8 +132,6 @@ export function CalendarClient({ serverNow }: { serverNow: string }) {
     setDrawer({ mode: "view", booking, key: Date.now() });
   }, []);
 
-  // TODO(WIRE): `handleSaved` is where the create/update server action will resolve —
-  // until Supabase is connected it applies the change to local state + shows a toast.
   const handleSaved = useCallback(
     (payload: BookingPayload, opts: { conflict: boolean }) => {
       setBookings((prev) => {
@@ -159,20 +154,19 @@ export function CalendarClient({ serverNow }: { serverNow: string }) {
           ? prev.map((b) => (b.id === row.id ? row : b))
           : [...prev, row];
       });
-      // TODO(WIRE): if opts.conflict, the server action queues a change_request row
-      // instead of confirming the booking (bk-7 / cr-1 pattern).
+      router.refresh(); // re-fetch server data (live mode)
       setToast({
         id: Date.now(),
         tone: opts.conflict ? "warning" : "success",
         title: opts.conflict
-          ? "Saved (demo) — change request sent to Yasmine B."
-          : "Booking saved (demo)",
+          ? "Change request sent to the incumbent"
+          : "Booking saved",
         detail: opts.conflict
           ? "The incumbent has 72h to approve the move."
           : payload.title,
       });
     },
-    [],
+    [router],
   );
 
   const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -195,6 +189,11 @@ export function CalendarClient({ serverNow }: { serverNow: string }) {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {!data.live && (
+            <span className="chip border border-warning/50 bg-warning-tint text-[11px] font-bold text-[#a34d00]">
+              Offline preview
+            </span>
+          )}
           {pendingConflicts.length > 0 && (
             <button
               type="button"
@@ -250,7 +249,7 @@ export function CalendarClient({ serverNow }: { serverNow: string }) {
             onChange={setRoomFilter}
             options={[
               { value: "all", label: "All rooms" },
-              ...DEMO_ROOMS.map((r) => ({
+              ...data.rooms.map((r) => ({
                 value: r.id,
                 label: `${r.name.replace(/\s*\(DEMO\)\s*$/, "")} · ${r.location}`,
               })),
@@ -272,7 +271,7 @@ export function CalendarClient({ serverNow }: { serverNow: string }) {
             onChange={setCategoryFilter}
             options={[
               { value: "all", label: "All categories" },
-              ...DEMO_CATEGORIES.map((c) => ({ value: c.id, label: c.name_en })),
+              ...data.categories.map((c) => ({ value: c.id, label: c.name_en })),
             ]}
           />
 
@@ -406,8 +405,7 @@ export function CalendarClient({ serverNow }: { serverNow: string }) {
       </div>
 
       <p className="mt-4 text-[11px] font-medium text-muted">
-        Drag on empty grid cells to create a booking · double-booking is blocked at save
-        time and re-checked nightly (demo data).
+        Drag on empty grid cells to create a booking · double-booking is blocked at save time and enforced by database trigger.
       </p>
 
       {/* Drawer */}
@@ -419,6 +417,12 @@ export function CalendarClient({ serverNow }: { serverNow: string }) {
           initial={drawer.initial}
           onClose={() => setDrawer(null)}
           onSaved={handleSaved}
+          bookings={bookings}
+          rooms={data.rooms}
+          categories={data.categories}
+          clients={data.clients}
+          workingHours={data.workingHours}
+          live={data.live}
         />
       )}
 

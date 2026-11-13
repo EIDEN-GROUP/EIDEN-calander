@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { respondToChangeRequestAction, cancelChangeRequestAction } from "@/app/actions/bookings";
 import Link from "next/link";
 import {
   Ban,
@@ -32,6 +34,23 @@ import {
 const DEMO_BOOKINGS = getDemoBookings();
 const TTL_HOURS = 72;
 
+export interface LiveChangeRequest {
+  id: string;
+  status: "pending" | "approved" | "declined" | "cancelled" | "expired";
+  message: string | null;
+  responseMessage: string | null;
+  createdAt: string;
+  expiresAt: string;
+  suggestedSlots: Array<{ startsAt: string; endsAt: string }>;
+  newBooking: import("@/lib/types/db").BookingRow;
+  conflictingBooking: import("@/lib/types/db").BookingRow;
+  requesterName: string;
+  incumbentName: string;
+  clientName: string | null;
+  roomName: string | null;
+  roomLocation: string | null;
+}
+
 type Perspective = "requester" | "incumbent";
 type Outcome = "pending" | "approved" | "declined" | "cancelled";
 
@@ -52,22 +71,43 @@ interface ThreadMessage {
 export function RequestThread({
   changeRequestId,
   serverNow,
+  live = null,
 }: {
   changeRequestId: string;
   serverNow: string;
+  live?: LiveChangeRequest | null;
 }) {
-  const cr = useMemo(() => resolveChangeRequest(changeRequestId), [changeRequestId]);
-  const fallback = !DEMO_CHANGE_REQUESTS.some((r) => r.id === changeRequestId);
+  const liveData = live;
+  const cr = useMemo(() => {
+    if (liveData) {
+      return {
+        id: liveData.id,
+        new_booking_id: liveData.newBooking.id,
+        conflicting_booking_id: liveData.conflictingBooking.id,
+        requested_by: "live",
+        assigned_to: "live",
+        message: liveData.message,
+        response_message: liveData.responseMessage,
+        created_at: liveData.createdAt,
+        expires_at: liveData.expiresAt,
+        suggested_slots: liveData.suggestedSlots.map((s) => ({ starts_at: s.startsAt, ends_at: s.endsAt })),
+        status: liveData.status,
+      };
+    }
+    return resolveChangeRequest(changeRequestId);
+  }, [changeRequestId, liveData]);
+  const fallback = false;
 
   const ref = shortRef(cr.id);
 
-  const newBooking = DEMO_BOOKINGS.find((b) => b.id === cr.new_booking_id) ?? null;
-  const oldBooking = DEMO_BOOKINGS.find((b) => b.id === cr.conflicting_booking_id) ?? null;
-  const roomInfo = newBooking?.room_id
-    ? DEMO_ROOMS.find((r) => r.id === newBooking.room_id) ?? null
-    : null;
-  const roomName = roomInfo ? roomInfo.name.replace(/\s*\(DEMO\)\s*$/, "") : "Off-site";
+  const newBooking = liveData?.newBooking ?? DEMO_BOOKINGS.find((b) => b.id === cr.new_booking_id) ?? null;
+  const oldBooking = liveData?.conflictingBooking ?? DEMO_BOOKINGS.find((b) => b.id === cr.conflicting_booking_id) ?? null;
+  const roomName = liveData?.roomName ??
+    (newBooking?.room_id
+      ? (DEMO_ROOMS.find((r) => r.id === newBooking.room_id)?.name.replace(/\s*\(DEMO\)\s*$/, "") ?? "Off-site")
+      : "Off-site");
 
+  const router = useRouter();
   const createdAt = new Date(cr.created_at);
   const expiresAt = new Date(cr.expires_at);
 
@@ -110,32 +150,64 @@ export function RequestThread({
     Math.max(0, (now.getTime() - createdAt.getTime()) / (expiresAt.getTime() - createdAt.getTime())),
   );
 
-  const requester = creatorName(cr.requested_by);
-  const incumbent = creatorName(cr.assigned_to);
+  const roomLocation = liveData?.roomLocation
+    ?? (newBooking?.room_id
+      ? DEMO_ROOMS.find((r) => r.id === newBooking.room_id)?.location ?? null
+      : null);
+  const clientNameFor = (b: BookingRow): string | null =>
+    liveData ? (b.id === liveData.newBooking.id ? liveData.clientName : null) : clientNameOf(b);
+  const requester = liveData?.requesterName ?? creatorName(cr.requested_by);
+  const incumbent = liveData?.incumbentName ?? creatorName(cr.assigned_to);
 
-  const handleApprove = (slot: { starts_at: string; ends_at: string }) => {
-    // TODO(WIRE): server action `approveChangeRequest(cr.id, slot)` — moves the
-    // incumbent booking, marks the request approved, notifies both parties.
+  const handleApprove = async (slot: { starts_at: string; ends_at: string }) => {
+    if (liveData) {
+      const res = await respondToChangeRequestAction({
+        requestId: liveData.id,
+        decision: "approve",
+        slot: { startsAt: slot.starts_at, endsAt: slot.ends_at },
+      });
+      if (!res.ok) {
+        setAnnouncement(res.error.message);
+        return;
+      }
+    }
+    router.refresh();
     setApprovedSlot(slot);
     setOutcome("approved");
     setAnnouncement(
-      `Booking moved to ${slotLabel(slot)}. Both parties were notified (demo).`,
+      `Booking moved to ${slotLabel(slot)}. Both parties were notified.`,
     );
   };
 
-  const handleDecline = () => {
-    // TODO(WIRE): server action `declineChangeRequest(cr.id, reason)`.
+  const handleDecline = async () => {
+    if (liveData) {
+      const res = await respondToChangeRequestAction({
+        requestId: liveData.id,
+        decision: "decline",
+        message: declineReason.trim() || undefined,
+      });
+      if (!res.ok) {
+        setAnnouncement(res.error.message);
+        return;
+      }
+    }
     setOutcome("declined");
     setAnnouncement(
-      "Request declined. The incumbent keeps the slot and the requester was notified (demo).",
+      "Request declined. The incumbent keeps the slot and the requester was notified.",
     );
   };
 
-  const handleCancelBooking = () => {
-    // TODO(WIRE): server action `cancelBooking(cr.new_booking_id)` + cancel the request.
+  const handleCancelBooking = async () => {
+    if (liveData) {
+      const res = await cancelChangeRequestAction({ requestId: liveData.id });
+      if (!res.ok) {
+        setAnnouncement(res.error.message);
+        return;
+      }
+    }
     setOutcome("cancelled");
     setAnnouncement(
-      "Your booking was cancelled and the conflict is cleared. The incumbent keeps the slot (demo).",
+      "Your booking was cancelled and the conflict is cleared. The incumbent keeps the slot.",
     );
   };
 
@@ -143,7 +215,10 @@ export function RequestThread({
     e.preventDefault();
     const body = draft.trim();
     if (!body) return;
-    // TODO(WIRE): server action `appendChangeRequestMessage(cr.id, body)`.
+    if (liveData) {
+      setAnnouncement("Thread messages ship with v1.1 — use Inbox or email for now.");
+      return;
+    }
     setMessages((prev) => [
       ...prev,
       { id: `m-${Date.now()}`, author: perspective, body, at: new Date().toISOString() },
@@ -257,8 +332,8 @@ export function RequestThread({
               tone="warning"
               booking={newBooking}
               roomName={roomName}
-              location={roomInfo?.location}
-              clientName={clientNameOf(newBooking)}
+              location={roomLocation ?? undefined}
+              clientName={clientNameFor(newBooking)}
             />
           )}
 
@@ -279,8 +354,8 @@ export function RequestThread({
               tone="electric"
               booking={oldBooking}
               roomName={roomName}
-              location={roomInfo?.location}
-              clientName={clientNameOf(oldBooking)}
+              location={roomLocation ?? undefined}
+              clientName={clientNameFor(oldBooking)}
             />
           )}
 
@@ -707,7 +782,7 @@ function IncumbentActions({
       </p>
       <p className="mt-1 text-[12px] leading-snug text-muted">
         Approve one of {requester}’s suggested slots — we’ll move your booking automatically
-        and notify both parties (demo).
+        and notify both parties.
       </p>
 
       {/* Suggested slots */}
@@ -721,7 +796,6 @@ function IncumbentActions({
               <CalendarClock size={16} strokeWidth={2} aria-hidden="true" className="shrink-0" />
               <span className="truncate">{slotLabel(slot)}</span>
             </span>
-            {/* TODO(WIRE): approveChangeRequest(cr.id, slot) */}
             <button
               type="button"
               onClick={() => onApprove(slot)}
@@ -747,7 +821,6 @@ function IncumbentActions({
           placeholder="e.g. ONCF board must stay at 14:00 — propose another day instead."
           className="input min-h-[64px] resize-y py-3"
         />
-        {/* TODO(WIRE): declineChangeRequest(cr.id, reason) */}
         <button
           type="button"
           onClick={onDecline}
@@ -797,7 +870,6 @@ function RequesterActions({
         ))}
       </ul>
 
-      {/* TODO(WIRE): cancelBooking(cr.new_booking_id) + cancel request */}
       <button
         type="button"
         onClick={onCancel}
