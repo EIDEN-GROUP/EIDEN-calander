@@ -1,8 +1,12 @@
-import { EmptyState } from "@/components/EmptyState";
+import { connection } from "next/server";
 import type { Metadata } from "next";
+import { ClientsClient } from "@/components/clients/ClientsClient";
 
 export const metadata: Metadata = { title: "Clients" };
+export const instant = false;
 
-export default function Page() {
-  return <EmptyState title="Clients" description="CRM-lite: search, tags, status, booking history, formation enrollments, GDPR export and anonymize." phase="3" />;
+export default async function ClientsPage() {
+  // "Latest booking" derives from demo bookings anchored to "now".
+  await connection();
+  return <ClientsClient />;
 }

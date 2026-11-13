@@ -1,8 +1,28 @@
-import { EmptyState } from "@/components/EmptyState";
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { PlansBoard } from "@/components/plans/PlansBoard";
 
 export const metadata: Metadata = { title: "Plans" };
+// Board derives overdue state from today — stream the client view in, don't prerender it.
+export const instant = false;
 
-export default function Page() {
-  return <EmptyState title="Plans" description="Strategic objectives with tasks, assignees, due dates and auto-computed progress — the planning side of CALENDAR." phase="3" />;
+function BoardFallback() {
+  return (
+    <div className="mx-auto max-w-6xl" aria-hidden="true">
+      <div className="h-9 w-40 animate-pulse rounded-pill bg-track" />
+      <div className="mt-4 grid gap-3 lg:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="card h-64 animate-pulse" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export default function PlansPage() {
+  return (
+    <Suspense fallback={<BoardFallback />}>
+      <PlansBoard />
+    </Suspense>
+  );
 }

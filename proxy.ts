@@ -40,6 +40,16 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!user && !isPublic(pathname) && pathname !== "/") {
+    // API routes: never redirect to /login — return JSON 401 so clients can handle it.
+    if (pathname.startsWith("/api/cron/")) {
+      return NextResponse.next(); // route enforces CRON_SECRET itself
+    }
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json(
+        { ok: false, error: { code: "unauthorized", message: "Sign in first." } },
+        { status: 401 },
+      );
+    }
     const next = encodeURIComponent(pathname + request.nextUrl.search);
     return NextResponse.redirect(new URL(`/login?next=${next}`, request.url));
   }

@@ -1,0 +1,345 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import nodemailer from "nodemailer";
+import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import { requireAdmin } from "@/lib/auth";
+import type { ActionResult } from "@/lib/types/db";
+
+function notConfigured<T>(): ActionResult<T> {
+  return { ok: false, error: { code: "not_configured", message: "Supabase isn't configured — set .env." } };
+}
+function fail(code: string, message: string): ActionResult<never> {
+  return { ok: false, error: { code, message } };
+}
+function failUnexpected(err: unknown): ActionResult<never> {
+  console.error("[settings] unexpected error", err);
+  return { ok: false, error: { code: "unexpected", message: "Something went wrong. Please try again." } };
+}
+
+/* ---------------- Business profile ---------------- */
+export async function updateBusinessProfileAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
+  try {
+    const admin = await requireAdmin();
+    const parsed = z.object({
+      businessName: z.string().trim().min(1).max(160),
+      legalName: z.string().max(160).nullable().optional(),
+      email: z.email().max(200),
+      phone: z.string().max(40).nullable().optional(),
+      address: z.string().max(240).nullable().optional(),
+      city: z.string().max(80).nullable().optional(),
+      country: z.string().max(80).nullable().optional(),
+      timezone: z.string().max(64),
+      currency: z.string().length(3),
+      publicUrl: z.string().max(200).nullable().optional(),
+      slotIncrementMin: z.union([z.literal(15), z.literal(30), z.literal(60)]),
+      bufferMin: z.number().int().min(0).max(120),
+      minNoticeHours: z.number().int().min(0).max(720),
+      defaultLocale: z.enum(["en", "fr"]),
+    }).safeParse(raw);
+    if (!parsed.success) return fail("validation", parsed.error.issues[0]?.message ?? "Invalid input");
+    const input = parsed.data;
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { error } = await supabase
+      .from("business_settings")
+      .update({
+        business_name: input.businessName,
+        legal_name: input.legalName ?? null,
+        email: input.email,
+        phone: input.phone ?? null,
+        address: input.address ?? null,
+        city: input.city ?? null,
+        country: input.country ?? null,
+        timezone: input.timezone,
+        currency: input.currency,
+        public_url: input.publicUrl ?? null,
+        slot_increment_min: input.slotIncrementMin,
+        buffer_min: input.bufferMin,
+        min_notice_hours: input.minNoticeHours,
+        default_locale: input.defaultLocale,
+        updated_by: admin.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", true);
+    if (error) throw error;
+    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "settings.business", entity_type: "settings", entity_id: "business_settings" });
+    revalidatePath("/settings/general");
+    return { ok: true, data: { ok: true } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/* ---------------- Working hours (7 rows) ---------------- */
+export async function updateWorkingHoursAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
+  try {
+    const admin = await requireAdmin();
+    const weekday = z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]);
+    const parsed = z.array(z.object({
+      weekday,
+      is_open: z.boolean(),
+      open_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
+      close_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
+    })).length(7).safeParse(raw);
+    if (!parsed.success) return fail("validation", "Provide all 7 weekdays");
+    for (const row of parsed.data) {
+      if (row.is_open && row.open_time >= row.close_time) {
+        return fail("validation", `${row.weekday}: open time must be before close time`);
+      }
+    }
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { error } = await supabase.from("working_hours").upsert(parsed.data, { onConflict: "weekday" });
+    if (error) throw error;
+    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "settings.working_hours", entity_type: "settings", entity_id: "working_hours" });
+    revalidatePath("/settings/working-hours");
+    return { ok: true, data: { ok: true } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/* ---------------- Rooms ---------------- */
+export async function createRoomAction(raw: unknown): Promise<ActionResult<{ roomId: string }>> {
+  try {
+    const admin = await requireAdmin();
+    const parsed = z.object({
+      name: z.string().trim().min(2).max(120),
+      location: z.string().trim().min(2).max(80),
+      capacity: z.number().int().min(1).max(1000),
+      hourlyRate: z.number().min(0).max(100_000),
+      amenities: z.array(z.string().max(40)).max(20).optional(),
+      notes: z.string().max(500).nullable().optional(),
+    }).safeParse(raw);
+    if (!parsed.success) return fail("validation", parsed.error.issues[0]?.message ?? "Invalid input");
+    const input = parsed.data;
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { data: inserted, error } = await supabase
+      .from("rooms")
+      .insert({ name: input.name, location: input.location, capacity: input.capacity, hourly_rate: input.hourlyRate, amenities: input.amenities ?? [], notes: input.notes ?? null })
+      .select("id")
+      .single();
+    if (error) throw error;
+    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "room.create", entity_type: "room", entity_id: inserted.id });
+    revalidatePath("/settings/rooms");
+    return { ok: true, data: { roomId: inserted.id } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+export async function toggleRoomActiveAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
+  try {
+    const admin = await requireAdmin();
+    const parsed = z.object({ roomId: z.string().uuid(), isActive: z.boolean() }).safeParse(raw);
+    if (!parsed.success) return fail("validation", "Invalid input");
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { error } = await supabase.from("rooms").update({ is_active: parsed.data.isActive }).eq("id", parsed.data.roomId);
+    if (error) throw error;
+    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "room.toggle", entity_type: "room", entity_id: parsed.data.roomId, meta: { is_active: parsed.data.isActive } });
+    revalidatePath("/settings/rooms");
+    return { ok: true, data: { ok: true } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/* ---------------- Categories ---------------- */
+const TINTS = ["blue", "green", "purple", "amber", "teal", "rose"] as const;
+
+export async function createCategoryAction(raw: unknown): Promise<ActionResult<{ categoryId: string }>> {
+  try {
+    const admin = await requireAdmin();
+    const parsed = z.object({
+      nameEn: z.string().trim().min(2).max(80),
+      nameFr: z.string().trim().max(80).nullable().optional(),
+      type: z.enum(["standard", "formation"]).default("standard"),
+      color: z.enum(TINTS),
+      icon: z.string().max(60).default("calendar"),
+    }).safeParse(raw);
+    if (!parsed.success) return fail("validation", parsed.error.issues[0]?.message ?? "Invalid input");
+    const input = parsed.data;
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { data: inserted, error } = await supabase
+      .from("categories")
+      .insert({ name_en: input.nameEn, name_fr: input.nameFr ?? null, type: input.type, color: input.color, icon: input.icon, is_system: false, sort: 99 })
+      .select("id")
+      .single();
+    if (error) throw error;
+    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "category.create", entity_type: "category", entity_id: inserted.id });
+    revalidatePath("/settings/categories");
+    return { ok: true, data: { categoryId: inserted.id } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/* ---------------- Team users (service-role for auth.admin) ---------------- */
+export async function createTeamUserAction(raw: unknown): Promise<ActionResult<{ userId: string; tempPassword: string }>> {
+  try {
+    const admin = await requireAdmin();
+    const parsed = z.object({
+      fullName: z.string().trim().min(2).max(120),
+      email: z.email().max(200),
+      role: z.enum(["admin", "staff"]),
+    }).safeParse(raw);
+    if (!parsed.success) return fail("validation", parsed.error.issues[0]?.message ?? "Invalid input");
+    const { fullName, email, role } = parsed.data;
+    const service = createServiceClient(); // throws outside configured env — caught below
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*";
+    const tempPassword = Array.from(crypto.getRandomValues(new Uint32Array(14)))
+      .map((n) => alphabet[n % alphabet.length]).join("");
+
+    const { data: created, error } = await service.auth.admin.createUser({
+      email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { full_name: fullName, role },
+    });
+    if (error) {
+      if (/already|exists|registered/i.test(error.message)) return fail("duplicate", "An account with this email already exists.");
+      throw error;
+    }
+    const userId = created.user?.id;
+    if (!userId) return fail("unexpected", "User creation returned no id.");
+
+    const { error: profileErr } = await service.from("profiles").upsert({
+      id: userId, email, full_name: fullName, role, is_active: true, must_change_password: true, locale: "en",
+    });
+    if (profileErr) throw profileErr;
+
+    const supabase = await createClient();
+    await supabase?.from("audit_log").insert({
+      actor_id: admin.id, action: "user.create", entity_type: "user", entity_id: userId,
+      meta: { email, role },
+    });
+    revalidatePath("/settings/team");
+    return { ok: true, data: { userId, tempPassword } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+export async function setTeamUserActiveAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
+  try {
+    const admin = await requireAdmin();
+    const parsed = z.object({ userId: z.string().uuid(), isActive: z.boolean() }).safeParse(raw);
+    if (!parsed.success) return fail("validation", "Invalid input");
+    const { userId, isActive } = parsed.data;
+    if (userId === admin.id && !isActive) return fail("validation", "You cannot deactivate your own account.");
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    // Last-admin guard
+    if (!isActive) {
+      const { count } = await supabase.from("profiles").select("id", { count: "exact", head: true }).eq("role", "admin").eq("is_active", true);
+      const { data: target } = await supabase.from("profiles").select("role").eq("id", userId).single();
+      if (target?.role === "admin" && (count ?? 0) <= 1) {
+        return fail("validation", "You cannot deactivate the last active admin.");
+      }
+    }
+    const { error } = await supabase.from("profiles").update({ is_active: isActive }).eq("id", userId);
+    if (error) throw error;
+    try {
+      const service = createServiceClient();
+      await service.auth.admin.updateUserById(userId, isActive ? { ban_duration: "none" } : { ban_duration: "876600h" });
+    } catch (e) {
+      console.error("[settings] auth ban toggle failed", e);
+    }
+    await supabase.from("audit_log").insert({
+      actor_id: admin.id, action: isActive ? "user.reactivate" : "user.deactivate", entity_type: "user", entity_id: userId,
+    });
+    revalidatePath("/settings/team");
+    return { ok: true, data: { ok: true } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/* ---------------- Mail: SMTP/IMAP connection test (no secrets to client) ---------------- */
+export async function testMailConnectionAction(raw: unknown): Promise<ActionResult<{ protocol: "smtp" | "imap"; ok: boolean; latencyMs?: number; error?: string }>> {
+  try {
+    await requireAdmin();
+    const parsed = z.object({ protocol: z.enum(["smtp", "imap"]) }).safeParse(raw);
+    if (!parsed.success) return fail("validation", "Invalid protocol");
+    const started = Date.now();
+
+    if (parsed.data.protocol === "smtp") {
+      const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD } = process.env;
+      if (!SMTP_HOST || !SMTP_USER || !SMTP_PASSWORD) {
+        return { ok: true, data: { protocol: "smtp", ok: false, error: "SMTP is not configured in this environment (SMTP_HOST/USER/PASSWORD)." } };
+      }
+      const port = Number(SMTP_PORT ?? 587);
+      try {
+        const transport = nodemailer.createTransport({
+          host: SMTP_HOST, port, secure: port === 465,
+          auth: { user: SMTP_USER, pass: SMTP_PASSWORD },
+          connectionTimeout: 8000, socketTimeout: 8000,
+        });
+        await transport.verify();
+        transport.close();
+        return { ok: true, data: { protocol: "smtp", ok: true, latencyMs: Date.now() - started } };
+      } catch (e) {
+        return { ok: true, data: { protocol: "smtp", ok: false, error: e instanceof Error ? e.message.slice(0, 200) : "SMTP verify failed" } };
+      }
+    }
+
+    // IMAP — light probe via imapflow without touching mailbox data
+    const { IMAP_HOST, IMAP_PORT, IMAP_USER, IMAP_PASSWORD } = process.env;
+    if (!IMAP_HOST || !IMAP_USER || !IMAP_PASSWORD) {
+      return { ok: true, data: { protocol: "imap", ok: false, error: "IMAP is not configured in this environment (IMAP_HOST/USER/PASSWORD)." } };
+    }
+    try {
+      const { ImapFlow } = await import("imapflow");
+      const client = new ImapFlow({
+        host: IMAP_HOST, port: Number(IMAP_PORT ?? 993), secure: true,
+        auth: { user: IMAP_USER, pass: IMAP_PASSWORD },
+        logger: false,
+      });
+      const timeout = new Promise<never>((_, reject) => setTimeout(() => reject(new Error("IMAP connect timeout (8s)")), 8000));
+      await Promise.race([client.connect(), timeout]);
+      await client.logout();
+      return { ok: true, data: { protocol: "imap", ok: true, latencyMs: Date.now() - started } };
+    } catch (e) {
+      return { ok: true, data: { protocol: "imap", ok: false, error: e instanceof Error ? e.message.slice(0, 200) : "IMAP connect failed" } };
+    }
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/* ---------------- Audit log (admin, read) ---------------- */
+export async function listAuditLogAction(filters: {
+  actorId?: string | null;
+  action?: string | null;
+  query?: string | null;
+  from?: string | null;
+  to?: string | null;
+  limit?: number;
+}): Promise<ActionResult<{ entries: Array<Record<string, unknown>> }>> {
+  try {
+    await requireAdmin();
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    let q = supabase
+      .from("audit_log")
+      .select("id,actor_id,action,entity_type,entity_id,meta,created_at")
+      .order("created_at", { ascending: false })
+      .limit(Math.min(filters.limit ?? 100, 500));
+    if (filters.actorId) q = q.eq("actor_id", filters.actorId);
+    if (filters.action) q = q.eq("action", filters.action);
+    if (filters.query) q = q.or(`action.ilike.%${filters.query}%,entity_id.ilike.%${filters.query}%`);
+    if (filters.from) q = q.gte("created_at", filters.from);
+    if (filters.to) q = q.lte("created_at", filters.to);
+    const { data, error } = await q;
+    if (error) throw error;
+    return { ok: true, data: { entries: data ?? [] } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}

@@ -1,8 +1,12 @@
-import { EmptyState } from "@/components/EmptyState";
+import { connection } from "next/server";
 import type { Metadata } from "next";
+import { FormationsClient } from "@/components/formations/FormationsClient";
 
 export const metadata: Metadata = { title: "Formations" };
+export const instant = false;
 
-export default function Page() {
-  return <EmptyState title="Formations" description="Training sessions with capacity, waitlists, CSV roster import and day-of attendance — built as bookings, powered by the same conflict engine." phase="3" />;
+export default async function FormationsPage() {
+  // Demo bookings are anchored to "now" — render at request time.
+  await connection();
+  return <FormationsClient />;
 }

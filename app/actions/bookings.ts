@@ -1,0 +1,451 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { createClient } from "@/lib/supabase/server";
+import { requireUser } from "@/lib/auth";
+import { findOverlaps, type OverlapCandidate } from "@/lib/conflict";
+import { suggestSlots, type WorkingHoursEntry } from "@/lib/slots";
+import type { ActionResult, BookingRow } from "@/lib/types/db";
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}T/, "Expected ISO date");
+
+const bookingInput = z.object({
+  title: z.string().trim().min(2).max(200),
+  type: z.enum(["standard", "formation"]).default("standard"),
+  categoryId: z.string().uuid(),
+  roomId: z.string().uuid().nullable().optional(),
+  clientId: z.string().uuid().nullable().optional(),
+  startsAt: isoDate,
+  endsAt: isoDate,
+  price: z.number().min(0).max(1_000_000).nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+});
+export type BookingInput = z.infer<typeof bookingInput>;
+
+function notConfigured<T>(): ActionResult<T> {
+  return { ok: false, error: { code: "not_configured", message: "Supabase isn't configured — set .env (see docs/RUNBOOK.md)." } };
+}
+function fail(code: string, message: string): ActionResult<never> {
+  return { ok: false, error: { code, message } };
+}
+function failUnexpected(err: unknown): ActionResult<never> {
+  console.error("[action] unexpected error", err);
+  return { ok: false, error: { code: "unexpected", message: "Something went wrong on our side. Please try again." } };
+}
+const ACTIVE = ["confirmed", "pending_conflict"] as const;
+
+async function loadRoomWindow(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+  roomId: string,
+  from: string,
+  to: string,
+): Promise<OverlapCandidate[]> {
+  const { data } = await supabase
+    .from("bookings")
+    .select("id, room_id, starts_at, ends_at, status, title, created_by")
+    .eq("room_id", roomId)
+    .in("status", [...ACTIVE])
+    .lt("starts_at", to)
+    .gt("ends_at", from);
+  return (data ?? []) as OverlapCandidate[];
+}
+
+async function loadWorkingHours(
+  supabase: NonNullable<Awaited<ReturnType<typeof createClient>>>,
+): Promise<WorkingHoursEntry[]> {
+  const { data } = await supabase.from("working_hours").select("weekday,is_open,open_time,close_time");
+  return (data ?? []) as WorkingHoursEntry[];
+}
+
+export interface CreateBookingConflict {
+  bookingId: string;
+  status: "confirmed" | "pending_conflict";
+  conflict?: {
+    clashes: OverlapCandidate[];
+    suggestions: { startsAt: string; endsAt: string; labelKey: string }[];
+  };
+}
+
+/** Create a booking. If it clashes, returns the clash details + suggestions WITHOUT saving. */
+export async function createBookingAction(raw: unknown): Promise<ActionResult<CreateBookingConflict>> {
+  try {
+    const profile = await requireUser();
+    const parsed = bookingInput.safeParse(raw);
+    if (!parsed.success) return fail("validation", parsed.error.issues[0]?.message ?? "Invalid input");
+    const input = parsed.data;
+    if (new Date(input.endsAt).getTime() <= new Date(input.startsAt).getTime()) {
+      return fail("validation", "End time must be after start time.");
+    }
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+
+    // 1) Conflict check (app layer — the DB trigger is the backstop)
+    const windowFrom = new Date(new Date(input.startsAt).getTime() - 24 * 3600_000).toISOString();
+    const windowTo = new Date(new Date(input.endsAt).getTime() + 24 * 3600_000).toISOString();
+    const existing = input.roomId
+      ? await loadRoomWindow(supabase, input.roomId, windowFrom, windowTo)
+      : [];
+    const clashes = findOverlaps(input.roomId ?? null, input.startsAt, input.endsAt, existing);
+
+    if (clashes.length > 0) {
+      const workingHours = await loadWorkingHours(supabase);
+      const durationMin = Math.round(
+        (new Date(input.endsAt).getTime() - new Date(input.startsAt).getTime()) / 60000,
+      );
+      const { data: roomRow } = await supabase.from("business_settings").select("slot_increment_min,buffer_min").single();
+      const suggestions = input.roomId
+        ? suggestSlots({
+            roomId: input.roomId,
+            desiredStart: new Date(input.startsAt),
+            durationMin,
+            incrementMin: (roomRow?.slot_increment_min ?? 30) as 15 | 30 | 60,
+            bufferMin: roomRow?.buffer_min ?? 0,
+            daysAhead: 14,
+            limit: 4,
+            existing,
+            workingHours,
+            timeZone: "Africa/Casablanca",
+          })
+        : [];
+      return { ok: true, data: { bookingId: "", status: "pending_conflict", conflict: { clashes, suggestions } } };
+    }
+
+    // 2) Clean slot — insert as confirmed
+    const { data: inserted, error } = await supabase
+      .from("bookings")
+      .insert({
+        type: input.type,
+        title: input.title,
+        category_id: input.categoryId,
+        room_id: input.roomId ?? null,
+        client_id: input.clientId ?? null,
+        created_by: profile.id,
+        starts_at: input.startsAt,
+        ends_at: input.endsAt,
+        status: "confirmed",
+        price: input.price ?? null,
+        notes: input.notes ?? null,
+      })
+      .select("id")
+      .single();
+    if (error) {
+      if (error.code === "P0001" || /room_conflict/.test(error.message)) {
+        return fail("room_conflict", "That slot was just taken — refresh and pick another time.");
+      }
+      throw error;
+    }
+    await supabase.from("audit_log").insert({
+      actor_id: profile.id,
+      action: "booking.create",
+      entity_type: "booking",
+      entity_id: inserted.id,
+      meta: { room_id: input.roomId ?? null, type: input.type },
+    });
+    revalidatePath("/calendar");
+    revalidatePath("/dashboard");
+    return { ok: true, data: { bookingId: inserted.id, status: "confirmed" } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/** Save the booking as PENDING and open a change request to the incumbent. */
+export async function requestChangeAction(raw: unknown): Promise<ActionResult<{ requestId: string; bookingId: string }>> {
+  try {
+    const profile = await requireUser();
+    const parsed = bookingInput
+      .extend({ conflictingBookingId: z.string().uuid(), message: z.string().max(1000).nullable().optional() })
+      .safeParse(raw);
+    if (!parsed.success) return fail("validation", parsed.error.issues[0]?.message ?? "Invalid input");
+    const { conflictingBookingId, message, ...input } = parsed.data;
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+
+    const { data: incumbent, error: incErr } = await supabase
+      .from("bookings")
+      .select("id,title,created_by,starts_at,ends_at,room_id,status")
+      .eq("id", conflictingBookingId)
+      .single();
+    if (incErr || !incumbent) return fail("not_found", "The conflicting booking no longer exists.");
+
+    // Save the requester's booking as pending_conflict
+    const { data: newBooking, error: nbErr } = await supabase
+      .from("bookings")
+      .insert({
+        type: input.type,
+        title: input.title,
+        category_id: input.categoryId,
+        room_id: input.roomId ?? null,
+        client_id: input.clientId ?? null,
+        created_by: profile.id,
+        starts_at: input.startsAt,
+        ends_at: input.endsAt,
+        status: "pending_conflict",
+        price: input.price ?? null,
+        notes: input.notes ?? null,
+      })
+      .select("id")
+      .single();
+    if (nbErr) throw nbErr;
+
+    // Suggestions FOR THE INCUMBENT (next free windows of the same room)
+    const windowFrom = new Date(Date.now() - 3600_000).toISOString();
+    const windowTo = new Date(Date.now() + 21 * 86400_000).toISOString();
+    const existing = incumbent.room_id
+      ? await loadRoomWindow(supabase, incumbent.room_id, windowFrom, windowTo)
+      : [];
+    const workingHours = await loadWorkingHours(supabase);
+    const durationMin = Math.round(
+      (new Date(incumbent.ends_at).getTime() - new Date(incumbent.starts_at).getTime()) / 60000,
+    );
+    const suggested = incumbent.room_id
+      ? suggestSlots({
+          roomId: incumbent.room_id,
+          desiredStart: new Date(),
+          durationMin,
+          incrementMin: 30,
+          bufferMin: 0,
+          daysAhead: 14,
+          limit: 4,
+          existing,
+          workingHours,
+          timeZone: "Africa/Casablanca",
+        }).map((s) => ({ starts_at: s.startsAt, ends_at: s.endsAt }))
+      : [];
+
+    const { data: request, error: crErr } = await supabase
+      .from("change_requests")
+      .insert({
+        new_booking_id: newBooking.id,
+        conflicting_booking_id: incumbent.id,
+        requested_by: profile.id,
+        assigned_to: incumbent.created_by,
+        message: message ?? null,
+        suggested_slots: suggested,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+    if (crErr) throw crErr;
+
+    await supabase.from("notifications").insert({
+      user_id: incumbent.created_by,
+      type: "change_request_received",
+      title: `${profile.full_name} asked to move "${incumbent.title}"`,
+      body: message ?? "They need the slot for another booking.",
+      link: `/requests/${request.id}`,
+      entity_id: request.id,
+    });
+    await supabase.from("audit_log").insert({
+      actor_id: profile.id,
+      action: "change_request.create",
+      entity_type: "change_request",
+      entity_id: request.id,
+      meta: { new_booking_id: newBooking.id, conflicting_booking_id: incumbent.id, suggested_count: suggested.length },
+    });
+    // TODO(WIRE): send changeRequestReceived email via lib/email/send.ts (agent D deliverable)
+
+    revalidatePath("/calendar");
+    return { ok: true, data: { requestId: request.id, bookingId: newBooking.id } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+const respondInput = z.object({
+  requestId: z.string().uuid(),
+  decision: z.enum(["approve", "decline"]),
+  slot: z.object({ startsAt: isoDate, endsAt: isoDate }).optional(),
+  message: z.string().max(1000).nullable().optional(),
+});
+
+/** Incumbent responds: approve (guided move) or decline. */
+export async function respondToChangeRequestAction(raw: unknown): Promise<ActionResult<{ status: "approved" | "declined" }>> {
+  try {
+    const profile = await requireUser();
+    const parsed = respondInput.safeParse(raw);
+    if (!parsed.success) return fail("validation", "Invalid input");
+    const { requestId, decision, slot, message } = parsed.data;
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+
+    const { data: req, error } = await supabase
+      .from("change_requests")
+      .select("id,status,new_booking_id,conflicting_booking_id,assigned_to,requested_by,suggested_slots")
+      .eq("id", requestId)
+      .single();
+    if (error || !req) return fail("not_found", "Change request not found.");
+    const isAssignee = req.assigned_to === profile.id;
+    const isAdmin = profile.role === "admin";
+    if (!isAssignee && !isAdmin) return fail("forbidden", "This request isn't addressed to you.");
+    if (req.status !== "pending") return fail("state", "This request was already resolved.");
+
+    if (decision === "approve") {
+      const chosenSlot =
+        slot ??
+        (Array.isArray(req.suggested_slots) && req.suggested_slots[0]
+          ? { startsAt: req.suggested_slots[0].starts_at, endsAt: req.suggested_slots[0].ends_at }
+          : undefined);
+      if (!chosenSlot) return fail("validation", "Pick a slot to move your booking to.");
+
+      // Move the incumbent booking
+      const { error: moveErr } = await supabase
+        .from("bookings")
+        .update({ starts_at: chosenSlot.startsAt, ends_at: chosenSlot.endsAt })
+        .eq("id", req.conflicting_booking_id);
+      if (moveErr) {
+        if (moveErr.code === "P0001" || /room_conflict/.test(moveErr.message)) {
+          return fail("room_conflict", "That new slot is taken too — pick another.");
+        }
+        throw moveErr;
+      }
+      // Confirm the requester's held booking
+      await supabase.from("bookings").update({ status: "confirmed" }).eq("id", req.new_booking_id);
+      await supabase
+        .from("change_requests")
+        .update({ status: "approved", response_message: message ?? null, responded_at: new Date().toISOString(), resolved_booking_id: req.conflicting_booking_id })
+        .eq("id", req.id);
+      await supabase.from("notifications").insert({
+        user_id: req.requested_by,
+        type: "change_request_approved",
+        title: "Slot secured",
+        body: message ?? "The other booking was moved — yours is confirmed.",
+        link: `/requests/${req.id}`,
+        entity_id: req.id,
+      });
+      await supabase.from("audit_log").insert({
+        actor_id: profile.id, action: "change_request.approve", entity_type: "change_request", entity_id: req.id,
+        meta: { moved_to: chosenSlot },
+      });
+      // TODO(WIRE): changeRequestApproved emails (agent D)
+    } else {
+      await supabase.from("bookings").update({ status: "cancelled" }).eq("id", req.new_booking_id);
+      await supabase
+        .from("change_requests")
+        .update({ status: "declined", response_message: message ?? null, responded_at: new Date().toISOString() })
+        .eq("id", req.id);
+      await supabase.from("notifications").insert({
+        user_id: req.requested_by,
+        type: "change_request_declined",
+        title: "Change request declined",
+        body: message ?? "They can't move the booking. See alternative slots on the request.",
+        link: `/requests/${req.id}`,
+        entity_id: req.id,
+      });
+      await supabase.from("audit_log").insert({
+        actor_id: profile.id, action: "change_request.decline", entity_type: "change_request", entity_id: req.id,
+      });
+      // TODO(WIRE): changeRequestDeclined emails (agent D)
+    }
+    revalidatePath("/calendar");
+    return { ok: true, data: { status: decision === "approve" ? "approved" : "declined" } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/** Requester cancels their own held booking + change request. */
+export async function cancelChangeRequestAction(raw: unknown): Promise<ActionResult<{ status: "cancelled" }>> {
+  try {
+    const profile = await requireUser();
+    const parsed = z.object({ requestId: z.string().uuid() }).safeParse(raw);
+    if (!parsed.success) return fail("validation", "Invalid input");
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { data: req } = await supabase
+      .from("change_requests").select("id,status,requested_by,new_booking_id").eq("id", parsed.data.requestId).single();
+    if (!req) return fail("not_found", "Request not found.");
+    if (req.requested_by !== profile.id && profile.role !== "admin") return fail("forbidden", "Only the requester can cancel.");
+    if (req.status !== "pending") return fail("state", "Already resolved.");
+    await supabase.from("bookings").update({ status: "cancelled" }).eq("id", req.new_booking_id);
+    await supabase.from("change_requests").update({ status: "cancelled", responded_at: new Date().toISOString() }).eq("id", req.id);
+    await supabase.from("audit_log").insert({
+      actor_id: profile.id, action: "change_request.cancel", entity_type: "change_request", entity_id: req.id,
+    });
+    revalidatePath("/calendar");
+    return { ok: true, data: { status: "cancelled" } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/** Cancel a booking (creator or admin). */
+export async function cancelBookingAction(raw: unknown): Promise<ActionResult<{ status: "cancelled" }>> {
+  try {
+    const profile = await requireUser();
+    const parsed = z.object({ bookingId: z.string().uuid(), reason: z.string().max(500).nullable().optional() }).safeParse(raw);
+    if (!parsed.success) return fail("validation", "Invalid input");
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { data: existing } = await supabase.from("bookings").select("id,created_by").eq("id", parsed.data.bookingId).single();
+    if (!existing) return fail("not_found", "Booking not found.");
+    if (existing.created_by !== profile.id && profile.role !== "admin") return fail("forbidden", "Only the creator or an admin can cancel.");
+    await supabase.from("bookings").update({ status: "cancelled" }).eq("id", parsed.data.bookingId);
+    await supabase.from("audit_log").insert({
+      actor_id: profile.id, action: "booking.cancel", entity_type: "booking", entity_id: parsed.data.bookingId,
+      meta: { reason: parsed.data.reason ?? null },
+    });
+    revalidatePath("/calendar");
+    return { ok: true, data: { status: "cancelled" } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/** List bookings overlapping [from,to), with optional filters — live data source for the calendar. */
+export async function listBookingsAction(filters: {
+  from: string;
+  to: string;
+  roomId?: string | null;
+  location?: string | null;
+  categoryId?: string | null;
+  query?: string | null;
+}): Promise<ActionResult<{ bookings: BookingRow[]; total: number }>> {
+  try {
+    await requireUser();
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    let q = supabase
+      .from("bookings")
+      .select("id,type,title,category_id,room_id,client_id,created_by,starts_at,ends_at,status,price,notes")
+      .lt("starts_at", filters.to)
+      .gt("ends_at", filters.from)
+      .order("starts_at", { ascending: true })
+      .limit(300);
+    if (filters.roomId) q = q.eq("room_id", filters.roomId);
+    if (filters.categoryId) q = q.eq("category_id", filters.categoryId);
+    if (filters.query) q = q.ilike("title", `%${filters.query}%`);
+    const { data, error } = await q;
+    if (error) throw error;
+    let rows = (data ?? []) as BookingRow[];
+    if (filters.location) {
+      const { data: rooms } = await supabase.from("rooms").select("id").eq("location", filters.location);
+      const ids = new Set((rooms ?? []).map((r) => r.id));
+      rows = rows.filter((b) => b.room_id == null || ids.has(b.room_id));
+    }
+    return { ok: true, data: { bookings: rows, total: rows.length } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/** Mark notifications as read. */
+export async function markNotificationsReadAction(ids: string[]): Promise<ActionResult<{ updated: number }>> {
+  try {
+    const profile = await requireUser();
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { error } = await supabase
+      .from("notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", profile.id)
+      .in("id", ids)
+      .is("read_at", null);
+    if (error) throw error;
+    revalidatePath("/notifications");
+    return { ok: true, data: { updated: ids.length } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}

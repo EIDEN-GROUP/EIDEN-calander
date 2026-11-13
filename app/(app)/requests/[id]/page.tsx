@@ -1,16 +1,17 @@
-import { EmptyState } from "@/components/EmptyState";
 import type { Metadata } from "next";
+import { connection } from "next/server";
+import { RequestThread } from "@/components/bookings/RequestThread";
 
 export const metadata: Metadata = { title: "Change request" };
-// Dynamic by request id — block prerender.
+// Time-dependent (72h countdown) — block prerender.
 export const instant = false;
 
-export default function Page() {
-  return (
-    <EmptyState
-      title="Change request"
-      description="The negotiation thread between you and the incumbent booker — approve with the guided move, or decline with alternatives."
-      phase="2"
-    />
-  );
+export default async function ChangeRequestPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  await connection();
+  return <RequestThread changeRequestId={id} serverNow={new Date().toISOString()} />;
 }
