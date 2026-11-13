@@ -8,6 +8,8 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { createClientAction } from "@/app/actions/clients";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -29,7 +31,8 @@ import {
 } from "lucide-react";
 import { NowBarMark } from "@/components/brand/NowBar";
 import { DEMO_CLIENTS } from "@/lib/demo-data";
-import type { ClientRow, ClientStatus } from "@/lib/types/db";
+import type { BookingRow, ClientRow, ClientStatus } from "@/lib/types/db";
+import type { ClientsListData } from "@/lib/clients-live";
 import {
   filterClients,
   formatShortDate,
@@ -82,7 +85,11 @@ const EMPTY_FORM: NewClientForm = {
   notes: "",
 };
 
-export function ClientsClient() {
+export function ClientsClient({ data }: { data?: ClientsListData | null }) {
+  const router = useRouter();
+  const live = data?.live === true;
+  const liveClients = data?.clients;
+  const liveBookings = data?.bookings;
   const { toasts, push, dismiss } = useToast();
   // Locally created clients (sessionStorage) on top of the demo dataset.
   const storedClients = useSyncExternalStore(
@@ -111,7 +118,7 @@ export function ClientsClient() {
     () => filterClients(clients, query, statusFilter, activeTags),
     [clients, query, statusFilter, activeTags],
   );
-  const sorted = useMemo(() => sortClients(filtered, sort), [filtered, sort]);
+  const sorted = useMemo(() => sortClients(filtered, sort, liveBookings), [filtered, sort, liveBookings]);
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const clampedPage = Math.min(page, totalPages);
@@ -167,7 +174,7 @@ export function ClientsClient() {
     setFormError(null);
   }
 
-  function submitNewClient(event: FormEvent<HTMLFormElement>) {
+  async function submitNewClient(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const fullName = form.fullName.trim();
     const email = form.email.trim();
@@ -201,19 +208,44 @@ export function ClientsClient() {
       anonymized_at: null,
       deleted_at: null,
     };
-    // TODO(WIRE): createClient action — persists account + audit event; replaces local state.
+    if (live) {
+      const res = await createClientAction({
+        type: form.type,
+        fullName,
+        company: form.type === "company" ? company : null,
+        email: email || null,
+        phone: form.phone.trim() || null,
+        tags,
+        source: form.source,
+        notes: form.notes.trim() || null,
+        status: "lead",
+      });
+      if (!res.ok) return setFormError(res.error.message);
+      if ("duplicate" in res.data) {
+        const existing = res.data.duplicate.existing;
+        setCreateOpen(false);
+        push(`Already exists — ${existing.full_name} (email/phone match)`, "info");
+        router.refresh();
+        return;
+      }
+      setCreateOpen(false);
+      setForm(EMPTY_FORM);
+      push(`Client added — ${fullName}`);
+      router.refresh();
+      return;
+    }
     appendStoredClient(client);
     setCreateOpen(false);
     setForm(EMPTY_FORM);
-    push(`Client added — ${fullName} (demo)`);
+    push(`Client added — ${fullName}`);
   }
 
   /* ---------- quick actions ---------- */
   function quickBooking(client: ClientRow) {
-    push(`New booking for ${client.full_name} (demo) — opens calendar`, "info");
+    router.push('/calendar?client=' + encodeURIComponent(client.id));
   }
   function quickEnroll(client: ClientRow) {
-    push(`Add ${client.full_name} to a formation (demo)`, "info");
+    router.push('/formations');
   }
 
   const rangeStart = sorted.length === 0 ? 0 : pageStart + 1;
@@ -328,7 +360,7 @@ export function ClientsClient() {
       ) : view === "cards" ? (
         <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {pageItems.map((client) => (
-            <ClientCard key={client.id} client={client} onQuickBooking={quickBooking} onQuickEnroll={quickEnroll} />
+            <ClientCard key={client.id} client={client} bookings={liveBookings} onQuickBooking={quickBooking} onQuickEnroll={quickEnroll} />
           ))}
         </div>
       ) : (
@@ -357,7 +389,7 @@ export function ClientsClient() {
             <tbody>
               {pageItems.map((client) => {
                 const meta = STATUS_META[client.status];
-                const activity = latestBookingFor(client.id);
+                const activity = latestBookingFor(client.id, liveBookings);
                 const tags = client.tags.slice(0, 2);
                 const extra = client.tags.length - tags.length;
                 return (
@@ -543,10 +575,12 @@ export function ClientsClient() {
 
 function ClientCard({
   client,
+  bookings,
   onQuickBooking,
   onQuickEnroll,
 }: {
   client: ClientRow;
+  bookings?: BookingRow[];
   onQuickBooking: (client: ClientRow) => void;
   onQuickEnroll: (client: ClientRow) => void;
 }) {
@@ -557,7 +591,7 @@ function ClientCard({
       : (client.city ?? "");
   const tags = client.tags.slice(0, 3);
   const extra = client.tags.length - tags.length;
-  const activity = latestBookingFor(client.id);
+  const activity = latestBookingFor(client.id, bookings);
 
   return (
     <article className="card card-hover flex flex-col p-5" aria-label={client.full_name}>

@@ -75,6 +75,8 @@ export interface BookingDrawerProps {
   /** Pre-fill for create mode (drag-to-create). ISO strings. */
   initial?: { startsAt: string; endsAt: string } | null;
   onClose: () => void;
+  /** Pre-fill the client select (deep link from /clients). */
+  initialClientId?: string | null;
   onSaved?: (payload: BookingPayload, opts: { conflict: boolean }) => void;
   /** All active bookings (used by the live conflict preview). */
   bookings?: BookingRow[];
@@ -123,6 +125,7 @@ export function BookingDrawer({
   initial,
   onClose,
   onSaved,
+  initialClientId = null,
   bookings,
   rooms = DEMO_ROOMS,
   categories = DEMO_CATEGORIES,
@@ -161,7 +164,7 @@ export function BookingDrawer({
     booking?.category_id ?? categories[0]?.id ?? "",
   );
   const [roomId, setRoomId] = useState<string>(booking?.room_id ?? rooms[0]?.id ?? "");
-  const [clientId, setClientId] = useState<string>(booking?.client_id ?? "");
+  const [clientId, setClientId] = useState<string>(booking?.client_id ?? initialClientId ?? "");
   const [date, setDate] = useState(() => toDateInput(initialTimes.start));
   const [startTime, setStartTime] = useState(() => toTimeInput(initialTimes.start));
   const [endTime, setEndTime] = useState(() => toTimeInput(initialTimes.end));

@@ -31,6 +31,9 @@ import {
 } from "lucide-react";
 import { NowBarMark } from "@/components/brand/NowBar";
 import { DEMO_CLIENTS, getDemoBookings } from "@/lib/demo-data";
+import { useRouter } from "next/navigation";
+import { anonymizeClientAction, addClientNoteAction } from "@/app/actions/clients";
+import type { ClientDetailData } from "@/lib/clients-live";
 import type { ClientRow } from "@/lib/types/db";
 import { downloadBlob, getClientsSnapshot, getServerClientsSnapshot, subscribeClients } from "./store";
 import { Avatar, hashString } from "@/components/formations/Avatar";
@@ -95,8 +98,15 @@ const BOOKING_STATUS_META: Record<string, { label: string; tone: ChipTone }> = {
 
 const subscribeMounted = () => () => {};
 
-export function ClientDetailClient({ id }: { id: string }) {
-  // Demo clients render identically on server and client.
+export function ClientDetailClient({
+  id,
+  data,
+}: {
+  id: string;
+  data?: ClientDetailData | null;
+}) {
+  const liveClient = data?.client ?? null;
+  const liveBookings = data?.bookings ?? null;
   const demoClient = useMemo<ClientRow | null>(
     () => DEMO_CLIENTS.find((c) => c.id === id) ?? null,
     [id],
@@ -114,9 +124,17 @@ export function ClientDetailClient({ id }: { id: string }) {
     () => false,
   );
   const client =
-    demoClient ?? stored.find((c) => c.id === id) ?? null;
+    liveClient ?? demoClient ?? stored.find((c) => c.id === id) ?? null;
 
-  if (client) return <ClientDetailView key={client.id} client={client} />;
+  if (client)
+    return (
+      <ClientDetailView
+        key={client.id}
+        client={client}
+        bookings={liveBookings ?? undefined}
+        live={data?.live === true}
+      />
+    );
   if (!mounted) {
     return (
       <div className="mx-auto max-w-[1440px]" aria-busy="true">
@@ -149,7 +167,16 @@ export function ClientDetailClient({ id }: { id: string }) {
   );
 }
 
-function ClientDetailView({ client }: { client: ClientRow }) {
+function ClientDetailView({
+  client,
+  bookings: bookingsProp,
+  live,
+}: {
+  client: ClientRow;
+  bookings?: import("@/lib/types/db").BookingRow[];
+  live: boolean;
+}) {
+  const router = useRouter();
   const id = client.id;
   const { toasts, push, dismiss } = useToast();
   const [anonymized, setAnonymized] = useState(false);
@@ -159,35 +186,63 @@ function ClientDetailView({ client }: { client: ClientRow }) {
 
   /* ---------- notes ---------- */
   const [notes, setNotes] = useState<NoteEntry[]>(() =>
-    (DEMO_NOTES[id] ?? []).map((n, index) => ({
-      id: `demo-note-${index}`,
-      body: n.body,
-      createdAt: new Date(Date.now() - n.hoursAgo * 3_600_000).toISOString(),
-    })),
+    live
+      ? (client.notes ?? "")
+          .split(/\n\n+/)
+          .map((chunk) => chunk.trim())
+          .filter(Boolean)
+          .reverse()
+          .map((chunk, index) => {
+            const m = chunk.match(/^\[([^\]]+)\]\s*([\s\S]*)$/);
+            return {
+              id: `note-${index}`,
+              body: m ? m[2] : chunk,
+              createdAt: m ? m[1].split(" · ")[0] : new Date().toISOString(),
+            };
+          })
+      : (DEMO_NOTES[id] ?? []).map((n, index) => ({
+          id: `demo-note-${index}`,
+          body: n.body,
+          createdAt: new Date(Date.now() - n.hoursAgo * 3_600_000).toISOString(),
+        })),
   );
   const [noteDraft, setNoteDraft] = useState("");
 
-  function addNote(event: FormEvent<HTMLFormElement>) {
+  async function addNote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const body = noteDraft.trim();
     if (!body) return;
-    // TODO(WIRE): addClientNote action — persists to client_notes table.
+    if (live) {
+      const res = await addClientNoteAction({ clientId: id, note: body });
+      if (!res.ok) {
+        push(res.error.message, "error");
+        return;
+      }
+      setNotes((current) => [
+        { id: `note-${Date.now()}`, body, createdAt: new Date().toISOString() },
+        ...current,
+      ]);
+      setNoteDraft("");
+      push("Note added");
+      router.refresh();
+      return;
+    }
     setNotes((current) => [
       { id: `note-local-${Date.now()}`, body, createdAt: new Date().toISOString() },
       ...current,
     ]);
     setNoteDraft("");
-    push("Note added (demo)");
+    push("Note added");
   }
 
   const meta = STATUS_META[client.status];
   const displayName = anonymized ? "Client #ANON" : client.full_name;
   const confirmMatches = confirmName.trim() === client.full_name;
-  const bookings = getDemoBookings().filter((b) => b.client_id === client.id);
+  const bookings = (bookingsProp ?? getDemoBookings()).filter((b) => b.client_id === client.id);
   const outstanding = bookings.filter((b) => b.status === "pending_conflict").length;
   const stats = {
     totalBookings: bookings.length,
-    formationsAttended: 2,
+    formationsAttended: live ? 0 : 2,
     outstanding,
   };
   const memberSince = MONTHS[hashString(client.id) % 12] + " " + (2023 + (hashString(client.id) % 3));
@@ -210,10 +265,9 @@ function ClientDetailView({ client }: { client: ClientRow }) {
         }
       : { ...client };
     const blob = new Blob(
-      [JSON.stringify({ ...payload, exported_at: new Date().toISOString(), _demo: true }, null, 2)],
+      [JSON.stringify({ ...payload, exported_at: new Date().toISOString(), ...(live ? {} : { _demo: true }) }, null, 2)],
       { type: "application/json" },
     );
-    // TODO(WIRE): server-side GDPR export with signed URL + audit log entry.
     downloadBlob(blob, `client-${client.id}.json`);
     push("Client profile exported as JSON");
   }
@@ -231,7 +285,7 @@ function ClientDetailView({ client }: { client: ClientRow }) {
         <div role="alert" className="mt-3 flex items-start gap-3 rounded-sm border border-border bg-track px-4 py-3 text-[13px] font-semibold text-obsidian-light">
           <ShieldCheck size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-electric" />
           <div>
-            <p>Anonymized (demo) — bookings kept as aggregates.</p>
+            <p>Anonymized — bookings kept as aggregates.</p>
             <p className="mt-0.5 font-medium text-muted">Contact details, tags and notes are redacted in this view and in exports.</p>
           </div>
         </div>
@@ -275,7 +329,7 @@ function ClientDetailView({ client }: { client: ClientRow }) {
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => push(`New booking for ${client.full_name} (demo) — opens calendar`, "info")}
+            onClick={() => router.push('/calendar?client=' + encodeURIComponent(client.id))}
             className="btn btn-primary h-10 px-4 text-[13px]"
           >
             <CalendarPlus size={16} aria-hidden="true" />
@@ -533,7 +587,7 @@ function ClientDetailView({ client }: { client: ClientRow }) {
       {anonymizeOpen && (
         <Modal
           title="Anonymize this client?"
-          description="GDPR right to erasure, demo edition. The account becomes unusable for outreach but stays in aggregated reporting."
+          description="GDPR right to erasure. The account becomes unusable for outreach but stays in aggregated reporting."
           onClose={() => setAnonymizeOpen(false)}
         >
           <ul className="space-y-1.5 rounded-sm border border-border bg-canvas px-4 py-3 text-[13px] font-medium leading-snug text-obsidian-light">
@@ -563,11 +617,25 @@ function ClientDetailView({ client }: { client: ClientRow }) {
               type="button"
               disabled={!confirmMatches}
               onClick={() => {
-                // TODO(WIRE): anonymizeClient action — redacts PII columns, keeps aggregate rows, writes audit event.
+                if (live) {
+                  void (async () => {
+                    const res = await anonymizeClientAction({ clientId: client.id, confirmName });
+                    if (!res.ok) {
+                      push(res.error.message, "error");
+                      return;
+                    }
+                    setAnonymized(true);
+                    setAnonymizeOpen(false);
+                    setConfirmName("");
+                    push("Client anonymized — contact data redacted", "info");
+                    router.refresh();
+                  })();
+                  return;
+                }
                 setAnonymized(true);
                 setAnonymizeOpen(false);
                 setConfirmName("");
-                push("Client anonymized (demo) — contact data redacted", "info");
+                push("Client anonymized — contact data redacted", "info");
               }}
               className="btn h-11 bg-error px-6 text-[14px] font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >

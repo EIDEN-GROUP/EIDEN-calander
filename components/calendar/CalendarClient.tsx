@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useEffect,
   useMemo,
   useState,
   type FormEvent,
@@ -49,10 +50,11 @@ interface DrawerState {
   mode: "create" | "edit" | "view";
   booking?: BookingRow | null;
   initial?: { startsAt: string; endsAt: string } | null;
+  clientId?: string | null;
   key: number;
 }
 
-export function CalendarClient({ serverNow, data }: { serverNow: string; data: CalendarData }) {
+export function CalendarClient({ serverNow, data, prefillClientId = null }: { serverNow: string; data: CalendarData; prefillClientId?: string | null }) {
   const router = useRouter();
   const today = useMemo(() => startOfDay(new Date(serverNow)), [serverNow]);
   const [view, setView] = useState<CalendarView>("week");
@@ -63,6 +65,12 @@ export function CalendarClient({ serverNow, data }: { serverNow: string; data: C
   const [locationFilter, setLocationFilter] = useState<"all" | "Casablanca" | "Agadir">("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [drawer, setDrawer] = useState<DrawerState | null>(null);
+  // Deep link: /calendar?client=<id> — open the create drawer prefilled.
+  useEffect(() => {
+    if (!prefillClientId) return;
+    setDrawer({ mode: "create", key: Date.now(), clientId: prefillClientId });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillClientId]);
   const [toast, setToast] = useState<ToastData | null>(null);
 
   const lookup = useMemo(
@@ -417,6 +425,7 @@ export function CalendarClient({ serverNow, data }: { serverNow: string; data: C
           initial={drawer.initial}
           onClose={() => setDrawer(null)}
           onSaved={handleSaved}
+          initialClientId={drawer.clientId ?? null}
           bookings={bookings}
           rooms={data.rooms}
           categories={data.categories}

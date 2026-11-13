@@ -14,11 +14,15 @@ export type ClientSort = "recent" | "name-asc" | "name-desc";
  * absolute distance; degrades to a deterministic pseudo-activity date when
  * the client has no bookings (stable across renders — hash of the id).
  */
-export function latestBookingFor(clientId: string): { booking: BookingRow | null; at: Date } {
-  const bookings = getDemoBookings().filter((b) => b.client_id === clientId);
-  if (bookings.length > 0) {
+export function latestBookingFor(
+  clientId: string,
+  bookings?: BookingRow[],
+): { booking: BookingRow | null; at: Date } {
+  const source = bookings ?? getDemoBookings();
+  const clientBookings = source.filter((b) => b.client_id === clientId);
+  if (clientBookings.length > 0) {
     const now = Date.now();
-    const nearest = bookings.reduce((best, current) =>
+    const nearest = clientBookings.reduce((best, current) =>
       Math.abs(new Date(current.starts_at).getTime() - now) <
       Math.abs(new Date(best.starts_at).getTime() - now)
         ? current
@@ -31,8 +35,15 @@ export function latestBookingFor(clientId: string): { booking: BookingRow | null
   return { booking: null, at: fallback };
 }
 
-export function sortClients(clients: ClientRow[], sort: ClientSort): ClientRow[] {
-  const withActivity = clients.map((client) => ({ client, at: latestBookingFor(client.id).at.getTime() }));
+export function sortClients(
+  clients: ClientRow[],
+  sort: ClientSort,
+  bookings?: BookingRow[],
+): ClientRow[] {
+  const withActivity = clients.map((client) => ({
+    client,
+    at: latestBookingFor(client.id, bookings).at.getTime(),
+  }));
   if (sort === "name-asc" || sort === "name-desc") {
     const factor = sort === "name-asc" ? 1 : -1;
     return withActivity
