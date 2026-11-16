@@ -48,7 +48,7 @@ export function BottomNav() {
                 aria-hidden="true"
               />
               <span
-                className={`text-[10px] font-bold uppercase tracking-[0.08em] ${
+                className={`text-[9.5px] font-bold uppercase tracking-[0.02em] truncate max-w-[68px] ${
                   active ? "text-electric" : "text-obsidian-light"
                 }`}
               >

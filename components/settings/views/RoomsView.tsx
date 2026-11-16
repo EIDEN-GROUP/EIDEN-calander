@@ -79,6 +79,12 @@ export function RoomsView({
   const isLive = live === true && !!initialRooms;
   const { toasts, leaving, push } = useToast();
   const [rooms, setRooms] = useState<RoomVM[]>(initialRooms ?? INITIAL_ROOMS);
+  // Server refresh (router.refresh after a create/toggle/update) delivers fresh props — re-sync local state so the list never goes stale.
+  const [prevInitial, setPrevInitial] = useState(initialRooms);
+  if (isLive && initialRooms && initialRooms !== prevInitial) {
+    setPrevInitial(initialRooms);
+    setRooms(initialRooms);
+  }
   const [addOpen, setAddOpen] = useState(false);
 
   const [draftName, setDraftName] = useState("");

@@ -1092,7 +1092,9 @@
     "csvCapacity": "Capacity",
     "csvFillPct": "Fill (%)",
     "csvAttendancePct": "Attendance (%)",
-    "csvNoShows": "No-shows"
+    "csvNoShows": "No-shows",
+    "noFormationsLocation": "No formations in {location} during this period.",
+    "noFormationsAllLocations": "No formations in any location during this period."
   },
   "requests": {
     "title": "Change requests",
@@ -1369,7 +1371,7 @@
     "saveNameAria": "Save name",
     "cancelRenameAria": "Cancel rename",
     "systemCategoryTitle": "System category: rename only",
-    "systemRenameOnly": "System: rename only",
+    "systemRenameOnly": "System",
     "renameAria": "Rename {name}",
     "deleteAria": "Delete {name}",
     "howCategoriesWork": "How categories work",

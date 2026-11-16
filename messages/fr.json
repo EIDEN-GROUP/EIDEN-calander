@@ -1092,7 +1092,9 @@
     "csvCapacity": "Capacité",
     "csvFillPct": "Remplissage (%)",
     "csvAttendancePct": "Présence (%)",
-    "csvNoShows": "Absences"
+    "csvNoShows": "Absences",
+    "noFormationsLocation": "Aucune formation à {location} sur la période.",
+    "noFormationsAllLocations": "Aucune formation sur la période, quel que soit le site."
   },
   "requests": {
     "title": "Demandes de modification",
@@ -1369,7 +1371,7 @@
     "saveNameAria": "Enregistrer le nom",
     "cancelRenameAria": "Annuler le renommage",
     "systemCategoryTitle": "Catégorie système : renommage uniquement",
-    "systemRenameOnly": "Système : renommage uniquement",
+    "systemRenameOnly": "Système",
     "renameAria": "Renommer {name}",
     "deleteAria": "Supprimer {name}",
     "howCategoriesWork": "Comment fonctionnent les catégories",

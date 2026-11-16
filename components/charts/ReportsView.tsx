@@ -814,7 +814,7 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
                 {formationRows.length === 0 && (
                   <tr>
                     <td colSpan={6} className="py-8 text-center text-[12px] font-medium text-muted">
-                      {t("noFormationsAgadir")}
+                      {location === "all" ? t("noFormationsAllLocations") : t("noFormationsLocation", { location: locLabel })}
                     </td>
                   </tr>
                 )}

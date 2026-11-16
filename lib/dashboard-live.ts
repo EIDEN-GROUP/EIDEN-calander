@@ -31,6 +31,14 @@ export interface DashboardData {
 export async function loadDashboard(): Promise<DashboardData | null> {
   const locale = await getLocale();
   const tag = appLocaleTag(locale);
+  const isFr = locale === "fr";
+  const L = {
+    today: isFr ? "Aujourd’hui" : "Today",
+    booking: isFr ? "Réservation" : "Booking",
+    untitledPlan: isFr ? "Plan sans titre" : "Untitled plan",
+    tasks: (done: number, total: number) => (isFr ? `${done}/${total} tâches` : `${done}/${total} tasks`),
+    noTasks: isFr ? "Aucune tâche pour l’instant" : "No tasks yet",
+  };
   const supabase = await createClient();
   if (!supabase) return null;
   try {
@@ -136,8 +144,8 @@ export async function loadDashboard(): Promise<DashboardData | null> {
       const agg = taskByPlan.get(p.id as string);
       const pct = agg && agg.total > 0 ? Math.round((agg.done / agg.total) * 100) : Number(p.progress ?? 0);
       return {
-        title: (p.title as string) ?? "Untitled plan",
-        tasks: agg ? `${agg.done}/${agg.total} tasks` : "No tasks yet",
+        title: (p.title as string) ?? L.untitledPlan,
+        tasks: agg ? L.tasks(agg.done, agg.total) : L.noTasks,
         pct,
       };
     });
@@ -152,13 +160,13 @@ export async function loadDashboard(): Promise<DashboardData | null> {
     const futureEvents = upcoming.map((b) => {
       const d = new Date(b.starts_at as string);
       const isToday = d.toDateString() === now.toDateString();
-      const label = isToday ? "Today" : d.toLocaleDateString(tag, { weekday: "short", day: "numeric", month: "short" });
+      const label = isToday ? L.today : d.toLocaleDateString(tag, { weekday: "short", day: "numeric", month: "short" });
       return {
         day: label,
         time: `${d.toLocaleTimeString(tag, { hour: "2-digit", minute: "2-digit" })} – ${new Date(b.ends_at as string).toLocaleTimeString(tag, { hour: "2-digit", minute: "2-digit" })}`,
-        title: (b.title as string) ?? "Booking",
-        meta: b.type === "formation" ? "Formation" : "Booking",
-        chip: isToday ? "Today" : label,
+        title: (b.title as string) ?? L.booking,
+        meta: b.type === "formation" ? "Formation" : L.booking,
+        chip: isToday ? L.today : label,
       };
     });
 
