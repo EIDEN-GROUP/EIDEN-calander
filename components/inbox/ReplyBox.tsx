@@ -9,11 +9,14 @@ export function ReplyBox({
   uid,
   folder,
   demo,
+  mailboxAddress,
   onSent,
 }: {
   uid: number;
   folder: MailFolder;
   demo: boolean;
+  /** The connected mailbox — shown as the "Sending as" identity. */
+  mailboxAddress: string;
   onSent: (notice: string) => void;
 }) {
   const [body, setBody] = useState("");
@@ -117,7 +120,7 @@ export function ReplyBox({
           {remaining.toLocaleString("en-GB")} characters left
         </span>
         <p className="w-full text-[11px] leading-snug text-muted">
-          Sending as <code className="font-mono text-obsidian-light">contact@eiden-group.com</code> · replies keep the thread in your mailbox.
+          Sending as <code className="font-mono text-obsidian-light">{mailboxAddress}</code> · replies keep the thread in your mailbox.
           {demo && <span className="ml-1 font-semibold text-electric">Demo mode — nothing is actually sent.</span>}
         </p>
       </div>

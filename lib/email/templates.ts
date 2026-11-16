@@ -5,7 +5,7 @@
  * HTML is table-based, inline-styled, bulletproof for mail clients:
  *   · Obsidian header with the CALENDAR. wordmark (white) + Electric pill dot
  *   · white card body, Electric Blue accents (#0066CC)
- *   · footer: "Eiden Group — eiden-group.com · contact@eiden-group.com"
+ *   · footer: "Eiden Group — eiden-group.com · makrich@eiden-group.com"
  * All interpolated values are HTML-escaped. Bodies never include secrets
  * beyond the intended payload (temp password is the point, not a leak).
  */
@@ -42,7 +42,7 @@ function fmtDateTime(iso: string | Date, locale: Locale): string {
 }
 
 const APP_BASE = "https://calendar.eiden-group.com";
-const BRAND_FOOTER_TEXT = "Eiden Group — eiden-group.com · contact@eiden-group.com";
+const BRAND_FOOTER_TEXT = "Eiden Group — eiden-group.com";
 
 /** Shared layout. `preheader` is the inbox-preview line (hidden in the body). */
 export function base(
@@ -239,8 +239,8 @@ ${button(loginUrl, L(locale, "Sign in to CALENDAR.", "Se connecter à CALENDAR."
 ${p(
   L(
     locale,
-    "If you were not expecting this email, contact your administrator or write to contact@eiden-group.com.",
-    "Si vous n’êtes pas à l’origine de cette demande, contactez votre administrateur ou écrivez à contact@eiden-group.com.",
+    "If you were not expecting this email, contact your administrator or write to makrich@eiden-group.com.",
+    "Si vous n’êtes pas à l’origine de cette demande, contactez votre administrateur ou écrivez à makrich@eiden-group.com.",
   ),
 )}`;
   const text = L(
@@ -256,7 +256,7 @@ You will be asked to choose a new password immediately after your first sign-in.
 
 Sign in: ${loginUrl}
 
-If you were not expecting this email, contact your administrator or write to contact@eiden-group.com.`,
+If you were not expecting this email, contact your administrator or write to makrich@eiden-group.com.`,
     `${greeting}
 
 Un compte vient d’être créé pour vous sur CALENDAR. — la plateforme interne de réservation d’Eiden Group.
@@ -268,7 +268,7 @@ Vous devrez choisir un nouveau mot de passe dès votre première connexion. Ce m
 
 Se connecter : ${loginUrl}
 
-Si vous n’êtes pas à l’origine de cette demande, contactez votre administrateur ou écrivez à contact@eiden-group.com.`,
+Si vous n’êtes pas à l’origine de cette demande, contactez votre administrateur ou écrivez à makrich@eiden-group.com.`,
   );
   return { ...base(locale, subject, preheader, bodyHtml, text), subject };
 }

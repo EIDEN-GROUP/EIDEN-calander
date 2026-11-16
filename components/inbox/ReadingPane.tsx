@@ -51,12 +51,15 @@ export function ReadingPane({
   uid,
   folder,
   inline = false,
+  mailboxAddress,
   onSeenChange,
 }: {
   uid: number;
   folder: MailFolder;
   /** Rendered inside /inbox's two-pane on xl — hides the page-only chrome. */
   inline?: boolean;
+  /** The connected mailbox, threaded down to the reply box. */
+  mailboxAddress?: string;
   /** Optimistic sync back to the list pane (seen/unseen toggles). */
   onSeenChange?: (uid: number, seen: boolean) => void;
 }) {
@@ -330,6 +333,7 @@ export function ReadingPane({
               uid={message.uid}
               folder={folder}
               demo={demo || offline}
+              mailboxAddress={mailboxAddress ?? "the connected mailbox"}
               onSent={(text) => {
                 setNotice({ text, tone: "ok" });
                 setReplyOpen(false);

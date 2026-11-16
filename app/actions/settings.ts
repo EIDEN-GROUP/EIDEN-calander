@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { requireAdmin } from "@/lib/auth";
 import type { ActionResult } from "@/lib/types/db";
+import { logAudit } from "@/lib/audit";
 
 function notConfigured<T>(): ActionResult<T> {
   return { ok: false, error: { code: "not_configured", message: "Supabase isn't configured — set .env." } };
@@ -65,7 +66,7 @@ export async function updateBusinessProfileAction(raw: unknown): Promise<ActionR
       })
       .eq("id", true);
     if (error) throw error;
-    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "settings.business", entity_type: "settings", entity_id: "business_settings" });
+    await logAudit(supabase, {action: "settings.business", entityType: "settings", entityId: "business_settings"});
     revalidatePath("/settings/general");
     return { ok: true, data: { ok: true } };
   } catch (err) {
@@ -111,7 +112,7 @@ export async function updateWorkingHoursAction(raw: unknown): Promise<ActionResu
         if (sErr) throw sErr;
       }
     }
-    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "settings.working_hours", entity_type: "settings", entity_id: "working_hours", meta: { slotIncrementMin, bufferMin, minNoticeHours } });
+    await logAudit(supabase, {action: "settings.working_hours", entityType: "settings", entityId: "working_hours", meta: { slotIncrementMin, bufferMin, minNoticeHours }});
     revalidatePath("/settings/working-hours");
     return { ok: true, data: { ok: true } };
   } catch (err) {
@@ -122,7 +123,7 @@ export async function updateWorkingHoursAction(raw: unknown): Promise<ActionResu
 /* ---------------- Rooms ---------------- */
 export async function createRoomAction(raw: unknown): Promise<ActionResult<{ roomId: string }>> {
   try {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = z.object({
       name: z.string().trim().min(2).max(120),
       location: z.string().trim().min(2).max(80),
@@ -141,7 +142,7 @@ export async function createRoomAction(raw: unknown): Promise<ActionResult<{ roo
       .select("id")
       .single();
     if (error) throw error;
-    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "room.create", entity_type: "room", entity_id: inserted.id });
+    await logAudit(supabase, {action: "room.create", entityType: "room", entityId: inserted.id});
     revalidatePath("/settings/rooms");
     return { ok: true, data: { roomId: inserted.id } };
   } catch (err) {
@@ -151,14 +152,14 @@ export async function createRoomAction(raw: unknown): Promise<ActionResult<{ roo
 
 export async function toggleRoomActiveAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
   try {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = z.object({ roomId: z.string().uuid(), isActive: z.boolean() }).safeParse(raw);
     if (!parsed.success) return fail("validation", "Invalid input");
     const supabase = await createClient();
     if (!supabase) return notConfigured();
     const { error } = await supabase.from("rooms").update({ is_active: parsed.data.isActive }).eq("id", parsed.data.roomId);
     if (error) throw error;
-    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "room.toggle", entity_type: "room", entity_id: parsed.data.roomId, meta: { is_active: parsed.data.isActive } });
+    await logAudit(supabase, {action: "room.toggle", entityType: "room", entityId: parsed.data.roomId, meta: { is_active: parsed.data.isActive }});
     revalidatePath("/settings/rooms");
     return { ok: true, data: { ok: true } };
   } catch (err) {
@@ -171,7 +172,7 @@ const TINTS = ["blue", "green", "purple", "amber", "teal", "rose"] as const;
 
 export async function createCategoryAction(raw: unknown): Promise<ActionResult<{ categoryId: string }>> {
   try {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = z.object({
       nameEn: z.string().trim().min(2).max(80),
       nameFr: z.string().trim().max(80).nullable().optional(),
@@ -189,7 +190,7 @@ export async function createCategoryAction(raw: unknown): Promise<ActionResult<{
       .select("id")
       .single();
     if (error) throw error;
-    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "category.create", entity_type: "category", entity_id: inserted.id });
+    await logAudit(supabase, {action: "category.create", entityType: "category", entityId: inserted.id});
     revalidatePath("/settings/categories");
     return { ok: true, data: { categoryId: inserted.id } };
   } catch (err) {
@@ -200,7 +201,7 @@ export async function createCategoryAction(raw: unknown): Promise<ActionResult<{
 /* ---------------- Team users (service-role for auth.admin) ---------------- */
 export async function createTeamUserAction(raw: unknown): Promise<ActionResult<{ userId: string; tempPassword: string }>> {
   try {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = z.object({
       fullName: z.string().trim().min(2).max(120),
       email: z.email().max(200),
@@ -232,10 +233,7 @@ export async function createTeamUserAction(raw: unknown): Promise<ActionResult<{
     if (profileErr) throw profileErr;
 
     const supabase = await createClient();
-    await supabase?.from("audit_log").insert({
-      actor_id: admin.id, action: "user.create", entity_type: "user", entity_id: userId,
-      meta: { email, role },
-    });
+    await logAudit(supabase, {action: "user.create", entityType: "user", entityId: userId, meta: { email, role }});
     // Best-effort welcome email with the one-time credentials (bilingual EN).
     try {
       const { sendMail } = await import("@/lib/email/send");
@@ -277,9 +275,7 @@ export async function setTeamUserActiveAction(raw: unknown): Promise<ActionResul
     } catch (e) {
       console.error("[settings] auth ban toggle failed", e);
     }
-    await supabase.from("audit_log").insert({
-      actor_id: admin.id, action: isActive ? "user.reactivate" : "user.deactivate", entity_type: "user", entity_id: userId,
-    });
+    await logAudit(supabase, {action: isActive ? "user.reactivate" : "user.deactivate", entityType: "user", entityId: userId});
     revalidatePath("/settings/team");
     return { ok: true, data: { ok: true } };
   } catch (err) {
@@ -373,7 +369,7 @@ export async function listAuditLogAction(filters: {
 /** Update a team member (name, role, phone) — admin only. */
 export async function updateTeamUserAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
   try {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = z.object({
       userId: z.string().uuid(),
       fullName: z.string().trim().min(2).max(120),
@@ -396,10 +392,7 @@ export async function updateTeamUserAction(raw: unknown): Promise<ActionResult<{
     if (error) throw error;
     const service = createServiceClient();
     await service.auth.admin.updateUserById(userId, { user_metadata: { role } });
-    await supabase.from("audit_log").insert({
-      actor_id: admin.id, action: "user.update", entity_type: "user", entity_id: userId,
-      meta: { role, full_name: fullName },
-    });
+    await logAudit(supabase, {action: "user.update", entityType: "user", entityId: userId, meta: { role, full_name: fullName }});
     revalidatePath("/settings/team");
     return { ok: true, data: { ok: true } };
   } catch (err) {
@@ -410,7 +403,7 @@ export async function updateTeamUserAction(raw: unknown): Promise<ActionResult<{
 /** Update a room's amenities / notes / rate / capacity / name — admin only. */
 export async function updateRoomAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
   try {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = z.object({
       roomId: z.string().uuid(),
       amenities: z.array(z.string().max(40)).max(20).optional(),
@@ -434,7 +427,7 @@ export async function updateRoomAction(raw: unknown): Promise<ActionResult<{ ok:
     if (!supabase) return notConfigured();
     const { error } = await supabase.from("rooms").update({ ...update, updated_at: new Date().toISOString() }).eq("id", roomId);
     if (error) throw error;
-    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "room.update", entity_type: "room", entity_id: roomId, meta: update });
+    await logAudit(supabase, {action: "room.update", entityType: "room", entityId: roomId, meta: update});
     revalidatePath("/settings/rooms");
     return { ok: true, data: { ok: true } };
   } catch (err) {
@@ -445,7 +438,7 @@ export async function updateRoomAction(raw: unknown): Promise<ActionResult<{ ok:
 /** Toggle a category active/inactive. */
 export async function toggleCategoryActiveAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
   try {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = z.object({ categoryId: z.string().uuid(), isActive: z.boolean() }).safeParse(raw);
     if (!parsed.success) return fail("validation", "Invalid input");
     const { categoryId, isActive } = parsed.data;
@@ -453,7 +446,7 @@ export async function toggleCategoryActiveAction(raw: unknown): Promise<ActionRe
     if (!supabase) return notConfigured();
     const { error } = await supabase.from("categories").update({ is_active: isActive }).eq("id", categoryId);
     if (error) throw error;
-    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "category.toggle", entity_type: "category", entity_id: categoryId, meta: { is_active: isActive } });
+    await logAudit(supabase, {action: "category.toggle", entityType: "category", entityId: categoryId, meta: { is_active: isActive }});
     revalidatePath("/settings/categories");
     return { ok: true, data: { ok: true } };
   } catch (err) {
@@ -464,7 +457,7 @@ export async function toggleCategoryActiveAction(raw: unknown): Promise<ActionRe
 /** Rename / recolor a category. */
 export async function updateCategoryAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
   try {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = z.object({
       categoryId: z.string().uuid(),
       nameEn: z.string().trim().min(2).max(80).optional(),
@@ -486,7 +479,7 @@ export async function updateCategoryAction(raw: unknown): Promise<ActionResult<{
     if (!supabase) return notConfigured();
     const { error } = await supabase.from("categories").update(update).eq("id", categoryId);
     if (error) throw error;
-    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "category.update", entity_type: "category", entity_id: categoryId, meta: update });
+    await logAudit(supabase, {action: "category.update", entityType: "category", entityId: categoryId, meta: update});
     revalidatePath("/settings/categories");
     return { ok: true, data: { ok: true } };
   } catch (err) {
@@ -497,7 +490,7 @@ export async function updateCategoryAction(raw: unknown): Promise<ActionResult<{
 /** Delete a NON-system category (system entries refuse). */
 export async function deleteCategoryAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
   try {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = z.object({ categoryId: z.string().uuid() }).safeParse(raw);
     if (!parsed.success) return fail("validation", "Invalid input");
     const supabase = await createClient();
@@ -507,7 +500,7 @@ export async function deleteCategoryAction(raw: unknown): Promise<ActionResult<{
     if (cat.is_system) return fail("forbidden", "System categories cannot be deleted — rename them instead.");
     const { error } = await supabase.from("categories").delete().eq("id", parsed.data.categoryId);
     if (error) throw error;
-    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "category.delete", entity_type: "category", entity_id: parsed.data.categoryId, meta: { name_en: cat.name_en } });
+    await logAudit(supabase, {action: "category.delete", entityType: "category", entityId: parsed.data.categoryId, meta: { name_en: cat.name_en }});
     revalidatePath("/settings/categories");
     return { ok: true, data: { ok: true } };
   } catch (err) {

@@ -8,6 +8,8 @@ import { findOverlaps, type OverlapCandidate } from "@/lib/conflict";
 import { notifyBookingEvent, notifyChangeRequestEvent } from "@/lib/email/notify";
 import { suggestSlots, type WorkingHoursEntry } from "@/lib/slots";
 import type { ActionResult, BookingRow, BookingStatus } from "@/lib/types/db";
+import { logAudit } from "@/lib/audit";
+import { notifyUser } from "@/lib/notifications";
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}T/, "Expected ISO date");
 
@@ -136,13 +138,7 @@ export async function createBookingAction(raw: unknown): Promise<ActionResult<Cr
       }
       throw error;
     }
-    await supabase.from("audit_log").insert({
-      actor_id: profile.id,
-      action: "booking.create",
-      entity_type: "booking",
-      entity_id: inserted.id,
-      meta: { room_id: input.roomId ?? null, type: input.type },
-    });
+    await logAudit(supabase, {action: "booking.create", entityType: "booking", entityId: inserted.id, meta: { room_id: input.roomId ?? null, type: input.type }});
     await notifyBookingEvent(supabase, inserted.id, "created");
     revalidatePath("/calendar");
     revalidatePath("/dashboard");
@@ -260,21 +256,8 @@ export async function requestChangeAction(raw: unknown): Promise<ActionResult<{ 
       .single();
     if (crErr) throw crErr;
 
-    await supabase.from("notifications").insert({
-      user_id: incumbent.created_by,
-      type: "change_request_received",
-      title: `${profile.full_name} asked to move "${incumbent.title}"`,
-      body: message ?? "They need the slot for another booking.",
-      link: `/requests/${request.id}`,
-      entity_id: request.id,
-    });
-    await supabase.from("audit_log").insert({
-      actor_id: profile.id,
-      action: "change_request.create",
-      entity_type: "change_request",
-      entity_id: request.id,
-      meta: { new_booking_id: newBookingId, conflicting_booking_id: incumbent.id, suggested_count: suggested.length },
-    });
+    await notifyUser(supabase, {userId: incumbent.created_by, type: "change_request_received", title: `${profile.full_name} asked to move "${incumbent.title}"`, body: message ?? "They need the slot for another booking.", link: `/requests/${request.id}`, entityId: request.id});
+    await logAudit(supabase, {action: "change_request.create", entityType: "change_request", entityId: request.id, meta: { new_booking_id: newBookingId, conflicting_booking_id: incumbent.id, suggested_count: suggested.length }});
     await notifyChangeRequestEvent(supabase, request.id, "received");
 
     revalidatePath("/calendar");
@@ -337,18 +320,8 @@ export async function respondToChangeRequestAction(raw: unknown): Promise<Action
         .from("change_requests")
         .update({ status: "approved", response_message: message ?? null, responded_at: new Date().toISOString(), resolved_booking_id: req.conflicting_booking_id })
         .eq("id", req.id);
-      await supabase.from("notifications").insert({
-        user_id: req.requested_by,
-        type: "change_request_approved",
-        title: "Slot secured",
-        body: message ?? "The other booking was moved — yours is confirmed.",
-        link: `/requests/${req.id}`,
-        entity_id: req.id,
-      });
-      await supabase.from("audit_log").insert({
-        actor_id: profile.id, action: "change_request.approve", entity_type: "change_request", entity_id: req.id,
-        meta: { moved_to: chosenSlot },
-      });
+      await notifyUser(supabase, {userId: req.requested_by, type: "change_request_approved", title: "Slot secured", body: message ?? "The other booking was moved — yours is confirmed.", link: `/requests/${req.id}`, entityId: req.id});
+      await logAudit(supabase, {action: "change_request.approve", entityType: "change_request", entityId: req.id, meta: { moved_to: chosenSlot }});
       await notifyChangeRequestEvent(supabase, req.id, "approved");
     } else {
       await supabase.from("bookings").update({ status: "cancelled" }).eq("id", req.new_booking_id);
@@ -356,17 +329,8 @@ export async function respondToChangeRequestAction(raw: unknown): Promise<Action
         .from("change_requests")
         .update({ status: "declined", response_message: message ?? null, responded_at: new Date().toISOString() })
         .eq("id", req.id);
-      await supabase.from("notifications").insert({
-        user_id: req.requested_by,
-        type: "change_request_declined",
-        title: "Change request declined",
-        body: message ?? "They can't move the booking. See alternative slots on the request.",
-        link: `/requests/${req.id}`,
-        entity_id: req.id,
-      });
-      await supabase.from("audit_log").insert({
-        actor_id: profile.id, action: "change_request.decline", entity_type: "change_request", entity_id: req.id,
-      });
+      await notifyUser(supabase, {userId: req.requested_by, type: "change_request_declined", title: "Change request declined", body: message ?? "They can't move the booking. See alternative slots on the request.", link: `/requests/${req.id}`, entityId: req.id});
+      await logAudit(supabase, {action: "change_request.decline", entityType: "change_request", entityId: req.id});
       await notifyChangeRequestEvent(supabase, req.id, "declined");
     }
     revalidatePath("/calendar");
@@ -391,9 +355,7 @@ export async function cancelChangeRequestAction(raw: unknown): Promise<ActionRes
     if (req.status !== "pending") return fail("state", "Already resolved.");
     await supabase.from("bookings").update({ status: "cancelled" }).eq("id", req.new_booking_id);
     await supabase.from("change_requests").update({ status: "cancelled", responded_at: new Date().toISOString() }).eq("id", req.id);
-    await supabase.from("audit_log").insert({
-      actor_id: profile.id, action: "change_request.cancel", entity_type: "change_request", entity_id: req.id,
-    });
+    await logAudit(supabase, {action: "change_request.cancel", entityType: "change_request", entityId: req.id});
     revalidatePath("/calendar");
     return { ok: true, data: { status: "cancelled" } };
   } catch (err) {
@@ -420,20 +382,7 @@ export async function cancelBookingAction(raw: unknown): Promise<ActionResult<{ 
     await notifyBookingEvent(supabase, parsed.data.bookingId, "cancelled");
 
     // Audit FIRST — the row is about to vanish; the trail must survive.
-    await supabase.from("audit_log").insert({
-      actor_id: profile.id,
-      action: "booking.delete",
-      entity_type: "booking",
-      entity_id: parsed.data.bookingId,
-      meta: {
-        title: existing.title,
-        starts_at: existing.starts_at,
-        ends_at: existing.ends_at,
-        room_id: existing.room_id,
-        status: existing.status,
-        reason: parsed.data.reason ?? null,
-      },
-    });
+    await logAudit(supabase, {action: "booking.delete", entityType: "booking", entityId: parsed.data.bookingId, meta: { title: existing.title, starts_at: existing.starts_at, ends_at: existing.ends_at, room_id: existing.room_id, status: existing.status, reason: parsed.data.reason ?? null, }});
 
     // Hard delete — cascades clear formations/participants/change-requests.
     const { error } = await supabase.from("bookings").delete().eq("id", parsed.data.bookingId);
@@ -584,9 +533,7 @@ export async function updateBookingAction(raw: unknown): Promise<ActionResult<{ 
       }
       throw error;
     }
-    await supabase.from("audit_log").insert({
-      actor_id: profile.id, action: "booking.update", entity_type: "booking", entity_id: bookingId, meta: patch,
-    });
+    await logAudit(supabase, {action: "booking.update", entityType: "booking", entityId: bookingId, meta: patch});
     await notifyBookingEvent(supabase, bookingId, "updated");
     revalidatePath("/calendar");
     return { ok: true, data: { bookingId } };
@@ -618,9 +565,7 @@ export async function pauseBookingAction(raw: unknown): Promise<ActionResult<{ s
       .update({ status: paused ? "paused" : "confirmed", updated_at: new Date().toISOString() })
       .eq("id", bookingId);
     if (error) throw error;
-    await supabase.from("audit_log").insert({
-      actor_id: profile.id, action: paused ? "booking.pause" : "booking.resume", entity_type: "booking", entity_id: bookingId, meta: { title: existing.title },
-    });
+    await logAudit(supabase, {action: paused ? "booking.pause" : "booking.resume", entityType: "booking", entityId: bookingId, meta: { title: existing.title }});
     revalidatePath("/calendar");
     return { ok: true, data: { status: paused ? "paused" : "confirmed" } };
   } catch (err) {
@@ -687,10 +632,7 @@ export async function postponeBookingAction(raw: unknown): Promise<ActionResult<
       }
       throw error;
     }
-    await supabase.from("audit_log").insert({
-      actor_id: profile.id, action: "booking.postpone", entity_type: "booking", entity_id: bookingId,
-      meta: { starts_at: startsAt, ends_at: endsAt },
-    });
+    await logAudit(supabase, {action: "booking.postpone", entityType: "booking", entityId: bookingId, meta: { starts_at: startsAt, ends_at: endsAt }});
     await notifyBookingEvent(supabase, bookingId, "updated");
     revalidatePath("/calendar");
     return { ok: true, data: { bookingId } };

@@ -9,9 +9,7 @@ import { MailboxDemoChips, MailboxList } from "./MailboxList";
 import { ReadingPane } from "./ReadingPane";
 import { MailApiError, type MailFolder, type MailMessageSummary } from "./types";
 
-const MAILBOX_ADDRESS = "contact@eiden-group.com";
-
-export function InboxView({ initialFolder = "INBOX" }: { initialFolder?: MailFolder }) {
+export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initialFolder?: MailFolder; mailboxAddress: string }) {
   const [folder, setFolder] = useState<MailFolder>(initialFolder);
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<MailMessageSummary[]>([]);
@@ -148,7 +146,7 @@ export function InboxView({ initialFolder = "INBOX" }: { initialFolder?: MailFol
           title="The only mailbox connected to CALENDAR."
         >
           <span className="h-1.5 w-1.5 rounded-pill bg-success" aria-hidden="true" />
-          <code className="font-mono">{MAILBOX_ADDRESS}</code>
+          <code className="font-mono">{mailboxAddress}</code>
           <span
             className="ml-1 inline-flex min-w-[1.5rem] items-center justify-center rounded-pill bg-electric-tint px-1.5 py-0.5 font-sans text-[10px] font-bold tabular-nums text-electric"
             aria-label={`${totalUnread} unread messages across both folders`}
@@ -256,6 +254,7 @@ export function InboxView({ initialFolder = "INBOX" }: { initialFolder?: MailFol
               uid={selectedUid}
               folder={folder}
               inline
+              mailboxAddress={mailboxAddress}
               onSeenChange={handleSeenFromPane}
             />
           ) : (
@@ -267,7 +266,7 @@ export function InboxView({ initialFolder = "INBOX" }: { initialFolder?: MailFol
               <p className="mt-1.5 max-w-sm text-[13px] leading-snug text-muted">
                 Open any conversation on the left — attachments download via the server, remote images
                 stay blocked until you allow them, and replies are sent as{" "}
-                <code className="font-mono text-[12px] text-obsidian-light">contact@eiden-group.com</code>.
+                <code className="font-mono text-[12px] text-obsidian-light">{mailboxAddress}</code>.
               </p>
               <div className="mt-6 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
                 <InboxIcon size={13} strokeWidth={2} aria-hidden="true" />

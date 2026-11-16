@@ -31,7 +31,7 @@ const TABS: Tab[] = [
   { slug: "audit", name: "Audit Log", desc: "Every change, who & when — search, filter, export CSV", icon: ScrollText, admin: true },
   { slug: "security", name: "Security", desc: "Password, sessions, MFA, active device list", icon: ShieldCheck },
   { slug: "data", name: "Data & Privacy", desc: "Export workspace JSON, anonymize a client (GDPR)", icon: Database, admin: true },
-  { slug: "mail", name: "Mail", desc: "SMTP/IMAP connection test for contact@eiden-group.com", icon: Inbox, admin: true },
+  { slug: "mail", name: "Mail", desc: "SMTP/IMAP connection test for the connected mailbox", icon: Inbox, admin: true },
 ];
 
 export default function SettingsPage() {

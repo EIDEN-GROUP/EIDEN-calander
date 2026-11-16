@@ -12,7 +12,7 @@ const NAMES: Record<string, { title: string; desc: string; phase: string }> = {
   audit: { title: "Audit Log", desc: "Searchable, filterable log of every change — export to CSV.", phase: "4" },
   security: { title: "Security", desc: "Change password, sign out all sessions, MFA enrollment.", phase: "4" },
   data: { title: "Data & Privacy", desc: "Export the workspace, anonymize clients — with confirmation.", phase: "4" },
-  mail: { title: "Mail", desc: "SMTP/IMAP connection tests for contact@eiden-group.com.", phase: "3" },
+  mail: { title: "Mail", desc: "SMTP/IMAP connection tests for the connected mailbox.", phase: "3" },
 };
 
 export function generateStaticParams() {

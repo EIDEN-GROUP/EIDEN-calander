@@ -334,6 +334,7 @@ export function RequestThread({
               roomName={roomName}
               location={roomLocation ?? undefined}
               clientName={clientNameFor(newBooking)}
+              creatorName={liveData?.requesterName ?? null}
             />
           )}
 
@@ -356,6 +357,7 @@ export function RequestThread({
               roomName={roomName}
               location={roomLocation ?? undefined}
               clientName={clientNameFor(oldBooking)}
+              creatorName={liveData?.incumbentName ?? null}
             />
           )}
 
@@ -614,6 +616,7 @@ function BookingSideCard({
   roomName,
   location,
   clientName,
+  creatorName: creatorNameProp,
 }: {
   tag: string;
   tone: "warning" | "electric";
@@ -621,6 +624,8 @@ function BookingSideCard({
   roomName: string;
   location?: string;
   clientName: string | null;
+  /** Live display name — falls back to the demo id lookup. */
+  creatorName?: string | null;
 }) {
   const start = new Date(booking.starts_at);
   const end = new Date(booking.ends_at);
@@ -678,7 +683,7 @@ function BookingSideCard({
         </div>
         <div className="flex items-center gap-1.5">
           <ShieldCheck size={13} strokeWidth={2} className="text-muted" aria-hidden="true" />
-          Created by {creatorName(booking.created_by)}
+          Created by {creatorNameProp ?? creatorName(booking.created_by)}
         </div>
       </dl>
     </article>

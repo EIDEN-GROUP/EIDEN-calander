@@ -21,7 +21,7 @@ Vercel projects: one repo, two projects (staging, prod) or one project with bran
 4. Admin user created (see §6).
 5. Env vars set in Vercel (scope: staging vs production) — see §5.
 6. DNS for prod (§7).
-7. UptimeRobot monitor + alert to contact@eiden-group.com (§11).
+7. UptimeRobot monitor + alert to makrich@eiden-group.com (§11).
 8. First `/settings/mail` connection test → green (§8).
 
 ## 3. Deploy steps
@@ -77,14 +77,14 @@ All values live in Vercel (Production/Preview scopes) or `.env.local`. `.env.exa
 | `SUPABASE_DB_URL` | **server-only** | ✅ (CLI/ops) | `postgresql://postgres:<pw>@db.<ref>.supabase.co:5432/postgres` — direct connection for migrations/`pg_dump`, **not** used by the app runtime (app uses the pooler via Supabase client). |
 | `SMTP_HOST` | **server-only** | ✅ | `smtp.hostinger.com` |
 | `SMTP_PORT` | **server-only** | ✅ | `587` (STARTTLS, recommended) or `465` (implicit TLS) |
-| `SMTP_USER` | **server-only** | ✅ | `contact@eiden-group.com` |
+| `SMTP_USER` | **server-only** | ✅ | `makrich@eiden-group.com` |
 | `SMTP_PASSWORD` | **server-only** | ✅ | Mailbox password from hPanel → Emails. Placeholder `CHANGE_ME` in `.env.example`. |
-| `EMAIL_FROM` | **server-only** | ✅ | `Eiden Group <contact@eiden-group.com>` |
+| `EMAIL_FROM` | **server-only** | ✅ | `Eiden Group <makrich@eiden-group.com>` |
 | `IMAP_HOST` | **server-only** | ✅ | `imap.hostinger.com` |
 | `IMAP_PORT` | **server-only** | ✅ | `993` (TLS only; 143/STARTTLS is not supported by this app) |
-| `IMAP_USER` | **server-only** | ✅ | `contact@eiden-group.com` (same mailbox as SMTP) |
+| `IMAP_USER` | **server-only** | ✅ | `makrich@eiden-group.com` (same mailbox as SMTP) |
 | `IMAP_PASSWORD` | **server-only** | ✅ | Usually same as `SMTP_PASSWORD` |
-| `MAILBOX_ALLOWED` | **server-only** | ✅ | `contact@eiden-group.com` — the only mailbox the inbox will ever touch. Enforced as a constant; changing it requires a code change. |
+| `MAILBOX_ALLOWED` | **server-only** | ✅ | `makrich@eiden-group.com` — the only mailbox the inbox will ever touch. Enforced as a constant; changing it requires a code change. |
 | `CRON_SECRET` | **server-only** | ✅ | Random 32+ bytes; `Authorization: Bearer` for `/api/cron/*`. Rotate on suspicion. |
 | `BUSINESS_PUBLIC_URL` | public-ish (server-read) | ✅ | `https://eiden-group.com` — used to link the company's public site in outgoing mail; **not** the app URL |
 
@@ -105,14 +105,14 @@ The script creates (or reuses) the auth user, sets a **one-time temp password** 
 ## 7. DNS & mail
 
 - **App**: CNAME `calendar.eiden-group.com` → `cname.vercel-dns.com` (Vercel dashboard → domain → DNS records). SSL is automatic (Let's Encrypt). The **apex `eiden-group.com` is Eiden Group's public site and is never moved**; only the `calendar` subdomain points at Vercel.
-- **Mail (Hostinger)**: transactional mail is sent **as** `contact@eiden-group.com` via Hostinger SMTP — same domain, so SPF/DKIM already pass for the mailbox domain (verify in hPanel → Emails → "DNS / deliverability"; keep the SPF include for Hostinger and DKIM selector intact). If deliverability regresses: check DMARC alignment, and that `EMAIL_FROM` uses the exact mailbox address.
-- **Inbound**: the in-app Inbox reads `contact@eiden-group.com` via IMAP over TLS (`imap.hostinger.com:993`). It is **read/search/mark-read/reply only** — no delete, no move. Never point IMAP at any other mailbox; `MAILBOX_ALLOWED` is a hard constant.
+- **Mail (Hostinger)**: transactional mail is sent **as** `makrich@eiden-group.com` via Hostinger SMTP — same domain, so SPF/DKIM already pass for the mailbox domain (verify in hPanel → Emails → "DNS / deliverability"; keep the SPF include for Hostinger and DKIM selector intact). If deliverability regresses: check DMARC alignment, and that `EMAIL_FROM` uses the exact mailbox address.
+- **Inbound**: the in-app Inbox reads `makrich@eiden-group.com` via IMAP over TLS (`imap.hostinger.com:993`). It is **read/search/mark-read/reply only** — no delete, no move. Never point IMAP at any other mailbox; `MAILBOX_ALLOWED` is a hard constant.
 
 ## 8. Hostinger mail — connection settings
 
 | Purpose | Host | Port | Encryption | Auth |
 |---|---|---|---|---|
-| SMTP (outbound) | smtp.hostinger.com | 587 | STARTTLS | `contact@eiden-group.com` + mailbox password |
+| SMTP (outbound) | smtp.hostinger.com | 587 | STARTTLS | `makrich@eiden-group.com` + mailbox password |
 | SMTP (alt) | smtp.hostinger.com | 465 | SSL/TLS | same |
 | IMAP (inbound) | imap.hostinger.com | 993 | SSL/TLS | same |
 
@@ -194,7 +194,7 @@ Also export `audit_log` to CSV monthly (Settings → Audit → Export) as a seco
 
 **SMTP/IMAP password** (mailbox compromise or rotation policy):
 
-1. hPanel → Emails → contact@eiden-group.com → change password.
+1. hPanel → Emails → makrich@eiden-group.com → change password.
 2. Update `SMTP_PASSWORD`, `IMAP_PASSWORD` in all Vercel scopes; redeploy.
 3. Settings → Mail → Test connection (SMTP + IMAP must both go green).
 4. Check Hostinger webmail Sent folder for anything the app didn't send; report to security@eiden-group.com if so.
@@ -204,11 +204,11 @@ Also export `audit_log` to CSV monthly (Settings → Audit → Export) as a seco
 
 | Signal | Tool / place | Frequency | Alert target |
 |---|---|---|---|
-| Uptime (prod) | UptimeRobot HTTPS monitor on `https://calendar.eiden-group.com/login` | 5 min | contact@eiden-group.com (+ WhatsApp/phone for P1) |
+| Uptime (prod) | UptimeRobot HTTPS monitor on `https://calendar.eiden-group.com/login` | 5 min | makrich@eiden-group.com (+ WhatsApp/phone for P1) |
 | Uptime (staging) | Same, staging URL | 15 min | — |
-| SSL cert expiry | UptimeRobot SSL check (Vercel auto-renews; alert at 14 days as a safety net) | 1 day | contact@eiden-group.com |
+| SSL cert expiry | UptimeRobot SSL check (Vercel auto-renews; alert at 14 days as a safety net) | 1 day | makrich@eiden-group.com |
 | Mail path health | **Settings → Mail → Test connection** (SMTP verify + IMAP open) | On demand + before each prod deploy | — |
-| Cron health | Vercel → Cron Jobs logs; `change_requests` stuck in `pending` past TTL | Daily | contact@eiden-group.com |
+| Cron health | Vercel → Cron Jobs logs; `change_requests` stuck in `pending` past TTL | Daily | makrich@eiden-group.com |
 | Audit anomalies | Settings → Audit: filter `result=failure`, `user.unlock`, `auth.login.lockout`, `export.audit` | Weekly review | security@eiden-group.com |
 | Audit export archive | Settings → Audit → Export (CSV) | Monthly | secure vault |
 | Backup | `pg_dump` per §9.5 | Weekly | runbook owner |

@@ -21,7 +21,7 @@
 - **Clients** — client records linked to bookings and formations.
 - **Plans** — formation pacing/cohort planning over weeks.
 - **Reports** — occupancy and activity reports (Recharts), CSV export.
-- **Inbox** — an in-app view of the `contact@eiden-group.com` mailbox over IMAP: search, read, mark-read, reply. Read/reply only — never delete or move; Hostinger remains the source of truth.
+- **Inbox** — an in-app view of the `makrich@eiden-group.com` mailbox over IMAP: search, read, mark-read, reply. Read/reply only — never delete or move; Hostinger remains the source of truth.
 - **Notifications** — in-app + email notifications for bookings, change requests and expiry.
 - **Admin** — user provisioning with one-time temp passwords (no OAuth), settings, categories, rooms, full audit log.
 

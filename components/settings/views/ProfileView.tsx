@@ -162,7 +162,7 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
           </div>
           <p className="mt-2 flex flex-wrap items-center gap-1.5 font-mono text-[12px] font-semibold text-obsidian-light">
             <Lock size={12} strokeWidth={2.4} aria-hidden="true" className="text-muted" />
-            {profile?.email ?? "contact@eiden-group.com"}
+            {profile?.email ?? "—"}
             <span
               title="Managed by your administrator — contact support to change"
               aria-label="Managed by your administrator — contact support to change"

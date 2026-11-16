@@ -10,7 +10,7 @@ Security posture for **CALENDAR.** (Eiden Group internal scheduling). Audience: 
 
 1. Supabase service-role key + DB credentials (full DB access).
 2. Session cookies (impersonation of any user).
-3. `contact@eiden-group.com` mailbox (sync via IMAP; send-as via SMTP).
+3. `makrich@eiden-group.com` mailbox (sync via IMAP; send-as via SMTP).
 4. Client PII (names, companies, contact details, formation attendance).
 5. Business data (pricing, room utilization, plans).
 6. Temp passwords at provisioning time.
@@ -103,10 +103,10 @@ Notes: `frame-ancestors` covers clickjacking (X-Frame-Options is the legacy mirr
 
 ### 2.7 Mail-specific controls (the highest-risk surface)
 
-`contact@eiden-group.com` is operated by the app and rendered in the browser. Treat every byte of it as hostile.
+`makrich@eiden-group.com` is operated by the app and rendered in the browser. Treat every byte of it as hostile.
 
 1. **IMAP over TLS only** — port 993; no 143, no STARTTLS fallback in app config. Cert validation enforced by imapflow.
-2. **`MAILBOX_ALLOWED`** — a module-level constant (`contact@eiden-group.com`); the mail layer takes no mailbox parameter from callers. Requesting any other mailbox is a compile-time/constant error, not a runtime flag.
+2. **`MAILBOX_ALLOWED`** — a module-level constant (`makrich@eiden-group.com`); the mail layer takes no mailbox parameter from callers. Requesting any other mailbox is a compile-time/constant error, not a runtime flag.
 3. **HTML sanitization** — all rendered message bodies pass through `sanitize-html` with an allowlist: `p, br, strong, em, u, s, a[href mailto/http(s) only], ul, ol, li, blockquote, table, thead, tbody, tr, th, td, img[src https? — see images-off]`; **no** `script, iframe, object, embed, form, input, style, link, meta, base`; all `on*` attributes stripped; `href` limited to `http/https/mailto`, auto-`rel="noopener noreferrer nofollow"` + `target="_blank"`; `style` attribute stripped or property-allowlisted (no `position`, `url()`, `expression()`).
 4. **Images off by default** — remote images never auto-load; a per-message "Show remote content" toggle (audited `mail.images_load`) renders via the sanitized doc; `data:`/`blob:` imgs stripped.
 5. **Sandboxed iframe** — body renders into `<iframe sandbox="" srcDoc={sanitized}>`; no scripts, no forms, no same-origin; parent never reaches into its DOM; height auto via postMessage with strict origin/type validation.

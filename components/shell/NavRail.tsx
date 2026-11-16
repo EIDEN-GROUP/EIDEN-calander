@@ -10,6 +10,7 @@ import {
   KanbanSquare,
   BarChart3,
   Mail,
+  ArrowLeftRight,
   Settings,
 } from "lucide-react";
 import { NowBarMark } from "@/components/brand/NowBar";
@@ -22,6 +23,7 @@ const ITEMS = [
   { href: "/plans", label: "Plans", icon: KanbanSquare },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/inbox", label: "Inbox", icon: Mail },
+  { href: "/requests", label: "Requests", icon: ArrowLeftRight },
 ];
 
 function isActive(pathname: string, href: string) {

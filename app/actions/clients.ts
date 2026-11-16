@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser, requireAdmin } from "@/lib/auth";
 import type { ActionResult, ClientRow } from "@/lib/types/db";
+import { logAudit } from "@/lib/audit";
 
 function notConfigured<T>(): ActionResult<T> {
   return { ok: false, error: { code: "not_configured", message: "Supabase isn't configured — set .env." } };
@@ -77,9 +78,7 @@ export async function createClientAction(raw: unknown): Promise<ActionResult<{ c
       .select("id")
       .single();
     if (error) throw error;
-    await supabase.from("audit_log").insert({
-      actor_id: profile.id, action: "client.create", entity_type: "client", entity_id: inserted.id,
-    });
+    await logAudit(supabase, {action: "client.create", entityType: "client", entityId: inserted.id});
     revalidatePath("/clients");
     return { ok: true, data: { clientId: inserted.id } };
   } catch (err) {
@@ -112,7 +111,7 @@ export async function addClientNoteAction(raw: unknown): Promise<ActionResult<{ 
 /** GDPR anonymize — admin only. Keeps bookings aggregates, strips PII. */
 export async function anonymizeClientAction(raw: unknown): Promise<ActionResult<{ anonymized: true }>> {
   try {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = z.object({ clientId: z.string().uuid(), confirmName: z.string().min(1) }).safeParse(raw);
     if (!parsed.success) return fail("validation", "Confirmation required");
     const supabase = await createClient();
@@ -131,9 +130,7 @@ export async function anonymizeClientAction(raw: unknown): Promise<ActionResult<
       })
       .eq("id", existing.id);
     if (error) throw error;
-    await supabase.from("audit_log").insert({
-      actor_id: admin.id, action: "client.anonymize", entity_type: "client", entity_id: existing.id,
-    });
+    await logAudit(supabase, {action: "client.anonymize", entityType: "client", entityId: existing.id});
     revalidatePath("/clients");
     return { ok: true, data: { anonymized: true } };
   } catch (err) {

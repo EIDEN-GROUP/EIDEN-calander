@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/types/db";
+import { logAudit } from "@/lib/audit";
 
 function fail(code: string, message: string): ActionResult<never> {
   return { ok: false, error: { code, message } };
@@ -65,7 +66,7 @@ export async function changePasswordAction(raw: unknown): Promise<ActionResult<{
       .eq("id", profile.id);
 
     await supabase.auth.signOut({ scope: "others" });
-    await supabase.from("audit_log").insert({ actor_id: profile.id, action: "auth.password_change", entity_type: "user", entity_id: profile.id });
+    await logAudit(supabase, {action: "auth.password_change", entityType: "user", entityId: profile.id});
     return { ok: true, data: { ok: true } };
   } catch (err) {
     return failUnexpected(err);

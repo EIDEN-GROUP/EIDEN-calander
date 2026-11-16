@@ -12,5 +12,6 @@ export default async function Page({
 }) {
   const { folder } = await searchParams;
   const raw = Array.isArray(folder) ? folder[0] : folder;
-  return <InboxView initialFolder={raw === "Sent" ? "Sent" : "INBOX"} />;
+  const mailboxAddress = (process.env.MAILBOX_ALLOWED ?? process.env.IMAP_USER ?? "mailbox not configured").trim().toLowerCase();
+  return <InboxView initialFolder={raw === "Sent" ? "Sent" : "INBOX"} mailboxAddress={mailboxAddress} />;
 }

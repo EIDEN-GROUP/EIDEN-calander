@@ -20,5 +20,6 @@ export default async function Page({
   if (!Number.isInteger(uid) || uid < 1 || uid > 2_147_483_647) notFound();
   const raw = Array.isArray(folder) ? folder[0] : folder;
   const initialFolder: MailFolder = raw === "Sent" ? "Sent" : "INBOX";
-  return <ReadingPane uid={uid} folder={initialFolder} />;
+  const mailboxAddress = (process.env.MAILBOX_ALLOWED ?? process.env.IMAP_USER ?? "mailbox not configured").trim().toLowerCase();
+  return <ReadingPane uid={uid} folder={initialFolder} mailboxAddress={mailboxAddress} />;
 }

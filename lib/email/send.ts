@@ -34,7 +34,7 @@ export function isSmtpConfigured(): boolean {
 
 /** The fixed sender identity — never caller-supplied (no spoofing). */
 export function getFromIdentity(): string {
-  return EMAIL_FROM ?? "contact@eiden-group.com";
+  return EMAIL_FROM ?? "Eiden Group";
 }
 
 export function getTransporter(): Transporter {

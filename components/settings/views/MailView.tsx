@@ -38,7 +38,7 @@ const PROTOCOLS: Array<{
 
 const UNAVAILABLE_MSG = "Mail test unavailable — set .env then redeploy (or ask your admin)";
 
-export function MailView() {
+export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
   const { toasts, push } = useToast();
   const [lines, setLines] = useState<Record<Protocol, LineState>>({
     smtp: { status: "idle" },
@@ -83,7 +83,7 @@ export function MailView() {
     <div className="mx-auto max-w-6xl">
       <PageHeader
         title="Mail"
-        sub="How CALENDAR. talks to contact@eiden-group.com — status and one-click connection tests."
+        sub="How CALENDAR. talks to the connected mailbox — status and one-click connection tests."
       />
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -97,7 +97,7 @@ export function MailView() {
               <div className="min-w-0">
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Connected account</p>
                 <p className="mt-0.5 flex items-center gap-2 font-mono text-[13px] font-semibold text-obsidian">
-                  contact@eiden-group.com
+                  {mailboxAddress}
                   <span title="Mailbox address is visible to admins only" className="inline-flex items-center text-muted">
                     <EyeOff size={12} strokeWidth={2.2} aria-hidden="true" />
                   </span>

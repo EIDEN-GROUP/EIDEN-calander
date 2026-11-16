@@ -199,8 +199,8 @@ export function DataPrivacyView() {
                   <Mail size={14} strokeWidth={2} aria-hidden="true" className="text-muted" />
                   Privacy &amp; GDPR requests
                 </p>
-                <a href="mailto:contact@eiden-group.com" className="font-mono text-[12px] font-semibold text-electric hover:text-electric-hover">
-                  contact@eiden-group.com
+                <a href="mailto:makrich@eiden-group.com" className="font-mono text-[12px] font-semibold text-electric hover:text-electric-hover">
+                  makrich@eiden-group.com
                 </a>
               </div>
             </div>
@@ -285,7 +285,7 @@ export function DataPrivacyView() {
           </div>
           <div className="flex items-start gap-2 rounded-sm bg-tint-blue p-3 text-[11px] font-medium leading-snug text-tint-fg-blue">
             <Info size={13} strokeWidth={2.2} aria-hidden="true" className="mt-0.5 shrink-0" />
-            A signed erasure request must arrive at contact@eiden-group.com before any real anonymization happens.
+            A signed erasure request must arrive at makrich@eiden-group.com before any real anonymization happens.
           </div>
         </aside>
       </div>

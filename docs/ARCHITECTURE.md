@@ -115,7 +115,7 @@ RSC /inbox → Server Component calls lib/mail/list() via imapflow (TLS 993)
              only MAILBOX_ALLOWED mailbox (constant, not a parameter)
 Message click → Server Action getMessage(id) → sanitized HTML (sanitize-html allowlist)
              → rendered in <iframe sandbox="" sandboxed, no scripts, images off by default>
-Reply → Server Action reply(id, body) → send via nodemailer as contact@eiden-group.com,
+Reply → Server Action reply(id, body) → send via nodemailer as makrich@eiden-group.com,
              In-Reply-To/References set, quoted original sanitized + wrapped in blockquote
              → append to Sent via IMAP (best effort) → audit mail.inbox.reply
 No delete, no move, no flag-deletion. Hostinger mailbox is the source of truth.

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import type { ActionResult } from "@/lib/types/db";
+import { logAudit } from "@/lib/audit";
 
 function notConfigured<T>(): ActionResult<T> {
   return { ok: false, error: { code: "not_configured", message: "Supabase isn't configured — set .env." } };
@@ -65,9 +66,7 @@ export async function createFormationAction(raw: unknown): Promise<ActionResult<
     });
     if (fErr) throw fErr;
 
-    await supabase.from("audit_log").insert({
-      actor_id: profile.id, action: "formation.create", entity_type: "formation", entity_id: booking.id,
-    });
+    await logAudit(supabase, {action: "formation.create", entityType: "formation", entityId: booking.id});
     revalidatePath("/formations");
     revalidatePath("/calendar");
     return { ok: true, data: { bookingId: booking.id } };
@@ -215,7 +214,7 @@ export async function importParticipantsAction(raw: unknown): Promise<ActionResu
 /** Remove a participant from the roster (staff/admin — shared ops). */
 export async function removeParticipantAction(raw: unknown): Promise<ActionResult<{ removed: true }>> {
   try {
-    const profile = await requireUser();
+    await requireUser();
     const parsed = z.object({ participantId: z.string().uuid() }).safeParse(raw);
     if (!parsed.success) return fail("validation", "Invalid input");
     const supabase = await createClient();
@@ -225,10 +224,7 @@ export async function removeParticipantAction(raw: unknown): Promise<ActionResul
     if (!existing) return fail("not_found", "Participant not found.");
     const { error } = await supabase.from("formation_participants").delete().eq("id", parsed.data.participantId);
     if (error) throw error;
-    await supabase.from("audit_log").insert({
-      actor_id: profile.id, action: "formation.participant_remove", entity_type: "participant",
-      entity_id: existing.id, meta: { booking_id: existing.booking_id, full_name: existing.full_name },
-    });
+    await logAudit(supabase, {action: "formation.participant_remove", entityType: "participant", entityId: existing.id, meta: { booking_id: existing.booking_id, full_name: existing.full_name }});
     revalidatePath(`/formations/${existing.booking_id}`);
     return { ok: true, data: { removed: true } };
   } catch (err) {

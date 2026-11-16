@@ -97,7 +97,7 @@ export function MailboxList({
             </p>
             <p className="mt-1 max-w-[34ch] text-[13px] text-muted">
               {folder === "INBOX"
-                ? "New messages to contact@eiden-group.com will appear here automatically."
+                ? "New messages to this mailbox will appear here automatically."
                 : "Replies you send from here are kept in the Sent folder of the mailbox."}
             </p>
           </>

@@ -46,7 +46,8 @@ export function NotificationsView() {
   );
   const [digest, setDigest] = useState(true);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [testResult, setTestResult] = useState<{ latency: number } | null>(null);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [testSending, setTestSending] = useState(false);
 
   const enabledCount = TRANSACTIONAL.filter((t) => prefs[t.key]).length;
 
@@ -54,8 +55,29 @@ export function NotificationsView() {
     setPrefs((prev) => ({ ...prev, [key]: next }));
   };
 
-  const sendTest = () => {
-    setTestResult({ latency: Math.round(120 + Math.random() * 380) });
+  /** Real test: POST /api/mail/test-send delivers to your own account email. */
+  const sendTest = async () => {
+    setTestSending(true);
+    setTestResult(null);
+    try {
+      const res = await fetch("/api/mail/test-send", { method: "POST" });
+      const data = (await res.json().catch(() => null)) as
+        | { ok?: boolean; demo?: boolean; sent?: boolean; note?: string; error?: { message?: string } }
+        | null;
+      if (res.ok && data?.ok) {
+        setTestResult(
+          data.demo
+            ? { ok: true, message: data.note ?? "Demo mode — nothing was sent." }
+            : { ok: true, message: "Test email sent — check your inbox." },
+        );
+      } else {
+        setTestResult({ ok: false, message: data?.error?.message ?? `Test failed (${res.status}).` });
+      }
+    } catch {
+      setTestResult({ ok: false, message: "Could not reach the server — check your connection." });
+    } finally {
+      setTestSending(false);
+    }
   };
 
   return (
@@ -116,17 +138,17 @@ export function NotificationsView() {
           {/* Footer actions */}
           <div className="card flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
             <div className="flex flex-wrap items-center gap-3">
-              <button type="button" onClick={sendTest} className="btn btn-secondary h-11">
+              <button type="button" onClick={() => void sendTest()} disabled={testSending} className="btn btn-secondary h-11 disabled:opacity-60">
                 <Send size={15} strokeWidth={2} aria-hidden="true" />
-                Send test email to me
+                {testSending ? "Sending…" : "Send test email to me"}
               </button>
               {testResult ? (
-                <p role="status" aria-live="polite" className="flex items-center gap-1.5 text-[12px] font-semibold text-tint-fg-green">
+                <p role="status" aria-live="polite" className={`flex items-center gap-1.5 text-[12px] font-semibold ${testResult.ok ? "text-tint-fg-green" : "text-tint-fg-red"}`}>
                   <CircleCheck size={14} strokeWidth={2.4} aria-hidden="true" />
-                  Test sent (demo) — delivered in {testResult.latency} ms
+                  {testResult.message}
                 </p>
               ) : (
-                <p className="text-[11px] font-medium text-muted">Delivered to contact@eiden-group.com</p>
+                <p className="text-[11px] font-medium text-muted">Sent to your own account email — credentials never leave the server.</p>
               )}
             </div>
             <button type="button" onClick={() => push("Notification preferences saved (demo)")} className="btn btn-primary h-11">

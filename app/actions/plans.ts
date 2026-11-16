@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser, requireAdmin } from "@/lib/auth";
 import type { ActionResult } from "@/lib/types/db";
+import { logAudit } from "@/lib/audit";
 
 function notConfigured<T>(): ActionResult<T> {
   return { ok: false, error: { code: "not_configured", message: "Supabase isn't configured — set .env." } };
@@ -51,7 +52,7 @@ export async function createPlanAction(raw: unknown): Promise<ActionResult<{ pla
       .select("id")
       .single();
     if (error) throw error;
-    await supabase.from("audit_log").insert({ actor_id: profile.id, action: "plan.create", entity_type: "plan", entity_id: inserted.id });
+    await logAudit(supabase, {action: "plan.create", entityType: "plan", entityId: inserted.id});
     revalidatePath("/plans");
     return { ok: true, data: { planId: inserted.id } };
   } catch (err) {
@@ -61,7 +62,7 @@ export async function createPlanAction(raw: unknown): Promise<ActionResult<{ pla
 
 export async function updatePlanStatusAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
   try {
-    const profile = await requireUser();
+    await requireUser();
     const parsed = z.object({
       planId: z.string().uuid(),
       status: z.enum(["planning", "active", "on_hold", "completed", "cancelled"]),
@@ -71,7 +72,7 @@ export async function updatePlanStatusAction(raw: unknown): Promise<ActionResult
     if (!supabase) return notConfigured();
     const { error } = await supabase.from("plans").update({ status: parsed.data.status }).eq("id", parsed.data.planId);
     if (error) throw error;
-    await supabase.from("audit_log").insert({ actor_id: profile.id, action: "plan.status", entity_type: "plan", entity_id: parsed.data.planId, meta: { status: parsed.data.status } });
+    await logAudit(supabase, {action: "plan.status", entityType: "plan", entityId: parsed.data.planId, meta: { status: parsed.data.status }});
     revalidatePath("/plans");
     return { ok: true, data: { ok: true } };
   } catch (err) {
@@ -153,14 +154,14 @@ export async function deletePlanTaskAction(raw: unknown): Promise<ActionResult<{
 
 export async function deletePlanAction(raw: unknown): Promise<ActionResult<{ deleted: true }>> {
   try {
-    const admin = await requireAdmin();
+    await requireAdmin();
     const parsed = z.object({ planId: z.string().uuid() }).safeParse(raw);
     if (!parsed.success) return fail("validation", "Invalid input");
     const supabase = await createClient();
     if (!supabase) return notConfigured();
     const { error } = await supabase.from("plans").delete().eq("id", parsed.data.planId);
     if (error) throw error;
-    await supabase.from("audit_log").insert({ actor_id: admin.id, action: "plan.delete", entity_type: "plan", entity_id: parsed.data.planId });
+    await logAudit(supabase, {action: "plan.delete", entityType: "plan", entityId: parsed.data.planId});
     revalidatePath("/plans");
     return { ok: true, data: { deleted: true } };
   } catch (err) {
