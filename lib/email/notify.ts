@@ -21,6 +21,41 @@ import type { BookingStatus } from "@/lib/types/db";
 export type BookingEvent = "created" | "updated" | "cancelled";
 export type ChangeRequestEvent = "received" | "approved" | "declined" | "expired";
 
+const PREF_BY_BOOKING_EVENT: Record<BookingEvent, string> = {
+  created: "booking_created",
+  updated: "booking_updated",
+  cancelled: "booking_cancelled",
+};
+const PREF_BY_CHANGE_EVENT: Record<ChangeRequestEvent, string> = {
+  received: "change_request_received",
+  approved: "change_request_approved",
+  declined: "change_request_declined",
+  expired: "change_request_expired",
+};
+
+/**
+ * Is this transactional email type enabled in business_settings.notification_prefs?
+ * Business-wide switch, admin-controlled in Settings → Notifications.
+ * Default ON (missing key → enabled) so existing behavior never silently stops.
+ */
+export async function isTransactionalEnabled(
+  supabase: SupabaseClient,
+  key: string,
+): Promise<boolean> {
+  try {
+    const { data } = await supabase
+      .from("business_settings")
+      .select("notification_prefs")
+      .eq("id", true)
+      .maybeSingle();
+    const prefs = (data?.notification_prefs ?? {}) as Record<string, boolean>;
+    return prefs[key] !== false;
+  } catch (err) {
+    console.error(`[notify] could not read notification_prefs — sending "${key}" anyway`, err);
+    return true;
+  }
+}
+
 interface BookingRowPick {
   title: string;
   starts_at: string;
@@ -73,6 +108,10 @@ export async function notifyBookingEvent(
   event: BookingEvent,
 ): Promise<void> {
   try {
+    if (!(await isTransactionalEnabled(supabase, PREF_BY_BOOKING_EVENT[event]))) {
+      console.log(`[notify] booking ${event} — disabled in Settings → Notifications, skipping`);
+      return;
+    }
     const { data: booking } = await supabase
       .from("bookings")
       .select("title,starts_at,ends_at,notes,status,client_id,room_id")
@@ -120,6 +159,10 @@ export async function notifyChangeRequestEvent(
   event: ChangeRequestEvent,
 ): Promise<void> {
   try {
+    if (!(await isTransactionalEnabled(supabase, PREF_BY_CHANGE_EVENT[event]))) {
+      console.log(`[notify] change-request ${event} — disabled in Settings → Notifications, skipping`);
+      return;
+    }
     const { data: cr } = await supabase
       .from("change_requests")
       .select(

@@ -201,7 +201,7 @@ export function AuditView({
     anchor.download = `eiden-calendar-audit-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
-    push(`Exported ${filtered.length} row${filtered.length === 1 ? "" : "s"} (demo)`);
+    push(`Exported ${filtered.length} row${filtered.length === 1 ? "" : "s"}${live ? "" : " (demo)"}`);
   };
 
   return (
@@ -415,7 +415,7 @@ export function AuditView({
 
       <div className="mt-4 flex items-center gap-2 text-[11px] font-semibold text-muted">
         <CircleCheck size={13} strokeWidth={2.2} aria-hidden="true" className="text-tint-fg-green" />
-        Every mutation in this workspace is recorded here — exports and anonymizations included once live.
+        Every mutation in this workspace is recorded here — exports and anonymizations included.
       </div>
 
       <ToastViewport toasts={toasts} />

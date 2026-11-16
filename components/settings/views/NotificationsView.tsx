@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeftRight,
   CalendarDays,
@@ -17,6 +18,7 @@ import { PageHeader } from "@/components/settings/PageHeader";
 import { ToastViewport, useToast } from "@/components/settings/Toast";
 import { Modal } from "@/components/settings/Modal";
 import { Switch } from "@/components/settings/Switch";
+import { updateNotificationPrefsAction } from "@/app/actions/settings";
 
 const TRANSACTIONAL = [
   { key: "booking_created", label: "Booking created", desc: "Client and team both get a confirmation email." },
@@ -39,12 +41,37 @@ const DIGEST_SECTIONS = [
   { icon: ListChecks, title: "Utilization snapshot", sample: "Casablanca 71% · Agadir 38% — vs 90-day average" },
 ] as const;
 
-export function NotificationsView() {
+export function NotificationsView({
+  initialPrefs = null,
+  live = false,
+}: {
+  initialPrefs?: Record<string, boolean> | null;
+  live?: boolean;
+}) {
+  const router = useRouter();
   const { toasts, push } = useToast();
-  const [prefs, setPrefs] = useState<Record<TransactionalKey, boolean>>(
-    () => Object.fromEntries(TRANSACTIONAL.map((t) => [t.key, true])) as Record<TransactionalKey, boolean>,
-  );
-  const [digest, setDigest] = useState(true);
+  const [savingPrefs, setSavingPrefs] = useState(false);
+  const [prefs, setPrefs] = useState<Record<TransactionalKey, boolean>>(() => {
+    const base = Object.fromEntries(TRANSACTIONAL.map((t) => [t.key, true])) as Record<TransactionalKey, boolean>;
+    if (!initialPrefs) return base;
+    for (const key of Object.keys(base) as TransactionalKey[]) {
+      if (typeof initialPrefs[key] === "boolean") base[key] = initialPrefs[key];
+    }
+    return base;
+  });
+
+  /** Business-wide switches persist live; enforcement happens server-side before every send. */
+  const savePrefs = async () => {
+    if (!live) {
+      push("Notification preferences saved (demo)");
+      return;
+    }
+    setSavingPrefs(true);
+    const res = await updateNotificationPrefsAction(prefs);
+    setSavingPrefs(false);
+    push(res.ok ? "Preferences saved — applied to every send" : res.error.message);
+    if (res.ok) router.refresh();
+  };
   const [previewOpen, setPreviewOpen] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [testSending, setTestSending] = useState(false);
@@ -84,7 +111,7 @@ export function NotificationsView() {
     <div className="mx-auto max-w-6xl">
       <PageHeader
         title="Notifications"
-        sub="Which transactional emails go out, and what lands in Monday's digest. Everything else stays silent."
+        sub="Which transactional emails go out — enforced on every send. Applies workspace-wide."
       />
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -113,24 +140,27 @@ export function NotificationsView() {
             </ul>
           </section>
 
-          {/* Digests */}
-          <section className="card overflow-hidden" aria-labelledby="digest-heading">
+          {/* Digests — ships with v1.1; preview shows the planned contents */}
+          <section className="card overflow-hidden opacity-90" aria-labelledby="digest-heading">
             <div className="flex items-center gap-2.5 border-b border-divider px-4 py-3.5 sm:px-5">
               <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-tint-green text-tint-fg-green">
                 <Inbox size={16} strokeWidth={2} aria-hidden="true" />
               </span>
               <h2 id="digest-heading" className="text-[15px] font-extrabold text-obsidian">Digests</h2>
+              <span className="ml-auto inline-flex items-center rounded-pill border border-border bg-canvas px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-muted">v1.1</span>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-5">
               <div className="min-w-0">
                 <p id="digest-pref-label" className="text-[13px] font-semibold text-obsidian">Weekly digest — Monday 08:00</p>
-                <p className="mt-0.5 text-[11px] font-medium leading-snug text-muted">One email each Monday morning. Casablanca time. Replaces the Thursday recap.</p>
+                <p className="mt-0.5 text-[11px] font-medium leading-snug text-muted">Planned, not built yet — no Monday email goes out until v1.1 ships. Preview below is the working draft.</p>
               </div>
               <div className="flex items-center gap-2">
                 <button type="button" onClick={() => setPreviewOpen(true)} className="btn btn-secondary h-9 px-3 text-[12px]">
                   Preview contents
                 </button>
-                <Switch checked={digest} onChange={setDigest} label="Weekly digest — Monday 08:00" />
+                <span className="inline-flex h-7 items-center rounded-pill border border-dashed border-border px-3 text-[11px] font-bold text-muted" aria-label="Weekly digest — not available yet">
+                  Not scheduled
+                </span>
               </div>
             </div>
           </section>
@@ -151,8 +181,8 @@ export function NotificationsView() {
                 <p className="text-[11px] font-medium text-muted">Sent to your own account email — credentials never leave the server.</p>
               )}
             </div>
-            <button type="button" onClick={() => push("Notification preferences saved (demo)")} className="btn btn-primary h-11">
-              Save preferences
+            <button type="button" onClick={() => void savePrefs()} disabled={savingPrefs} className="btn btn-primary h-11 disabled:opacity-60">
+              {savingPrefs ? "Saving…" : "Save preferences"}
             </button>
           </div>
         </div>

@@ -13,11 +13,17 @@ export function TopBar({ notificationCount: initialCount }: { notificationCount?
 
   useEffect(() => {
     let active = true;
-    unreadNotificationCountAction()
-      .then((n) => {
-        if (active) setNotificationCount(n);
-      })
-      .catch(() => {});
+    const check = () => {
+      unreadNotificationCountAction()
+        .then((n) => {
+          if (active) setNotificationCount(n);
+        })
+        .catch(() => {});
+    };
+    check();
+    // The bell was mount-only — if a teammate gets a change request while you
+    // work, you now see it within a minute without refreshing.
+    const timer = window.setInterval(check, 60_000);
     getProfileSummaryAction()
       .then((p) => {
         if (active && p) setMe(p);
@@ -25,6 +31,7 @@ export function TopBar({ notificationCount: initialCount }: { notificationCount?
       .catch(() => {});
     return () => {
       active = false;
+      window.clearInterval(timer);
     };
   }, []);
 

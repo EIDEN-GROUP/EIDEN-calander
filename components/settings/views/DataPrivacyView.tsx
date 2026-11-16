@@ -16,14 +16,21 @@ import {
   UserRoundX,
   X,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/settings/PageHeader";
 import { ToastViewport, useToast } from "@/components/settings/Toast";
 import { Modal } from "@/components/settings/Modal";
-import { DEMO_CLIENTS, DEMO_CATEGORIES, DEMO_ROOMS } from "@/lib/demo-data";
+import { anonymizeClientAction } from "@/app/actions/clients";
+import { exportWorkspaceAction } from "@/app/actions/export";
 
-function exportFilename(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `eiden-calendar-export-${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}.json`;
+export interface LedgerClient {
+  id: string;
+  full_name: string;
+  company: string | null;
+  email: string | null;
+  city: string | null;
+  status: string;
+  anonymized_at: string | null;
 }
 
 function initials(name: string): string {
@@ -31,25 +38,35 @@ function initials(name: string): string {
   return ((parts[0]?.[0] ?? "?") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
 }
 
-export function DataPrivacyView() {
+export function DataPrivacyView({
+  initialClients,
+  live = false,
+}: {
+  initialClients: LedgerClient[];
+  live?: boolean;
+}) {
+  const router = useRouter();
   const { toasts, push } = useToast();
   const [anonymizeOpen, setAnonymizeOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [confirmText, setConfirmText] = useState("");
   const [understood, setUnderstood] = useState(false);
-  const [anonymizedIds, setAnonymizedIds] = useState<string[]>([]);
+  const [anonymizedIds, setAnonymizedIds] = useState<string[]>(
+    () => initialClients.filter((c) => c.anonymized_at !== null).map((c) => c.id),
+  );
   const [banner, setBanner] = useState<string | null>(null);
 
   const filteredClients = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return DEMO_CLIENTS;
-    return DEMO_CLIENTS.filter((c) =>
+    if (!q) return initialClients;
+    return initialClients.filter((c) =>
       [c.full_name, c.company ?? "", c.email ?? "", c.city ?? ""].some((field) => field.toLowerCase().includes(q)),
     );
-  }, [query]);
+  }, [initialClients, query]);
 
-  const selected = DEMO_CLIENTS.find((c) => c.id === selectedId) ?? null;
+  const selected = initialClients.find((c) => c.id === selectedId) ?? null;
   const confirmValid = selected !== null && confirmText.trim() === selected.full_name && understood;
 
   const openAnonymize = () => {
@@ -60,60 +77,55 @@ export function DataPrivacyView() {
     setAnonymizeOpen(true);
   };
 
-  const exportWorkspace = () => {
-    const now = new Date();
-    const payload = {
-      export: "eiden-calendar",
-      version: 1,
-      exportedAt: now.toISOString(),
-      generatedBy: "CALENDAR. by Eiden Group — settings/data (demo)",
-      workspace: {
-        name: "Eiden Group",
-        legalName: "Eiden Group SARL",
-        timezone: "Africa/Casablanca",
-        currency: "MAD",
-        locale: "en",
-        weekStart: "Monday",
-      },
-      counts: {
-        rooms: DEMO_ROOMS.length,
-        categories: DEMO_CATEGORIES.length,
-        bookings: 12,
-        clients: DEMO_CLIENTS.length,
-      },
-      settings: {
-        workingHours: { monToFri: "09:00-18:30", saturday: "09:30-13:00", sunday: "closed" },
-        slotMinutes: 30,
-        bufferMinutes: 15,
-        minNoticeHours: 2,
-      },
-      rooms: DEMO_ROOMS.map(({ id, name, location, capacity, hourly_rate, currency, amenities, is_active }) => ({ id, name, location, capacity, hourly_rate, currency, amenities, is_active })),
-      categories: DEMO_CATEGORIES.map(({ id, name_en, name_fr, color, icon, type, is_active }) => ({ id, name_en, name_fr, color, icon, type, is_active })),
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = exportFilename(now);
-    anchor.click();
-    URL.revokeObjectURL(url);
-    push("Export downloaded (demo)");
+  const exportWorkspace = async () => {
+    if (!live) {
+      push("Export is disabled until Supabase is connected — no dump, no theatre.");
+      return;
+    }
+    setExporting(true);
+    try {
+      const res = await exportWorkspaceAction();
+      if (!res.ok) {
+        push(res.error.message);
+        return;
+      }
+      const blob = new Blob([res.data.json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = res.data.filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      push(`Snapshot downloaded — ${(res.data.byteLength / 1024).toFixed(0)} KB`);
+    } finally {
+      setExporting(false);
+    }
   };
 
-  const submitAnonymize = (event: FormEvent<HTMLFormElement>) => {
+  const submitAnonymize = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!selected || !confirmValid) return;
+    if (!live) {
+      push("Anonymization is disabled until Supabase is connected — no fake deletes.");
+      return;
+    }
+    const res = await anonymizeClientAction({ clientId: selected.id, confirmName: confirmText.trim() });
+    if (!res.ok) {
+      push(res.error.message);
+      return;
+    }
     setAnonymizedIds((prev) => (prev.includes(selected.id) ? prev : [...prev, selected.id]));
     setBanner(selected.full_name);
     setAnonymizeOpen(false);
-    push("Client anonymized (demo)");
+    push("Client anonymized — logged to the audit trail");
+    router.refresh();
   };
 
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
         title="Data & Privacy"
-        sub="Export a full workspace snapshot, or anonymize a client on request. Every action here is logged once live."
+        sub="Export a full workspace snapshot, or anonymize a client on request. Every action here is logged."
       />
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -123,7 +135,7 @@ export function DataPrivacyView() {
             <div role="status" aria-live="polite" className="flex items-start justify-between gap-3 rounded-sm border border-success/40 bg-success-tint px-4 py-3">
               <p className="flex items-start gap-2 text-[12px] font-semibold leading-snug text-tint-fg-green">
                 <CircleCheck size={15} strokeWidth={2.4} aria-hidden="true" className="mt-0.5 shrink-0" />
-                <span><strong>{banner}</strong> was anonymized (demo). Personal data is replaced with redaction markers — bookings and aggregates are unchanged.</span>
+                <span><strong>{banner}</strong> was anonymized. Personal data is replaced with redaction markers — bookings and aggregates are unchanged.</span>
               </p>
               <button type="button" onClick={() => setBanner(null)} aria-label="Dismiss confirmation" className="rounded-pill p-1 text-tint-fg-green transition-colors hover:bg-success/10">
                 <X size={15} strokeWidth={2.4} aria-hidden="true" />
@@ -139,7 +151,7 @@ export function DataPrivacyView() {
               </span>
               <div>
                 <h2 id="danger-heading" className="text-[15px] font-extrabold text-obsidian">Danger zone</h2>
-                <p className="text-[11px] font-medium text-muted">Irreversible actions. In this build, everything stays in memory — nothing is deleted, nothing is sent.</p>
+                <p className="text-[11px] font-medium text-muted">Irreversible actions. Both actions write to the audit log — export included. There is no un-anonymize.</p>
               </div>
             </div>
 
@@ -148,11 +160,11 @@ export function DataPrivacyView() {
               <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
                 <div className="max-w-md">
                   <h3 className="text-[13px] font-bold text-obsidian">Export workspace</h3>
-                  <p className="mt-0.5 text-[11px] font-medium leading-snug text-muted">Full JSON snapshot — settings, rooms, categories and record counts. Never contains credentials.</p>
+                  <p className="mt-0.5 text-[11px] font-medium leading-snug text-muted">Full JSON snapshot — every workspace table except credentials, notifications and the audit log.</p>
                 </div>
-                <button type="button" onClick={exportWorkspace} className="btn btn-secondary h-10 px-4 text-[13px]">
+                <button type="button" onClick={() => void exportWorkspace()} disabled={exporting} className="btn btn-secondary h-10 px-4 text-[13px] disabled:opacity-60">
                   <Download size={15} strokeWidth={2.1} aria-hidden="true" />
-                  Export workspace (.json)
+                  {exporting ? "Snapshotting…" : "Export workspace (.json)"}
                 </button>
               </div>
 
@@ -177,9 +189,9 @@ export function DataPrivacyView() {
                 <h3 className="text-[13px] font-bold text-obsidian">Retention</h3>
                 <ul className="mt-2 divide-y divide-divider">
                   {[
-                    { icon: Archive, label: "Bookings & invoices", value: "Retained forever" },
-                    { icon: ScrollText, label: "Audit log", value: "12 months — purged nightly" },
-                    { icon: Bell, label: "Notifications", value: "90 days — then deleted" },
+                    { icon: Archive, label: "Bookings & invoices", value: "Retained forever (hard-delete only)" },
+                    { icon: ScrollText, label: "Audit log", value: "Append-only — never deleted" },
+                    { icon: Bell, label: "Notifications", value: "Kept until cleared — purge job at launch" },
                   ].map(({ icon: Icon, label, value }) => (
                     <li key={label} className="flex items-center justify-between gap-3 py-2.5">
                       <span className="flex items-center gap-2 text-[12px] font-semibold text-obsidian-light">
@@ -209,7 +221,7 @@ export function DataPrivacyView() {
           {/* Client ledger (redacted view) */}
           <section aria-labelledby="ledger-heading" className="card overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider px-4 py-3 sm:px-5">
-              <h2 id="ledger-heading" className="text-[13px] font-extrabold text-obsidian">Client ledger (demo)</h2>
+              <h2 id="ledger-heading" className="text-[13px] font-extrabold text-obsidian">Client ledger</h2>
               <p className="text-[11px] font-medium text-muted">Anonymized rows show redaction markers</p>
             </div>
             <div className="overflow-x-auto">
@@ -223,7 +235,7 @@ export function DataPrivacyView() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-divider">
-                  {DEMO_CLIENTS.map((client) => {
+                  {initialClients.map((client) => {
                     const redacted = anonymizedIds.includes(client.id);
                     return (
                       <tr key={client.id} className="transition-colors hover:bg-canvas/60">
@@ -255,7 +267,7 @@ export function DataPrivacyView() {
               </table>
             </div>
             <p className="border-t border-divider px-4 py-3 text-[11px] font-medium leading-snug text-muted sm:px-5">
-              Demo build — nothing is deleted. Once live, anonymization is written to the audit log and countersigned by a second admin.
+              Anonymization is written to the audit log. Bookings and aggregates stay for reporting — contacts are redacted on every future render.
             </p>
           </section>
         </div>
@@ -267,7 +279,7 @@ export function DataPrivacyView() {
               Before you export
             </h2>
             <ul className="mt-3 space-y-2.5 text-[12px] font-medium leading-snug text-obsidian-light">
-              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />The snapshot includes demo entities until Supabase is connected.</li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />The snapshot covers every workspace table except credentials, notifications and the audit log.</li>
               <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />It never contains credentials, tokens or SMTP keys.</li>
               <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />Stored client-side in your download folder — we don’t keep a copy.</li>
             </ul>

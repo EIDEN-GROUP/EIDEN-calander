@@ -13,8 +13,10 @@ import {
   Monitor,
   CalendarDays,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/settings/PageHeader";
 import { ToastViewport, useToast } from "@/components/settings/Toast";
+import { updateLocalizationAction } from "@/app/actions/settings";
 
 type Locale = "en" | "fr";
 type HourCycle = "24" | "12";
@@ -29,11 +31,35 @@ function pad2(n: number): string {
   return String(n).padStart(2, "0");
 }
 
-export function LocalizationView() {
+export function LocalizationView({
+  initial = null,
+  live = false,
+}: {
+  initial?: { defaultLocale: Locale; hourCycle: HourCycle; dateFormat: DateFormat } | null;
+  live?: boolean;
+}) {
+  const router = useRouter();
   const { toasts, push } = useToast();
-  const [locale, setLocale] = useState<Locale>("en");
-  const [hourCycle, setHourCycle] = useState<HourCycle>("24");
-  const [dateFormat, setDateFormat] = useState<DateFormat>("eu");
+  const [locale, setLocale] = useState<Locale>(initial?.defaultLocale ?? "en");
+  const [hourCycle, setHourCycle] = useState<HourCycle>(initial?.hourCycle ?? "24");
+  const [dateFormat, setDateFormat] = useState<DateFormat>(initial?.dateFormat ?? "eu");
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    if (!live) {
+      push("Localization saved (demo)");
+      return;
+    }
+    setSaving(true);
+    const res = await updateLocalizationAction({ defaultLocale: locale, hourCycle, dateFormat });
+    setSaving(false);
+    if (!res.ok) {
+      push(res.error.message);
+      return;
+    }
+    push("Localization saved");
+    router.refresh();
+  };
 
   const now = SAMPLE_DATE;
   const dd = pad2(now.getDate());
@@ -176,8 +202,8 @@ export function LocalizationView() {
           </div>
 
           <div className="flex items-center justify-end pt-4">
-            <button type="button" onClick={() => push("Localization saved (demo)")} className="btn btn-primary h-11">
-              Save changes
+            <button type="button" onClick={() => void save()} disabled={saving} className="btn btn-primary h-11 disabled:opacity-60">
+              {saving ? "Saving…" : "Save changes"}
             </button>
           </div>
         </div>

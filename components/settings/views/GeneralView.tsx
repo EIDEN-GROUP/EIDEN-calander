@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   Building2,
   CircleExclamationPoint,
@@ -14,6 +15,26 @@ import {
 import { PageHeader } from "@/components/settings/PageHeader";
 import { ToastViewport, useToast } from "@/components/settings/Toast";
 import { NowBarMark } from "@/components/brand/NowBar";
+import { createClient } from "@/lib/supabase/client";
+import { updateBusinessProfileAction, updateBusinessLogoAction } from "@/app/actions/settings";
+
+export interface GeneralInitial {
+  businessName: string;
+  legalName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  country: string;
+  timezone: string;
+  currency: string;
+  publicUrl: string;
+  logoUrl: string | null;
+  defaultLocale: Locale;
+  slotIncrementMin: 15 | 30 | 60;
+  bufferMin: number;
+  minNoticeHours: number;
+}
 
 type Locale = "en" | "fr";
 
@@ -36,23 +57,28 @@ const COUNTRIES = ["Morocco", "France", "Belgium", "Spain", "United Arab Emirate
 const ALLOWED_LOGO_TYPES = ["image/svg+xml", "image/png", "image/webp"];
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
-export function GeneralView() {
+export function GeneralView({ initial = null, live = false }: { initial?: GeneralInitial | null; live?: boolean }) {
+  const router = useRouter();
   const { toasts, push } = useToast();
 
-  const [businessName, setBusinessName] = useState("Eiden Group");
-  const [legalName, setLegalName] = useState("Eiden Group SARL");
-  const [contactEmail, setContactEmail] = useState("contact@eiden-group.com");
-  const [phone, setPhone] = useState("+212 5 22 00 00 00");
-  const [address, setAddress] = useState("Immeuble Al Blanca, Boulevard d'Anfa, 8ème étage");
-  const [city, setCity] = useState("Casablanca");
-  const [country, setCountry] = useState("Morocco");
-  const [timezone, setTimezone] = useState("Africa/Casablanca");
-  const [currency, setCurrency] = useState("MAD");
-  const [locale, setLocale] = useState<Locale>("en");
-  const [siteUrl, setSiteUrl] = useState("https://eiden-group.com");
+  const [businessName, setBusinessName] = useState(initial?.businessName ?? "Eiden Group");
+  const [legalName, setLegalName] = useState(initial?.legalName ?? "Eiden Group SARL");
+  const [contactEmail, setContactEmail] = useState(initial?.email ?? "");
+  const [phone, setPhone] = useState(initial?.phone ?? "");
+  const [address, setAddress] = useState(initial?.address ?? "");
+  const [city, setCity] = useState(initial?.city ?? "");
+  const [country, setCountry] = useState(initial?.country ?? "Morocco");
+  const [timezone, setTimezone] = useState(initial?.timezone ?? "Africa/Casablanca");
+  const [currency, setCurrency] = useState(initial?.currency ?? "MAD");
+  const [locale, setLocale] = useState<Locale>(initial?.defaultLocale ?? "en");
+  const [siteUrl, setSiteUrl] = useState(initial?.publicUrl ?? "https://eiden-group.com");
 
-  const [logo, setLogo] = useState<{ name: string; url: string } | null>(null);
+  const [logo, setLogo] = useState<{ name: string; url: string } | null>(
+    initial?.logoUrl ? { name: "Current logo", url: initial.logoUrl } : null,
+  );
   const [logoError, setLogoError] = useState<string | null>(null);
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [dragging, setDragging] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const logoUrlRef = useRef<string | null>(null);
@@ -64,44 +90,98 @@ export function GeneralView() {
     [],
   );
 
-  const handleLogoFile = (file: File) => {
+  const handleLogoFile = async (file: File) => {
+    if (logoError) setLogoError(null);
     if (!ALLOWED_LOGO_TYPES.includes(file.type)) {
-      if (logoUrlRef.current) URL.revokeObjectURL(logoUrlRef.current);
-      logoUrlRef.current = null;
-      setLogo(null);
       setLogoError("Unsupported file — use SVG, PNG or WebP.");
       return;
     }
     if (file.size > MAX_LOGO_BYTES) {
-      if (logoUrlRef.current) URL.revokeObjectURL(logoUrlRef.current);
-      logoUrlRef.current = null;
-      setLogo(null);
       setLogoError("File is larger than 2MB — export a smaller version and try again.");
       return;
     }
-    const url = URL.createObjectURL(file);
-    if (logoUrlRef.current) URL.revokeObjectURL(logoUrlRef.current);
-    logoUrlRef.current = url;
-    setLogo({ name: file.name, url });
-    setLogoError(null);
+    if (!live) {
+      const url = URL.createObjectURL(file);
+      if (logoUrlRef.current) URL.revokeObjectURL(logoUrlRef.current);
+      logoUrlRef.current = url;
+      setLogo({ name: file.name, url });
+      return;
+    }
+    // Live: upload to the public brand-assets bucket (admin-only write), then
+    // point business_settings.logo_url at the public URL.
+    setLogoBusy(true);
+    try {
+      const supabase = createClient();
+      if (!supabase) throw new Error("Supabase isn't configured.");
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "svg";
+      const path = `logo-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("brand-assets").upload(path, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("brand-assets").getPublicUrl(path);
+      const res = await updateBusinessLogoAction({ logoUrl: pub.publicUrl });
+      if (!res.ok) throw new Error(res.error.message);
+      setLogo({ name: file.name, url: pub.publicUrl });
+      push("Logo updated everywhere it renders");
+      router.refresh();
+    } catch (err) {
+      setLogoError(err instanceof Error ? err.message : "Upload failed — try again.");
+    } finally {
+      setLogoBusy(false);
+    }
   };
 
   const onLogoPick = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
-    if (file) handleLogoFile(file);
+    if (file) void handleLogoFile(file);
   };
 
-  const removeLogo = () => {
+  const removeLogo = async () => {
     if (logoUrlRef.current) URL.revokeObjectURL(logoUrlRef.current);
     logoUrlRef.current = null;
     setLogo(null);
     setLogoError(null);
+    if (live) {
+      const res = await updateBusinessLogoAction({ logoUrl: null });
+      if (res.ok) push("Logo removed");
+      else push(res.error.message);
+      router.refresh();
+    }
   };
 
-  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    push("Saved (demo)");
+    if (!live) {
+      push("Saved (demo)");
+      return;
+    }
+    setSaving(true);
+    const res = await updateBusinessProfileAction({
+      businessName: businessName.trim(),
+      legalName: legalName.trim() || null,
+      email: contactEmail.trim(),
+      phone: phone.trim() || null,
+      address: address.trim() || null,
+      city: city.trim() || null,
+      country,
+      timezone,
+      currency,
+      publicUrl: siteUrl.trim() || null,
+      slotIncrementMin: initial?.slotIncrementMin ?? 30,
+      bufferMin: initial?.bufferMin ?? 0,
+      minNoticeHours: initial?.minNoticeHours ?? 2,
+      defaultLocale: locale,
+    });
+    setSaving(false);
+    if (!res.ok) {
+      push(res.error.message);
+      return;
+    }
+    push("General settings saved");
+    router.refresh();
   };
 
   return (
@@ -211,7 +291,7 @@ export function GeneralView() {
                 e.preventDefault();
                 setDragging(false);
                 const file = e.dataTransfer.files?.[0];
-                if (file) handleLogoFile(file);
+                if (file) void handleLogoFile(file);
               }}
               className={`flex flex-col items-center justify-center rounded-md border border-dashed px-6 py-6 text-center transition-colors ${
                 dragging ? "border-electric/60 bg-electric-tint/40" : "border-black/15 bg-canvas/60"
@@ -226,7 +306,9 @@ export function GeneralView() {
                 tabIndex={-1}
                 onChange={onLogoPick}
               />
-              {logo ? (
+              {logoBusy ? (
+                <p className="text-[13px] font-semibold text-obsidian-light" role="status">Uploading logo…</p>
+              ) : logo ? (
                 <div className="flex w-full flex-col items-center gap-3 sm:flex-row sm:justify-between">
                   <div className="flex items-center gap-3">
                     {/* eslint-disable-next-line @next/next/no-img-element -- client-side object URL preview */}
@@ -237,7 +319,7 @@ export function GeneralView() {
                     />
                     <div className="text-left">
                       <p className="max-w-[220px] truncate font-mono text-[12px] font-semibold text-obsidian">{logo.name}</p>
-                      <p className="mt-0.5 text-[11px] font-medium text-muted">Ready — will replace the current logo on save</p>
+                      <p className="mt-0.5 text-[11px] font-medium text-muted">{live ? "Live — applies everywhere right away" : "Demo preview — nothing is uploaded"}</p>
                     </div>
                   </div>
                   <button
@@ -261,7 +343,7 @@ export function GeneralView() {
                 </>
               )}
             </div>
-            <p className="mt-1.5 text-[11px] font-medium leading-snug text-muted">SVG, PNG or WebP · max 2MB (sanitized on upload)</p>
+            <p className="mt-1.5 text-[11px] font-medium leading-snug text-muted">SVG, PNG or WebP · max 2MB — rendered via <code>&lt;img&gt;</code>, never inlined</p>
             {logoError ? (
               <p role="alert" className="mt-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-error">
                 <CircleExclamationPoint size={13} strokeWidth={2.2} aria-hidden="true" />
@@ -273,9 +355,11 @@ export function GeneralView() {
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-divider pt-4">
             <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted">
               <ScrollText size={12} strokeWidth={2} aria-hidden="true" />
-              Changes are written to the audit log once live
+              Changes are written to the audit log
             </p>
-            <button type="submit" className="btn btn-primary h-11">Save changes</button>
+            <button type="submit" disabled={saving} className="btn btn-primary h-11 disabled:opacity-60">
+              {saving ? "Saving…" : "Save changes"}
+            </button>
           </div>
         </form>
 

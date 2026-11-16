@@ -155,10 +155,12 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
               <Building2 size={11} strokeWidth={2.2} aria-hidden="true" />
               Eiden Group
             </span>
-            <span className="flex items-center gap-1 text-[11px] font-semibold text-muted">
-              <CalendarDays size={11} strokeWidth={2.2} aria-hidden="true" />
-              {profile?.memberSince ? "Member since " + new Date(profile.memberSince).toLocaleDateString("en-GB", { month: "long", year: "numeric" }) : "Member since 2025"}
-            </span>
+            {profile?.memberSince ? (
+              <span className="flex items-center gap-1 text-[11px] font-semibold text-muted">
+                <CalendarDays size={11} strokeWidth={2.2} aria-hidden="true" />
+                {"Member since " + new Date(profile.memberSince).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}
+              </span>
+            ) : null}
           </div>
           <p className="mt-2 flex flex-wrap items-center gap-1.5 font-mono text-[12px] font-semibold text-obsidian-light">
             <Lock size={12} strokeWidth={2.4} aria-hidden="true" className="text-muted" />

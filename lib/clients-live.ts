@@ -22,7 +22,7 @@ export async function loadClients(): Promise<ClientsListData | null> {
     const [clients, bookings] = await Promise.all([
       supabase
         .from("clients")
-        .select("id,type,full_name,company,email,phone,address,city,tags,status,source,notes,anonymized_at,deleted_at")
+        .select("id,type,full_name,company,email,phone,address,city,tags,status,source,notes,anonymized_at,deleted_at,created_at")
         .is("deleted_at", null)
         .order("full_name")
         .limit(500),
@@ -43,7 +43,7 @@ export async function loadClient(id: string): Promise<ClientDetailData | null> {
   try {
     const { data: client, error } = await supabase
       .from("clients")
-      .select("id,type,full_name,company,email,phone,address,city,tags,status,source,notes,anonymized_at,deleted_at")
+      .select("id,type,full_name,company,email,phone,address,city,tags,status,source,notes,anonymized_at,deleted_at,created_at")
       .eq("id", id)
       .single();
     if (error || !client) return null;

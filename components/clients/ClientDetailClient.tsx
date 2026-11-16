@@ -243,10 +243,12 @@ function ClientDetailView({
   const outstanding = bookings.filter((b) => b.status === "pending_conflict").length;
   const stats = {
     totalBookings: bookings.length,
-    formationsAttended: live ? 0 : 2,
+    formationsAttended: bookings.filter((b) => b.type === "formation").length,
     outstanding,
   };
-  const memberSince = MONTHS[hashString(client.id) % 12] + " " + (2023 + (hashString(client.id) % 3));
+  const memberSince = client.created_at
+    ? `${MONTHS[new Date(client.created_at).getMonth()]} ${new Date(client.created_at).getFullYear()}`
+    : MONTHS[hashString(client.id) % 12] + " " + (2023 + (hashString(client.id) % 3));
   const sourceLabel = client.source ? client.source.charAt(0).toUpperCase() + client.source.slice(1) : "—";
 
   function exportJson() {
@@ -432,12 +434,14 @@ function ClientDetailView({
             </h2>
             <dl className="mt-3 divide-y divide-divider">
               <StatRow label="Total bookings" value={stats.totalBookings} hint="all time, this account" />
-              <StatRow label="Formations attended" value={stats.formationsAttended} hint="demo figure — wired later" />
+              <StatRow label="Formations attended" value={stats.formationsAttended} hint="formation bookings, this client" />
               <StatRow label="Outstanding requests" value={stats.outstanding} hint="pending conflict reviews" alert={stats.outstanding > 0} />
             </dl>
-            <p className="mt-4 border-t border-divider pt-4 text-[11px] font-medium leading-snug text-muted">
-              Demo figures — live numbers arrive once the Supabase project is connected.
-            </p>
+            {!live && (
+              <p className="mt-4 border-t border-divider pt-4 text-[11px] font-medium leading-snug text-muted">
+                Demo figures — the Supabase project is not connected.
+              </p>
+            )}
           </section>
         </div>
       )}

@@ -39,14 +39,14 @@ export async function updateBusinessProfileAction(raw: unknown): Promise<ActionR
       bufferMin: z.number().int().min(0).max(120),
       minNoticeHours: z.number().int().min(0).max(720),
       defaultLocale: z.enum(["en", "fr"]),
+      hourCycle: z.enum(["24", "12"]).optional(),
+      dateFormat: z.enum(["eu", "us"]).optional(),
     }).safeParse(raw);
     if (!parsed.success) return fail("validation", parsed.error.issues[0]?.message ?? "Invalid input");
     const input = parsed.data;
     const supabase = await createClient();
     if (!supabase) return notConfigured();
-    const { error } = await supabase
-      .from("business_settings")
-      .update({
+    const update: Record<string, unknown> = {
         business_name: input.businessName,
         legal_name: input.legalName ?? null,
         email: input.email,
@@ -63,10 +63,120 @@ export async function updateBusinessProfileAction(raw: unknown): Promise<ActionR
         default_locale: input.defaultLocale,
         updated_by: admin.id,
         updated_at: new Date().toISOString(),
-      })
+    };
+    if (input.hourCycle !== undefined) update.hour_cycle = input.hourCycle;
+    if (input.dateFormat !== undefined) update.date_format = input.dateFormat;
+    const { error } = await supabase
+      .from("business_settings")
+      .update(update)
       .eq("id", true);
     if (error) throw error;
     await logAudit(supabase, {action: "settings.business", entityType: "settings", entityId: "business_settings"});
+    revalidatePath("/settings/general");
+    revalidatePath("/settings/localization");
+    return { ok: true, data: { ok: true } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+const PREF_KEYS = [
+  "booking_created",
+  "booking_updated",
+  "booking_cancelled",
+  "formation_reminder",
+  "change_request_received",
+  "change_request_approved",
+  "change_request_declined",
+  "change_request_expired",
+  "welcome",
+] as const;
+export type NotificationPrefKey = (typeof PREF_KEYS)[number];
+
+/** Persist the business-wide transactional email switches. Admin only. */
+export async function updateNotificationPrefsAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
+  try {
+    const admin = await requireAdmin();
+    const shape: Record<string, z.ZodOptional<z.ZodBoolean>> = {};
+    for (const key of PREF_KEYS) shape[key] = z.boolean().optional();
+    const parsed = z.object(shape).strict().safeParse(raw);
+    if (!parsed.success) return fail("validation", "Invalid preferences payload.");
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    // Merge onto the current jsonb so unknown keys (added later) survive.
+    const { data: current, error: readErr } = await supabase
+      .from("business_settings")
+      .select("notification_prefs")
+      .eq("id", true)
+      .single();
+    if (readErr) throw readErr;
+    const merged = { ...((current?.notification_prefs ?? {}) as Record<string, unknown>), ...parsed.data };
+    const { error } = await supabase
+      .from("business_settings")
+      .update({ notification_prefs: merged, updated_by: admin.id, updated_at: new Date().toISOString() })
+      .eq("id", true);
+    if (error) throw error;
+    await logAudit(supabase, {action: "settings.notification_prefs", entityType: "settings", entityId: "business_settings", meta: parsed.data});
+    revalidatePath("/settings/notifications");
+    return { ok: true, data: { ok: true } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/** Persist localization defaults (locale, hour cycle, date format). Admin only. */
+export async function updateLocalizationAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
+  try {
+    const admin = await requireAdmin();
+    const parsed = z.object({
+      defaultLocale: z.enum(["en", "fr"]),
+      hourCycle: z.enum(["24", "12"]),
+      dateFormat: z.enum(["eu", "us"]),
+    }).safeParse(raw);
+    if (!parsed.success) return fail("validation", "Invalid localization settings.");
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { error } = await supabase
+      .from("business_settings")
+      .update({
+        default_locale: parsed.data.defaultLocale,
+        hour_cycle: parsed.data.hourCycle,
+        date_format: parsed.data.dateFormat,
+        updated_by: admin.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", true);
+    if (error) throw error;
+    await logAudit(supabase, {action: "settings.localization", entityType: "settings", entityId: "business_settings", meta: parsed.data});
+    revalidatePath("/settings/localization");
+    revalidatePath("/settings/general");
+    return { ok: true, data: { ok: true } };
+  } catch (err) {
+    return failUnexpected(err);
+  }
+}
+
+/** Point business_settings.logo_url at an already-uploaded brand-assets file. */
+export async function updateBusinessLogoAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
+  try {
+    const admin = await requireAdmin();
+    const parsed = z.object({
+      logoUrl: z
+        .string()
+        .url()
+        .max(600)
+        .refine((u) => u.includes("/storage/v1/object/public/brand-assets/"), "Logo must be an uploaded brand-assets file.")
+        .nullable(), // null clears the logo
+    }).safeParse(raw);
+    if (!parsed.success) return fail("validation", "Logo URL must point at the uploaded file.");
+    const supabase = await createClient();
+    if (!supabase) return notConfigured();
+    const { error } = await supabase
+      .from("business_settings")
+      .update({ logo_url: parsed.data.logoUrl, updated_by: admin.id, updated_at: new Date().toISOString() })
+      .eq("id", true);
+    if (error) throw error;
+    await logAudit(supabase, {action: "settings.logo", entityType: "settings", entityId: "business_settings"});
     revalidatePath("/settings/general");
     return { ok: true, data: { ok: true } };
   } catch (err) {
@@ -238,8 +348,13 @@ export async function createTeamUserAction(raw: unknown): Promise<ActionResult<{
     try {
       const { sendMail } = await import("@/lib/email/send");
       const { welcomeTempPassword } = await import("@/lib/email/templates");
-      const tpl = welcomeTempPassword({ name: fullName, email, tempPassword, loginUrl: "https://calendar.eiden-group.com/login", locale: "en" });
-      await sendMail({ to: email, subject: tpl.subject, html: tpl.html, text: tpl.text });
+      const { isTransactionalEnabled } = await import("@/lib/email/notify");
+      if (!supabase || !(await isTransactionalEnabled(supabase, "welcome"))) {
+        console.log("[settings] welcome email — disabled in Settings → Notifications, skipping");
+      } else {
+        const tpl = welcomeTempPassword({ name: fullName, email, tempPassword, loginUrl: "https://calendar.eiden-group.com/login", locale: "en" });
+        await sendMail({ to: email, subject: tpl.subject, html: tpl.html, text: tpl.text });
+      }
     } catch (e) {
       console.error("[settings] welcome email failed (account still created)", e);
     }

@@ -117,7 +117,7 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
     setWeek((prev) =>
       prev.map((d) => (keys.includes(d.key) ? { ...d, isOpen: monday.isOpen, open: monday.open, close: monday.close } : d)),
     );
-    push(`Monday applied ${label} (demo)`);
+    push(`Monday hours applied ${label} — save to persist`);
   };
 
   return (

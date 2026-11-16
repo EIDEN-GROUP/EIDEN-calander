@@ -104,6 +104,7 @@ export interface ClientRow {
   notes: string | null;
   anonymized_at: string | null;
   deleted_at: string | null;
+  created_at?: string | null;
 }
 
 export interface PlanRow {
