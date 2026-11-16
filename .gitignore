@@ -53,3 +53,6 @@ next-env.d.ts
 # Playwright artifacts
 test-results/
 playwright-report/
+
+# Impeccable audit screenshots (provenance for docs/agents/IMPECCABLE_FINDINGS.md)
+audit/
