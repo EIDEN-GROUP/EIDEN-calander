@@ -94,6 +94,22 @@ export function RoomsView({
     setRooms((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   };
 
+  /** Persist live — optimistic local patch + best-effort server sync. */
+  const commitRoom = (id: string, patch: Partial<RoomVM>) => {
+    updateRoom(id, patch);
+    if (!isLive) return;
+    const api: Record<string, unknown> = { roomId: id };
+    if (patch.location !== undefined) api.location = patch.location;
+    if (patch.capacity !== undefined) api.capacity = patch.capacity;
+    if (patch.hourly_rate !== undefined) api.hourlyRate = patch.hourly_rate;
+    if (patch.notes !== undefined) api.notes = patch.notes;
+    if (Object.keys(api).length === 1) return; // nothing to persist
+    void (async () => {
+      const res = await updateRoomAction(api);
+      if (!res.ok) push(res.error.message);
+    })();
+  };
+
   const toggleAmenity = (id: string, key: AmenityKey) => {
     const current = rooms.find((r) => r.id === id);
     if (!current) return;
@@ -256,7 +272,7 @@ export function RoomsView({
                         id={`loc-${room.id}`}
                         className="input h-10 px-2.5 text-[13px]"
                         value={room.location}
-                        onChange={(e) => updateRoom(room.id, { location: e.target.value as RoomLocation })}
+                        onChange={(e) => commitRoom(room.id, { location: e.target.value as RoomLocation })}
                       >
                         <option value="Casablanca">Casablanca</option>
                         <option value="Agadir">Agadir</option>
@@ -272,6 +288,7 @@ export function RoomsView({
                         className="input h-10 px-2.5 text-[13px]"
                         value={room.capacity}
                         onChange={(e) => updateRoom(room.id, { capacity: Math.max(1, Number(e.target.value) || 1) })}
+                        onBlur={(e) => commitRoom(room.id, { capacity: Math.max(1, Number(e.target.value) || 1) })}
                       />
                     </div>
                     <div className="col-span-1">
@@ -285,6 +302,7 @@ export function RoomsView({
                           className="input h-10 pl-2.5 pr-9 text-[13px]"
                           value={room.hourly_rate}
                           onChange={(e) => updateRoom(room.id, { hourly_rate: Math.max(0, Number(e.target.value) || 0) })}
+                          onBlur={(e) => commitRoom(room.id, { hourly_rate: Math.max(0, Number(e.target.value) || 0) })}
                         />
                         <span aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted">MAD</span>
                       </div>
@@ -324,21 +342,26 @@ export function RoomsView({
                       placeholder="e.g. Best before a formation day"
                       value={room.notes}
                       onChange={(e) => updateRoom(room.id, { notes: e.target.value })}
+                      onBlur={(e) => commitRoom(room.id, { notes: e.target.value })}
                     />
                   </div>
 
                   <div className="mt-auto border-t border-divider pt-3">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted">Utilization · 90d</span>
-                      <span className="font-mono text-[11px] font-semibold text-obsidian">{util}%</span>
-                    </div>
-                    <div
-                      role="img"
-                      aria-label={`${cleanName} utilization ${util} percent (demo)`}
-                      className="mt-1.5 h-1.5 overflow-hidden rounded-pill bg-track"
-                    >
-                      <div className="h-full rounded-pill bg-electric" style={{ width: `${util}%` }} />
-                    </div>
+                    {!isLive && (
+                      <>
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted">Utilization · 90d</span>
+                          <span className="font-mono text-[11px] font-semibold text-obsidian">{util}%</span>
+                        </div>
+                        <div
+                          role="img"
+                          aria-label={`${cleanName} utilization ${util} percent (demo)`}
+                          className="mt-1.5 h-1.5 overflow-hidden rounded-pill bg-track"
+                        >
+                          <div className="h-full rounded-pill bg-electric" style={{ width: `${util}%` }} />
+                        </div>
+                      </>
+                    )}
                     <Link href="/reports" className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-electric hover:text-electric-hover">
                       Open in reports
                       <ArrowRight size={12} strokeWidth={2.4} aria-hidden="true" />
@@ -350,9 +373,13 @@ export function RoomsView({
           </div>
 
           <div className="flex items-center justify-end border-t border-divider pt-1">
-            <button type="button" onClick={() => push("Rooms saved (demo)")} className="btn btn-primary h-11">
-              Save changes
-            </button>
+            {isLive ? (
+              <p className="text-[11px] font-medium text-muted">Changes save automatically as you edit.</p>
+            ) : (
+              <button type="button" onClick={() => push("Rooms saved (demo)")} className="btn btn-primary h-11">
+                Save changes
+              </button>
+            )}
           </div>
         </div>
 

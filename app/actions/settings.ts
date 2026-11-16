@@ -418,6 +418,7 @@ export async function updateRoomAction(raw: unknown): Promise<ActionResult<{ ok:
       hourlyRate: z.number().min(0).max(100_000).optional(),
       capacity: z.number().int().min(1).max(1000).optional(),
       name: z.string().trim().min(2).max(120).optional(),
+      location: z.string().trim().min(2).max(80).optional(),
     }).safeParse(raw);
     if (!parsed.success) return fail("validation", "Invalid input");
     const { roomId, ...patch } = parsed.data;
@@ -425,6 +426,7 @@ export async function updateRoomAction(raw: unknown): Promise<ActionResult<{ ok:
     if (patch.amenities !== undefined) update.amenities = patch.amenities;
     if (patch.notes !== undefined) update.notes = patch.notes;
     if (patch.hourlyRate !== undefined) update.hourly_rate = patch.hourlyRate;
+    if (patch.location !== undefined) update.location = patch.location;
     if (patch.capacity !== undefined) update.capacity = patch.capacity;
     if (patch.name !== undefined) update.name = patch.name;
     if (Object.keys(update).length === 0) return { ok: true, data: { ok: true } };
