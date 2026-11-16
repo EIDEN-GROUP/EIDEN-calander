@@ -34,9 +34,15 @@ Use this before pointing the DNS record and after go-live. Everything reversible
 - DNS back to previous host (if any) or Vercel instant rollback → Deployments → Revert; DB forward-fix only (never down-migrate)
 - Service/SMTP keys: rotate in Vercel env → redeploy; Supabase service key: Settings → API → new key → update env → redeploy → revoke old
 
+## Done in Phase 3/4 (before DNS cutover)
+- ✅ i18n EN/FR — full coverage, cookie-based (`locale` cookie + `profiles.locale`), ~1,600 keys, FR email templates
+- ✅ Mobile/PWA — manifest + maskable/apple icons, bottom nav, touch-friendly booking actions in the drawer
+- ✅ All Settings tabs persist live (General/Rooms/Team/Working Hours/Notifications/Localization/Categories/Audit/Data)
+- ✅ Email + Inbox live; notification preferences enforced server-side on every send
+- ✅ Audit trail via security-definer RPCs (0007), notification prefs + localization (0008)
+
 ## Post-launch decisions waiting on you
 - Public booking page (v1.1)
 - Stripe / deposits & invoicing
 - WhatsApp reminders
-- i18n EN/FR dictionaries + next-intl wiring
 - Automated Playwright suite in CI on every PR (scaffolded in `e2e/`)
