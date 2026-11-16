@@ -51,7 +51,7 @@ export async function loadReports(): Promise<ReportsLive | null> {
         .from("bookings")
         .select("id,type,category_id,room_id,starts_at,ends_at,status,price")
         .gte("starts_at", since.toISOString())
-        .neq("status", "cancelled")
+        .not("status", "in", "(cancelled,paused)")
         .limit(10000),
       supabase.from("rooms").select("id,name,location,is_active,capacity,hourly_rate"),
       supabase.from("working_hours").select("weekday,is_open,open_time,close_time"),
@@ -177,7 +177,7 @@ export async function loadReports(): Promise<ReportsLive | null> {
       .from("bookings")
       .select("id,title,room_id,starts_at")
       .eq("type", "formation")
-      .neq("status", "cancelled");
+      .not("status", "in", "(cancelled,paused)");
     const byTitle = new Map<string, { sessions: number; enrolled: number; capacity: number; attended: number; noShows: number; location: "casa" | "agadir" }>();
     for (const b of formationBookings ?? []) {
       const participants = participantsByBooking.get(b.id as string) ?? [];

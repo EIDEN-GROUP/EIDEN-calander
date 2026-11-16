@@ -22,6 +22,7 @@ export function MonthView({
   lookup,
   onSelectDay,
   onBookingClick,
+  onBookingContextMenu,
 }: {
   anchor: Date;
   /** Deterministic "today" (from server render). */
@@ -31,6 +32,7 @@ export function MonthView({
   /** Switch to day view for the picked date. */
   onSelectDay: (day: Date) => void;
   onBookingClick: (b: BookingRow) => void;
+  onBookingContextMenu?: (b: BookingRow, x: number, y: number) => void;
 }) {
   const weeks = monthMatrix(anchor);
 
@@ -98,8 +100,12 @@ export function MonthView({
                       key={b.id}
                       type="button"
                       onClick={() => onBookingClick(b)}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        onBookingContextMenu?.(b, e.clientX, e.clientY);
+                      }}
                       title={b.title}
-                      className={`flex min-w-0 items-center gap-1 rounded-[6px] border px-1.5 py-[3px] text-left text-[10px] font-semibold leading-tight transition-all hover:-translate-y-px hover:shadow-sm ${tint.block}`}
+                      className={`flex min-w-0 items-center gap-1 rounded-[6px] border px-1.5 py-[3px] text-left text-[10px] font-semibold leading-tight transition-all hover:-translate-y-px hover:shadow-sm ${tint.block} ${b.status === "paused" || b.status === "cancelled" ? "opacity-55 border-dashed" : ""}`}
                     >
                       {isFormation && (
                         <GraduationCap

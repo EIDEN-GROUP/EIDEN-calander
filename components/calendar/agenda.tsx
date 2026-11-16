@@ -20,11 +20,13 @@ export function DayTimeline({
   bookings,
   lookup,
   onBookingClick,
+  onBookingContextMenu,
 }: {
   day: Date;
   bookings: BookingRow[];
   lookup: Lookup;
   onBookingClick: (b: BookingRow) => void;
+  onBookingContextMenu?: (b: BookingRow, x: number, y: number) => void;
 }) {
   const dayBookings = bookings
     .filter((b) => isSameDay(new Date(b.starts_at), day))
@@ -60,6 +62,7 @@ export function DayTimeline({
             lookup={lookup}
             last={i === dayBookings.length - 1}
             onBookingClick={onBookingClick}
+            onBookingContextMenu={onBookingContextMenu}
           />
         ))}
       </ol>
@@ -72,11 +75,13 @@ function TimelineItem({
   lookup,
   last,
   onBookingClick,
+  onBookingContextMenu,
 }: {
   booking: BookingRow;
   lookup: Lookup;
   last: boolean;
   onBookingClick: (b: BookingRow) => void;
+  onBookingContextMenu?: (b: BookingRow, x: number, y: number) => void;
 }) {
   const start = new Date(booking.starts_at);
   const room = booking.room_id ? lookup.roomById.get(booking.room_id) : null;
@@ -95,7 +100,7 @@ function TimelineItem({
       <div className="relative flex w-3 shrink-0 justify-center" aria-hidden="true">
         <span
           className={`absolute top-2 h-2.5 w-2.5 rounded-full ${
-            booking.status === "pending_conflict" ? "bg-warning" : "bg-electric"
+            booking.status === "pending_conflict" || booking.status === "paused" ? "bg-warning" : "bg-electric"
           }`}
         />
         {!last && <span className="absolute bottom-0 top-5 w-px bg-divider" />}
@@ -104,6 +109,10 @@ function TimelineItem({
       <button
         type="button"
         onClick={() => onBookingClick(booking)}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          onBookingContextMenu?.(booking, e.clientX, e.clientY);
+        }}
         className="min-w-0 flex-1 rounded-sm border border-border bg-white p-2.5 text-left transition-shadow hover:shadow-md"
       >
         <span className={`chip ${tint.chip} !text-[10px] uppercase tracking-[0.05em]`}>
@@ -143,6 +152,7 @@ export function AgendaView({
   bookings,
   lookup,
   onBookingClick,
+  onBookingContextMenu,
 }: {
   /** Real current day (for relative labels). */
   today: Date;
@@ -151,6 +161,7 @@ export function AgendaView({
   bookings: BookingRow[];
   lookup: Lookup;
   onBookingClick: (b: BookingRow) => void;
+  onBookingContextMenu?: (b: BookingRow, x: number, y: number) => void;
 }) {
   const days = Array.from({ length: 14 }, (_, i) => addDays(windowStart, i));
   const groups = days
@@ -215,6 +226,10 @@ export function AgendaView({
                   <button
                     type="button"
                     onClick={() => onBookingClick(b)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      onBookingContextMenu?.(b, e.clientX, e.clientY);
+                    }}
                     className="group flex w-full items-center gap-3 py-2.5 text-left sm:gap-4"
                   >
                     <span className="w-[92px] shrink-0 text-[12px] font-bold tabular-nums text-obsidian">

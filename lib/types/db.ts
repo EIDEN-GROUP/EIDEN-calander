@@ -6,7 +6,7 @@
 
 export type UserRole = "admin" | "staff";
 export type BookingType = "standard" | "formation";
-export type BookingStatus = "confirmed" | "pending_conflict" | "cancelled" | "completed";
+export type BookingStatus = "confirmed" | "pending_conflict" | "cancelled" | "completed" | "paused";
 export type RequestStatus = "pending" | "approved" | "declined" | "cancelled" | "expired";
 export type ClientStatus = "lead" | "active" | "inactive";
 export type ParticipantStatus = "enrolled" | "confirmed" | "attended" | "no_show" | "cancelled";

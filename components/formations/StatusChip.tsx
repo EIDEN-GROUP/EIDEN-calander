@@ -78,6 +78,12 @@ export function FormationStatusChip({
       return <StatusChip tone="muted">Completed</StatusChip>;
     case "cancelled":
       return <StatusChip tone="error">Cancelled</StatusChip>;
+    case "paused":
+      return (
+        <StatusChip tone="warning" dot>
+          Paused
+        </StatusChip>
+      );
     default:
       return <StatusChip tone="muted">Draft</StatusChip>;
   }

@@ -48,6 +48,7 @@ export interface TimeGridProps {
   serverNow: string;
   onBookingClick: (booking: BookingRow) => void;
   onCreateRange: (day: Date, startsAt: Date, endsAt: Date) => void;
+  onBookingContextMenu?: (booking: BookingRow, x: number, y: number) => void;
 }
 
 export function TimeGrid({
@@ -57,6 +58,7 @@ export function TimeGrid({
   serverNow,
   onBookingClick,
   onCreateRange,
+  onBookingContextMenu,
 }: TimeGridProps) {
   const [now, setNow] = useState<Date>(() => new Date(serverNow));
   const [drag, setDrag] = useState<{
@@ -260,6 +262,7 @@ export function TimeGrid({
                     const tint = bookingTint(booking, lookup.categoryById);
                     const isFormation = booking.type === "formation";
                     const isPending = booking.status === "pending_conflict";
+                    const isPaused = booking.status === "paused";
                     const laneWidth = 100 / lanes;
                     return (
                       <button
@@ -267,14 +270,18 @@ export function TimeGrid({
                         type="button"
                         data-booking
                         onClick={() => onBookingClick(booking)}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          onBookingContextMenu?.(booking, e.clientX, e.clientY);
+                        }}
                         aria-label={`${booking.title}, ${formatDayLong(bStart)}, ${formatTimeRange(bStart, bEnd)}${
                           isPending ? ", pending conflict" : ""
                         }`}
                         className={`absolute overflow-hidden rounded-sm border px-1.5 py-1 text-left align-top transition-shadow hover:z-20 hover:shadow-md focus-visible:z-20 ${tint.block} ${
-                          booking.status === "completed" || booking.status === "cancelled"
+                          booking.status === "completed" || booking.status === "cancelled" || booking.status === "paused"
                             ? "opacity-60"
                             : ""
-                        }`}
+                        } ${isPaused ? "border-dashed border-warning/60" : ""}`}
                         style={{
                           top,
                           height,
@@ -283,6 +290,12 @@ export function TimeGrid({
                         }}
                       >
                         <span className="flex min-w-0 items-center gap-1">
+                          {isPaused && (
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="shrink-0">
+                              <rect x="6" y="4" width="4" height="16" rx="1.2" />
+                              <rect x="14" y="4" width="4" height="16" rx="1.2" />
+                            </svg>
+                          )}
                           {isFormation && (
                             <GraduationCap
                               size={11}

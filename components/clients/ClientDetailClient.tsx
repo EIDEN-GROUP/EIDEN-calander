@@ -93,6 +93,7 @@ const BOOKING_STATUS_META: Record<string, { label: string; tone: ChipTone }> = {
   confirmed: { label: "Confirmed", tone: "success" },
   pending_conflict: { label: "Pending conflict", tone: "warning" },
   cancelled: { label: "Cancelled", tone: "error" },
+  paused: { label: "Paused", tone: "warning" },
   completed: { label: "Completed", tone: "muted" },
 };
 

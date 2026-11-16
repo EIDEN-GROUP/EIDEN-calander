@@ -80,7 +80,7 @@ export async function loadDashboard(): Promise<DashboardData | null> {
     const totalSeats = (formations ?? []).reduce((s, f) => s + Number(f.capacity ?? 0), 0);
     const totalEnrolled = (formations ?? []).reduce((s, f) => s + (activeParticipants.get(f.booking_id as string) ?? 0), 0);
 
-    // grid events this week
+    // grid events this week — paused bookings still render (in hold style)
     const events = (bookings ?? [])
       .filter((b) => b.status !== "cancelled")
       .map((b) => {
@@ -89,7 +89,7 @@ export async function loadDashboard(): Promise<DashboardData | null> {
         const catType = categoryType.get(b.category_id as string);
         const isFormation = b.type === "formation" || catType === "formation" || formationBookingIds.has(b.id as string);
         const tone: "blue" | "green" | "purple" | "amber" =
-          b.status === "pending_conflict" ? "amber" : isFormation ? "green" : catType === "formation" ? "green" : "purple";
+          b.status === "pending_conflict" || b.status === "paused" ? "amber" : isFormation ? "green" : catType === "formation" ? "green" : "purple";
         return {
           day: dayIdx,
           roomId: (b.room_id as string | null) ?? null,
@@ -115,7 +115,7 @@ export async function loadDashboard(): Promise<DashboardData | null> {
       return sum + (openMinByWeekday.get(key) ?? 0);
     }, 0) * Math.max(rooms?.length ?? 1, 1);
     const bookedMin = (bookings ?? [])
-      .filter((b) => b.status !== "cancelled")
+      .filter((b) => b.status !== "cancelled" && b.status !== "paused")
       .reduce((sum, b) => sum + Math.max(0, (new Date(b.ends_at as string).getTime() - new Date(b.starts_at as string).getTime()) / 60000), 0);
     const weekUtilization = availableMin > 0 ? Math.round((bookedMin / availableMin) * 100) : 0;
 
@@ -142,7 +142,7 @@ export async function loadDashboard(): Promise<DashboardData | null> {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const upcoming = (bookings ?? [])
-      .filter((b) => b.status !== "cancelled" && new Date(b.starts_at as string) >= todayStart)
+      .filter((b) => b.status !== "cancelled" && b.status !== "paused" && new Date(b.starts_at as string) >= todayStart)
       .sort((a, b) => new Date(a.starts_at as string).getTime() - new Date(b.starts_at as string).getTime())
       .slice(0, 3);
     const futureEvents = upcoming.map((b) => {
@@ -161,7 +161,7 @@ export async function loadDashboard(): Promise<DashboardData | null> {
     // room utilization bars this week (per room, by booked minutes)
     const roomBooked = new Map<string, number>();
     for (const b of bookings ?? []) {
-      if (b.status === "cancelled") continue;
+      if (b.status === "cancelled" || b.status === "paused") continue;
       const key = (b.room_id as string | null) ?? "offsite";
       roomBooked.set(key, (roomBooked.get(key) ?? 0) + Math.max(0, (new Date(b.ends_at as string).getTime() - new Date(b.starts_at as string).getTime()) / 60000));
     }
@@ -180,7 +180,7 @@ export async function loadDashboard(): Promise<DashboardData | null> {
       live: true,
       todayLong: now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
       kpis: {
-        todayBookings: (bookings ?? []).filter((b) => b.status !== "cancelled" && new Date(b.starts_at as string).toDateString() === now.toDateString()).length,
+        todayBookings: (bookings ?? []).filter((b) => b.status !== "cancelled" && b.status !== "paused" && new Date(b.starts_at as string).toDateString() === now.toDateString()).length,
         weekUtilization,
         formationFillRate: totalSeats > 0 ? Math.round((totalEnrolled / totalSeats) * 100) : 0,
         pendingChangeRequests: (changeRequests ?? []).length + (openParticipants ? 0 : 0),

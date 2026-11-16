@@ -37,6 +37,10 @@ import {
   BookingDrawer,
   type BookingPayload,
 } from "@/components/bookings/BookingDrawer";
+import { BookingContextMenu } from "@/components/bookings/BookingContextMenu";
+import { PostponeModal } from "@/components/bookings/PostponeModal";
+import { Modal } from "@/components/formations/Modal";
+import { cancelBookingAction, pauseBookingAction } from "@/app/actions/bookings";
 import { Toast, type ToastData } from "@/components/bookings/Toast";
 
 const VIEWS: Array<{ id: CalendarView; label: string }> = [
@@ -65,6 +69,9 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
   const [locationFilter, setLocationFilter] = useState<"all" | "Casablanca" | "Agadir">("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [drawer, setDrawer] = useState<DrawerState | null>(null);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; booking: BookingRow } | null>(null);
+  const [postponeFor, setPostponeFor] = useState<BookingRow | null>(null);
+  const [removeFor, setRemoveFor] = useState<BookingRow | null>(null);
   // Deep link: /calendar?client=<id> — open the create drawer prefilled.
   useEffect(() => {
     if (!prefillClientId) return;
@@ -177,6 +184,83 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
     },
     [router],
   );
+
+  const openContextMenu = useCallback((booking: BookingRow, x: number, y: number) => {
+    setCtxMenu({ x, y, booking });
+  }, []);
+
+  const handleMenuEdit = useCallback(() => {
+    if (!ctxMenu) return;
+    setDrawer({ mode: "edit", booking: ctxMenu.booking, key: Date.now() });
+  }, [ctxMenu]);
+
+  const handleMenuAdd = useCallback(() => {
+    if (!ctxMenu) return;
+    // New booking slotted right after this one, same duration.
+    const start = new Date(ctxMenu.booking.starts_at);
+    const end = new Date(ctxMenu.booking.ends_at);
+    const duration = end.getTime() - start.getTime();
+    setDrawer({
+      mode: "create",
+      key: Date.now(),
+      initial: { startsAt: ctxMenu.booking.ends_at, endsAt: new Date(end.getTime() + duration).toISOString() },
+    });
+  }, [ctxMenu]);
+
+  const handleMenuPause = useCallback(async () => {
+    if (!ctxMenu) return;
+    const target = ctxMenu.booking;
+    const pause = target.status !== "paused";
+    const res = await pauseBookingAction({ bookingId: target.id, paused: pause });
+    if (!res.ok) {
+      setToast({ id: Date.now(), tone: "warning", title: res.error.message });
+      return;
+    }
+    const nextStatus = res.data.status;
+    setBookings((prev) => prev.map((b) => (b.id === target.id ? { ...b, status: nextStatus } : b)));
+    setToast({
+      id: Date.now(),
+      tone: "success",
+      title: pause ? "Booking paused — room freed" : "Booking resumed",
+      detail: pause ? "Resume it anytime from the right-click menu." : target.title,
+    });
+    router.refresh();
+  }, [ctxMenu, router]);
+
+  const handleMenuPostpone = useCallback(() => {
+    if (!ctxMenu) return;
+    setPostponeFor(ctxMenu.booking);
+  }, [ctxMenu]);
+
+  const handleMenuRemove = useCallback(() => {
+    if (!ctxMenu) return;
+    setRemoveFor(ctxMenu.booking);
+  }, [ctxMenu]);
+
+  const confirmRemove = useCallback(async () => {
+    if (!removeFor) return;
+    const target = removeFor;
+    const res = await cancelBookingAction({ bookingId: target.id, reason: "Removed via calendar" });
+    if (!res.ok) {
+      setToast({ id: Date.now(), tone: "warning", title: res.error.message });
+      return;
+    }
+    setBookings((prev) => prev.map((b) => (b.id === target.id ? { ...b, status: "cancelled" } : b)));
+    setRemoveFor(null);
+    setToast({ id: Date.now(), tone: "success", title: "Booking removed — room freed", detail: target.title });
+    router.refresh();
+  }, [removeFor, router]);
+
+  const handlePostponeDone = useCallback((startsAt: string, endsAt: string) => {
+    if (!postponeFor) return;
+    setBookings((prev) =>
+      prev.map((b) => (b.id === postponeFor.id ? { ...b, starts_at: startsAt, ends_at: endsAt } : b)),
+    );
+    const target = postponeFor;
+    setPostponeFor(null);
+    setToast({ id: Date.now(), tone: "success", title: "Postponed", detail: target.title });
+    router.refresh();
+  }, [postponeFor, router]);
 
   const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape" && query) {
@@ -369,6 +453,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
             serverNow={serverNow}
             onBookingClick={openView}
             onCreateRange={openForRange}
+            onBookingContextMenu={openContextMenu}
           />
         )}
         {view === "day" && (
@@ -380,12 +465,14 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
               serverNow={serverNow}
               onBookingClick={openView}
               onCreateRange={openForRange}
+              onBookingContextMenu={openContextMenu}
             />
             <DayTimeline
               day={anchor}
               bookings={filtered}
               lookup={lookup}
               onBookingClick={openView}
+              onBookingContextMenu={openContextMenu}
             />
           </div>
         )}
@@ -400,6 +487,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
               setView("day");
             }}
             onBookingClick={openView}
+            onBookingContextMenu={openContextMenu}
           />
         )}
         {view === "agenda" && (
@@ -409,6 +497,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
             bookings={filtered}
             lookup={lookup}
             onBookingClick={openView}
+            onBookingContextMenu={openContextMenu}
           />
         )}
       </div>
@@ -416,6 +505,58 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
       <p className="mt-4 text-[11px] font-medium text-muted">
         Drag on empty grid cells to create a booking · double-booking is blocked at save time and enforced by database trigger.
       </p>
+
+      {/* Right-click context menu */}
+      {ctxMenu && (
+        <BookingContextMenu
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          booking={ctxMenu.booking}
+          isPaused={ctxMenu.booking.status === "paused"}
+          onEdit={handleMenuEdit}
+          onAdd={handleMenuAdd}
+          onRemove={handleMenuRemove}
+          onTogglePause={handleMenuPause}
+          onPostpone={handleMenuPostpone}
+          onClose={() => setCtxMenu(null)}
+        />
+      )}
+
+      {/* Postpone modal */}
+      {postponeFor && (
+        <PostponeModal
+          booking={postponeFor}
+          bookings={bookings}
+          workingHours={data.workingHours}
+          onClose={() => setPostponeFor(null)}
+          onDone={handlePostponeDone}
+        />
+      )}
+
+      {/* Remove confirmation */}
+      {removeFor && (
+        <Modal
+          title="Remove booking?"
+          description={removeFor.title}
+          onClose={() => setRemoveFor(null)}
+        >
+          <div className="rounded-sm border border-border bg-canvas px-4 py-3 text-[13px] font-medium leading-snug text-obsidian-light">
+            This cancels the booking and frees the room immediately. The record is kept in history as <span className="font-bold text-obsidian">cancelled</span> — you will see it in Reports and the audit log.
+          </div>
+          <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-divider pt-4">
+            <button type="button" onClick={() => setRemoveFor(null)} className="btn btn-ghost h-11 px-5 text-[14px]">
+              Keep booking
+            </button>
+            <button
+              type="button"
+              onClick={() => void confirmRemove()}
+              className="btn h-11 bg-error px-6 text-[14px] font-bold text-white transition-opacity hover:opacity-90"
+            >
+              Remove booking
+            </button>
+          </div>
+        </Modal>
+      )}
 
       {/* Drawer */}
       {drawer && (

@@ -6,7 +6,7 @@
 import { DEMO_FORMATIONS, DEMO_ROOMS, getDemoBookings, getDemoParticipants } from "@/lib/demo-data";
 import type { BookingRow, FormationParticipantRow, FormationRow, RoomRow } from "@/lib/types/db";
 
-export type EffectiveFormationStatus = "open" | "full" | "ongoing" | "completed" | "cancelled";
+export type EffectiveFormationStatus = "open" | "full" | "ongoing" | "completed" | "cancelled" | "paused";
 
 export interface FormationVM {
   booking: BookingRow;
@@ -41,7 +41,8 @@ export function waitlistCount(participants: FormationParticipantRow[]): number {
 }
 
 export function effectiveStatus(vm: FormationVM, now: Date = new Date()): EffectiveFormationStatus {
-  if (vm.formation.status === "cancelled") return "cancelled";
+  if (vm.formation.status === "cancelled" || vm.booking.status === "cancelled") return "cancelled";
+  if (vm.booking.status === "paused") return "paused";
   const start = new Date(vm.booking.starts_at).getTime();
   const end = new Date(vm.booking.ends_at).getTime();
   const t = now.getTime();

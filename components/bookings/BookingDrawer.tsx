@@ -26,7 +26,7 @@ import {
   DEMO_ROOMS,
 } from "@/lib/demo-data";
 import { findOverlaps } from "@/lib/conflict";
-import { createBookingAction, requestChangeAction } from "@/app/actions/bookings";
+import { createBookingAction, requestChangeAction, updateBookingAction } from "@/app/actions/bookings";
 import {
   suggestSlots,
   type SlotSuggestion,
@@ -116,6 +116,7 @@ const STATUS_META: Record<BookingStatus, { label: string; dot: string }> = {
   confirmed: { label: "Confirmed", dot: "bg-success" },
   pending_conflict: { label: "Pending conflict", dot: "bg-warning" },
   cancelled: { label: "Cancelled", dot: "bg-black/30" },
+  paused: { label: "Paused", dot: "bg-warning" },
   completed: { label: "Completed", dot: "bg-obsidian-light" },
 };
 
@@ -274,7 +275,12 @@ export function BookingDrawer({
     setSaving(true);
     try {
       if (hasConflicts) {
-        const res = await requestChangeAction({ ...payload, conflictingBookingId: conflicts[0].id, message: notes.trim() || undefined });
+        const res = await requestChangeAction({
+          ...payload,
+          conflictingBookingId: conflicts[0].id,
+          existingBookingId: booking?.id,
+          message: notes.trim() || undefined,
+        });
         if (!res.ok) { setError(res.error.message); return; }
         onSaved?.(
           { ...payload, id: res.data.bookingId, status: "pending_conflict" },
@@ -283,14 +289,19 @@ export function BookingDrawer({
         onClose();
         return;
       }
-      const res = await createBookingAction(payload);
+      let res;
+      if (view === "edit" && booking) {
+        res = await updateBookingAction({ bookingId: booking.id, ...payload });
+      } else {
+        res = await createBookingAction(payload);
+      }
       if (!res.ok) { setError(res.error.message); return; }
-      if (res.data.conflict) {
+      if ("conflict" in res.data) {
         // Race lost between preview and submit — server wins; show its conflicts.
         setError("That slot was just taken — pick a suggested time.");
         return;
       }
-      onSaved?.({ ...payload, id: res.data.bookingId, status: "confirmed" }, { conflict: false });
+      onSaved?.({ ...payload, id: res.data.bookingId, status: booking?.status === "completed" ? "completed" : "confirmed" }, { conflict: false });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong — try again.");
