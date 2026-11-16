@@ -119,7 +119,7 @@ export function relativeDayLabel(
 
 /** Range label for the navigation row, per active view. */
 export function rangeLabel(view: CalendarView, anchor: Date, localeTag: string = appLocaleTag()): string {
-  if (view === "day") return formatDayLong(anchor);
+  if (view === "day") return formatDayLong(anchor, localeTag);
   if (view === "month")
     return anchor.toLocaleDateString(localeTag, { month: "long", year: "numeric" });
   if (view === "week") {
@@ -149,7 +149,7 @@ export function rangeLabel(view: CalendarView, anchor: Date, localeTag: string =
     return `${startStr} – ${endStr}`;
   }
   // Exhaustive: CalendarView is covered above.
-  return formatDayLong(anchor);
+  return formatDayLong(anchor, localeTag);
 }
 
 /** Monday-first month matrix (5–6 weeks), always whole weeks. */

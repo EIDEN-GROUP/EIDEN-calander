@@ -207,9 +207,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
     });
   };
 
-  const handleMenuPause = async () => {
-    if (!ctxMenu) return;
-    const target = ctxMenu.booking;
+  const togglePauseFor = async (target: BookingRow) => {
     const pause = target.status !== "paused";
     const res = await pauseBookingAction({ bookingId: target.id, paused: pause });
     if (!res.ok) {
@@ -225,6 +223,11 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
       detail: pause ? t("toastBookingPausedDetail") : target.title,
     });
     router.refresh();
+  };
+
+  const handleMenuPause = () => {
+    const target = ctxMenu?.booking;
+    if (target) void togglePauseFor(target);
   };
 
   const handleMenuPostpone = () => {
@@ -567,6 +570,9 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
           initial={drawer.initial}
           onClose={() => setDrawer(null)}
           onSaved={handleSaved}
+          onTogglePause={(b) => void togglePauseFor(b)}
+          onPostpone={(b) => setPostponeFor(b)}
+          onRemove={(b) => setRemoveFor(b)}
           initialClientId={drawer.clientId ?? null}
           bookings={bookings}
           rooms={data.rooms}

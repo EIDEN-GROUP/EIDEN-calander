@@ -9,13 +9,17 @@ import {
 } from "react";
 import {
   Banknote,
+  CalendarClock,
   CheckCircle2,
   ChevronRight,
   Clock,
   DoorOpen,
   GraduationCap,
+  Pause,
+  Play,
   Send,
   Tag,
+  Trash2,
   TriangleAlert,
   Users,
   X,
@@ -80,6 +84,10 @@ export interface BookingDrawerProps {
   /** Pre-fill the client select (deep link from /clients). */
   initialClientId?: string | null;
   onSaved?: (payload: BookingPayload, opts: { conflict: boolean }) => void;
+  /** View mode: pause/resume, postpone, remove — same actions as the context menu (needed on touch, where there is no right-click). */
+  onTogglePause?: (booking: BookingRow) => void;
+  onPostpone?: (booking: BookingRow) => void;
+  onRemove?: (booking: BookingRow) => void;
   /** All active bookings (used by the live conflict preview). */
   bookings?: BookingRow[];
   rooms?: Array<import("@/lib/types/db").RoomRow>;
@@ -142,6 +150,9 @@ export function BookingDrawer({
   initial,
   onClose,
   onSaved,
+  onTogglePause,
+  onPostpone,
+  onRemove,
   initialClientId = null,
   bookings,
   rooms = DEMO_ROOMS,
@@ -687,6 +698,42 @@ export function BookingDrawer({
           >
             <TriangleAlert size={16} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {/* View mode: quick actions (touch-friendly — no right-click needed) */}
+        {isView && booking && (onTogglePause || onPostpone || onRemove) && (
+          <div className="flex shrink-0 items-center gap-1.5 border-t border-divider px-5 py-2.5" aria-label="Quick actions">
+            {onTogglePause && (
+              <button
+                type="button"
+                onClick={() => onTogglePause(booking)}
+                className="inline-flex h-9 items-center gap-1.5 rounded-pill px-3 text-[12px] font-bold text-obsidian-light transition-colors hover:bg-hover-fill hover:text-obsidian"
+              >
+                {booking.status === "paused" ? <Play size={13} strokeWidth={2.2} aria-hidden="true" /> : <Pause size={13} strokeWidth={2.2} aria-hidden="true" />}
+                {booking.status === "paused" ? tCommon("contextMenuResume") : tCommon("contextMenuPause")}
+              </button>
+            )}
+            {onPostpone && (
+              <button
+                type="button"
+                onClick={() => onPostpone(booking)}
+                className="inline-flex h-9 items-center gap-1.5 rounded-pill px-3 text-[12px] font-bold text-obsidian-light transition-colors hover:bg-hover-fill hover:text-obsidian"
+              >
+                <CalendarClock size={13} strokeWidth={2.2} aria-hidden="true" />
+                {tCommon("contextMenuPostpone")}
+              </button>
+            )}
+            {onRemove && (
+              <button
+                type="button"
+                onClick={() => onRemove(booking)}
+                className="inline-flex h-9 items-center gap-1.5 rounded-pill px-3 text-[12px] font-bold text-error transition-colors hover:bg-error-tint"
+              >
+                <Trash2 size={13} strokeWidth={2.2} aria-hidden="true" />
+                {tCommon("remove")}
+              </button>
+            )}
           </div>
         )}
 
