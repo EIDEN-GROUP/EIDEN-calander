@@ -20,7 +20,7 @@ Your overview for the day and the week: today's bookings, room utilization, form
 - **Week strip**: tap a day to jump.
 - **Room grid**: rooms across the week. Click any booking for details.
 - **Quick actions**: New booking, new formation, add a client, new plan.
-- The command palette (⌘K or ⌘N) can start a new booking from anywhere.
+- The command palette (⌘K) can start a new booking from anywhere, and press N anywhere.
 
 ## Calendar
 Day / Week / Month / Agenda views. Switch with the segmented control at the top right.
@@ -95,7 +95,22 @@ Strategic objectives with tasks and progress rings.
 Name, phone, locale (EN/FR), password. Click your avatar top-right.
 
 ## Language
-Toggle **EN/FR** in the top bar any time: your preference is remembered.
+Toggle **EN/FR** in the top bar any time: your preference is remembered (stored in a cookie and on your profile).
+
+## Keyboard shortcuts
+| Keys | Action |
+|---|---|
+| `⌘K` or `Ctrl+K` | Command palette: jump anywhere, new booking, toggle EN/FR, sign out |
+| `G` then `D` | Dashboard |
+| `G` then `C` | Calendar |
+| `G` then `F` | Formations |
+| `G` then `P` | Plans |
+| `G` then `R` | Reports |
+| `G` then `I` | Inbox |
+| `N` | New booking |
+| `?` | Shortcut cheatsheet |
+| `←` / `→` | Previous / next period on the calendar |
+| `Esc` | Close the drawer, modal or palette |
 
 ## If something goes wrong
 1. Refresh the page.
