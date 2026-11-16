@@ -45,7 +45,7 @@ Migrations create no auth users. Bootstrap the admin once per environment:
 ```bash
 SUPABASE_URL=https://<project-ref>.supabase.co \
 SUPABASE_SERVICE_ROLE_KEY=<service-role-key> \
-node scripts/create-admin.mjs --email admin@eiden-group.com --name "Marouane Akrich"
+node scripts/create-admin.mjs --email makrich@eiden-group.com --name "Marouane Akrich"
 ```
 Creates the auth user (`email_confirm: true`), upserts the `profiles` row as
 `role='admin'`, `must_change_password=true`, and prints the temporary password **once**

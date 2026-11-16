@@ -97,7 +97,7 @@ Run once per environment, after migrations are applied:
 ```bash
 export SUPABASE_DB_URL=postgresql://postgres:<pw>@db.<ref>.supabase.co:5432/postgres
 export SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
-node scripts/create-admin.mjs --email admin@eiden-group.com --name "Admin Name"
+node scripts/create-admin.mjs --email makrich@eiden-group.com --name "Admin Name"
 ```
 
 The script creates (or reuses) the auth user, sets a **one-time temp password** printed to stdout, and upserts `profiles` with `role = 'admin'`. The admin is forced to change the password at first login. Store the temp password in 1Password, send it via a different channel than the welcome email. Every subsequent user is created from **Settings → Team** (there is no self-service sign-up); their temporary password is shown once to the admin and also emailed to them in the welcome mail (unless the `welcome` notification pref is off), and must be changed at first sign-in.

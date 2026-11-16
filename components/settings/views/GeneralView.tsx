@@ -18,6 +18,7 @@ import { ToastViewport, useToast } from "@/components/settings/Toast";
 import { NowBarMark } from "@/components/brand/NowBar";
 import { createClient } from "@/lib/supabase/client";
 import { updateBusinessProfileAction, updateBusinessLogoAction } from "@/app/actions/settings";
+import { sanitizeSvg } from "@/lib/svg-sanitize";
 
 export interface GeneralInitial {
   businessName: string;
@@ -115,15 +116,23 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
       setLogo({ name: file.name, url });
       return;
     }
-    // Live: upload to the public brand-assets bucket (admin-only write), then
+    // Live: sanitize SVG (defense in depth — executable content stripped),
+    // then upload to the public brand-assets bucket (admin-only write) and
     // point business_settings.logo_url at the public URL.
     setLogoBusy(true);
     try {
       const supabase = createClient();
       if (!supabase) throw new Error(t("supabaseNotConfigured"));
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "svg";
+      let payload: Blob = file;
+      if (ext === "svg" || file.type === "image/svg+xml") {
+        const text = await file.text();
+        const clean = sanitizeSvg(text);
+        if (!clean) throw new Error(t("logoUnsupportedType"));
+        payload = new Blob([clean], { type: "image/svg+xml" });
+      }
       const path = `logo-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("brand-assets").upload(path, file, {
+      const { error: upErr } = await supabase.storage.from("brand-assets").upload(path, payload, {
         contentType: file.type,
         upsert: false,
       });

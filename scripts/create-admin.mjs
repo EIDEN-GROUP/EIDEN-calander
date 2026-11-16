@@ -7,7 +7,7 @@
  * first sign-in).
  *
  * USAGE:
- *   node scripts/create-admin.mjs --email admin@eiden-group.com --name "Marouane Akrich" [--password <password>]
+ *   node scripts/create-admin.mjs --email makrich@eiden-group.com --name "Marouane Akrich" [--password <password>]
  *
  * ENVIRONMENT (read from process.env; if missing, a manual fallback parser
  * reads .env.local then .env from the current working directory):
@@ -18,10 +18,10 @@
  * EXAMPLES:
  *   # auto-generate a strong 16-char password (printed once below):
  *   SUPABASE_URL=https://abc.supabase.co SUPABASE_SERVICE_ROLE_KEY=eyJ... \
- *     node scripts/create-admin.mjs --email admin@eiden-group.com --name "Admin"
+ *     node scripts/create-admin.mjs --email makrich@eiden-group.com --name "Admin"
  *
  *   # or supply your own:
- *   node scripts/create-admin.mjs --email admin@eiden-group.com --name "Admin" --password 'Sup3rSecret!'
+ *   node scripts/create-admin.mjs --email makrich@eiden-group.com --name "Admin" --password 'Sup3rSecret!'
  *
  * BEHAVIOR / SAFETY:
  *   * Idempotent-ish: if a profile with the same email already exists, the
