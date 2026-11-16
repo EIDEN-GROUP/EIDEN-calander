@@ -53,6 +53,7 @@
     "roomUtilizationLabel": "Room utilization",
     "roomUtilizationTitle": "Room utilization",
     "addRoomsUtilization": "Add rooms to see utilization.",
-    "utilizationFootnote": "Hours booked ÷ hours available (working hours × rooms), per week."
+    "utilizationFootnote": "Hours booked ÷ hours available (working hours × rooms), per week.",
+    "metaTitle": "Dashboard"
   }
 }

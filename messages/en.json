@@ -48,7 +48,11 @@
     "moving": "Moving…",
     "postponeSubmit": "Postpone",
     "closeDialog": "Close dialog",
-    "dismissNotification": "Dismiss notification"
+    "dismissNotification": "Dismiss notification",
+    "common": {
+      "closeDialog": "Close dialog",
+      "dismissNotification": "Dismiss notification"
+    }
   },
   "shell": {
     "navDashboard": "Dashboard",
@@ -501,7 +505,8 @@
     "roomUtilizationLabel": "Room utilization",
     "roomUtilizationTitle": "Room utilization",
     "addRoomsUtilization": "Add rooms to see utilization.",
-    "utilizationFootnote": "Hours booked ÷ hours available (working hours × rooms), per week."
+    "utilizationFootnote": "Hours booked ÷ hours available (working hours × rooms), per week.",
+    "metaTitle": "Dashboard"
   },
   "formations": {
     "title": "Formations",
@@ -1676,6 +1681,7 @@
     "categoriesActiveSuffix": "active",
     "usersCountBefore": "users ·",
     "usersActiveSuffix": "active",
-    "countOnSuffix": "on"
+    "countOnSuffix": "on",
+    "mailboxNotConfigured": "mailbox not configured"
   }
 }

@@ -48,7 +48,11 @@
     "moving": "Déplacement…",
     "postponeSubmit": "Reporter",
     "closeDialog": "Fermer la boîte de dialogue",
-    "dismissNotification": "Masquer la notification"
+    "dismissNotification": "Masquer la notification",
+    "common": {
+      "closeDialog": "Fermer la boîte de dialogue",
+      "dismissNotification": "Masquer la notification"
+    }
   },
   "shell": {
     "navDashboard": "Tableau de bord",
@@ -501,7 +505,8 @@
     "roomUtilizationLabel": "Utilisation des salles",
     "roomUtilizationTitle": "Utilisation des salles",
     "addRoomsUtilization": "Ajoutez des salles pour voir le taux d'utilisation.",
-    "utilizationFootnote": "Heures réservées ÷ heures disponibles (heures ouvrées × salles), par semaine."
+    "utilizationFootnote": "Heures réservées ÷ heures disponibles (heures ouvrées × salles), par semaine.",
+    "metaTitle": "Tableau de bord"
   },
   "formations": {
     "title": "Formations",
@@ -1676,6 +1681,7 @@
     "categoriesActiveSuffix": "actives",
     "usersCountBefore": "utilisateurs ·",
     "usersActiveSuffix": "actifs",
-    "countOnSuffix": "activées"
+    "countOnSuffix": "activées",
+    "mailboxNotConfigured": "boîte mail non configurée"
   }
 }
