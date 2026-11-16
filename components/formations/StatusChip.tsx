@@ -4,6 +4,7 @@
  */
 
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import type { EffectiveFormationStatus } from "./model";
 
 export type ChipTone =
@@ -55,36 +56,37 @@ export function FormationStatusChip({
   status: EffectiveFormationStatus;
   seatsLeft?: number;
 }) {
+  const t = useTranslations("formations");
   switch (status) {
     case "open":
       return (
         <StatusChip tone="success" dot>
-          {seatsLeft ?? 0} seats left
+          {t("statusSeatsLeft", { count: seatsLeft ?? 0 })}
         </StatusChip>
       );
     case "full":
       return (
         <StatusChip tone="error" dot>
-          Full — waitlist
+          {t("statusFull")}
         </StatusChip>
       );
     case "ongoing":
       return (
         <StatusChip tone="electric" dot>
-          Ongoing
+          {t("statusOngoing")}
         </StatusChip>
       );
     case "completed":
-      return <StatusChip tone="muted">Completed</StatusChip>;
+      return <StatusChip tone="muted">{t("statusCompleted")}</StatusChip>;
     case "cancelled":
-      return <StatusChip tone="error">Cancelled</StatusChip>;
+      return <StatusChip tone="error">{t("statusCancelled")}</StatusChip>;
     case "paused":
       return (
         <StatusChip tone="warning" dot>
-          Paused
+          {t("statusPaused")}
         </StatusChip>
       );
     default:
-      return <StatusChip tone="muted">Draft</StatusChip>;
+      return <StatusChip tone="muted">{t("statusDraft")}</StatusChip>;
   }
 }

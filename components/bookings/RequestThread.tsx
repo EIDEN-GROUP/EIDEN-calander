@@ -24,12 +24,14 @@ import {
   DEMO_ROOMS,
   getDemoBookings,
 } from "@/lib/demo-data";
+import { useTranslations, useLocale } from "next-intl";
 import type { BookingRow, ChangeRequestRow } from "@/lib/types/db";
 import {
   creatorName,
   formatTime,
   shortRef,
 } from "@/components/calendar/calendar-utils";
+import { appLocaleTag } from "@/lib/intl-locale";
 
 const DEMO_BOOKINGS = getDemoBookings();
 const TTL_HOURS = 72;
@@ -77,6 +79,8 @@ export function RequestThread({
   serverNow: string;
   live?: LiveChangeRequest | null;
 }) {
+  const t = useTranslations("requests");
+  const intlLocale = appLocaleTag(useLocale());
   const liveData = live;
   const cr = useMemo(() => {
     if (liveData) {
@@ -104,8 +108,8 @@ export function RequestThread({
   const oldBooking = liveData?.conflictingBooking ?? DEMO_BOOKINGS.find((b) => b.id === cr.conflicting_booking_id) ?? null;
   const roomName = liveData?.roomName ??
     (newBooking?.room_id
-      ? (DEMO_ROOMS.find((r) => r.id === newBooking.room_id)?.name.replace(/\s*\(DEMO\)\s*$/, "") ?? "Off-site")
-      : "Off-site");
+      ? (DEMO_ROOMS.find((r) => r.id === newBooking.room_id)?.name.replace(/\s*\(DEMO\)\s*$/, "") ?? t("offSite"))
+      : t("offSite"));
 
   const router = useRouter();
   const createdAt = new Date(cr.created_at);
@@ -144,7 +148,7 @@ export function RequestThread({
   }, []);
 
   const msLeft = expiresAt.getTime() - now.getTime();
-  const countdown = formatCountdown(msLeft);
+  const countdown = formatCountdown(msLeft, (key, values) => t(key, values));
   const windowFraction = Math.min(
     1,
     Math.max(0, (now.getTime() - createdAt.getTime()) / (expiresAt.getTime() - createdAt.getTime())),
@@ -174,9 +178,7 @@ export function RequestThread({
     router.refresh();
     setApprovedSlot(slot);
     setOutcome("approved");
-    setAnnouncement(
-      `Booking moved to ${slotLabel(slot)}. Both parties were notified.`,
-    );
+    setAnnouncement(t("announceApproved", { slot: slotLabel(slot, intlLocale) }));
   };
 
   const handleDecline = async () => {
@@ -192,9 +194,7 @@ export function RequestThread({
       }
     }
     setOutcome("declined");
-    setAnnouncement(
-      "Request declined. The incumbent keeps the slot and the requester was notified.",
-    );
+    setAnnouncement(t("announceDeclined"));
   };
 
   const handleCancelBooking = async () => {
@@ -206,9 +206,7 @@ export function RequestThread({
       }
     }
     setOutcome("cancelled");
-    setAnnouncement(
-      "Your booking was cancelled and the conflict is cleared. The incumbent keeps the slot.",
-    );
+    setAnnouncement(t("announceCancelled"));
   };
 
   const sendMessage = (e: FormEvent<HTMLFormElement>) => {
@@ -216,7 +214,7 @@ export function RequestThread({
     const body = draft.trim();
     if (!body) return;
     if (liveData) {
-      setAnnouncement("Thread messages ship with v1.1 — use Inbox or email for now.");
+      setAnnouncement(t("threadNotAvailable"));
       return;
     }
     setMessages((prev) => [
@@ -224,28 +222,28 @@ export function RequestThread({
       { id: `m-${Date.now()}`, author: perspective, body, at: new Date().toISOString() },
     ]);
     setDraft("");
-    setAnnouncement("Message sent.");
+    setAnnouncement(t("announceSent"));
   };
 
   const resetDemo = () => {
     setOutcome("pending");
     setApprovedSlot(null);
-    setAnnouncement("Demo state reset to pending.");
+    setAnnouncement(t("announceReset"));
   };
 
   return (
     <div className="mx-auto max-w-[1200px]">
       {/* Breadcrumb */}
       <nav
-        aria-label="Breadcrumb"
+        aria-label={t("breadcrumbLabel")}
         className="flex items-center gap-1.5 text-[12px] font-semibold text-muted"
       >
         <Link href="/calendar" className="transition-colors hover:text-electric">
-          Bookings
+          {t("breadcrumbBookings")}
         </Link>
         <ChevronRight size={12} strokeWidth={2.4} aria-hidden="true" />
         <span aria-current="page" className="text-obsidian">
-          Change request <span className="font-mono">#{ref}</span>
+          {t("changeRequest")} <span className="font-mono">#{ref}</span>
         </span>
       </nav>
 
@@ -260,18 +258,21 @@ export function RequestThread({
           </span>
           <div>
             <h1 className="text-[24px] font-extrabold leading-tight tracking-[-0.03em] text-obsidian sm:text-[28px]">
-              Change request{" "}
+              {t("changeRequest")}{" "}
               <span className="align-middle font-mono text-[0.6em] font-bold text-muted">
                 #{ref}
               </span>
             </h1>
             <p className="mt-0.5 text-[13px] font-medium text-obsidian-light">
-              {requester} asked {incumbent} to move a booking · opened{" "}
-              {createdAt.toLocaleDateString("en-GB", {
-                day: "numeric",
-                month: "long",
-                hour: "2-digit",
-                minute: "2-digit",
+              {t("askedToMove", {
+                requester,
+                incumbent,
+                date: createdAt.toLocaleDateString(intlLocale, {
+                  day: "numeric",
+                  month: "long",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
               })}
             </p>
           </div>
@@ -281,7 +282,7 @@ export function RequestThread({
         <div
           className="segmented"
           role="group"
-          aria-label="View this request as"
+          aria-label={t("viewAsLabel")}
         >
           <button
             type="button"
@@ -289,7 +290,7 @@ export function RequestThread({
             onClick={() => setPerspective("requester")}
             className={`segment ${perspective === "requester" ? "segment-active" : ""}`}
           >
-            I’m the requester
+            {t("iAmRequester")}
           </button>
           <button
             type="button"
@@ -297,14 +298,14 @@ export function RequestThread({
             onClick={() => setPerspective("incumbent")}
             className={`segment ${perspective === "incumbent" ? "segment-active" : ""}`}
           >
-            I’m the incumbent
+            {t("iAmIncumbent")}
           </button>
         </div>
       </div>
 
       {fallback && changeRequestId !== "demo" && (
         <p className="mt-3 inline-flex items-center gap-1.5 rounded-pill bg-canvas px-3 py-1.5 text-[11px] font-semibold text-obsidian-light ring-1 ring-border">
-          No request “{changeRequestId}” in demo data — showing the ONCF change request.
+          {t("demoFallback", { id: changeRequestId })}
         </p>
       )}
 
@@ -320,7 +321,7 @@ export function RequestThread({
               id="details-heading"
               className="text-[12px] font-extrabold uppercase tracking-[0.12em] text-obsidian-light"
             >
-              Details
+              {t("detailsHeading")}
             </h2>
             <OutcomeChip outcome={outcome} />
           </div>
@@ -328,7 +329,7 @@ export function RequestThread({
           {/* New booking card */}
           {newBooking && (
             <BookingSideCard
-              tag="New booking — awaiting slot"
+              tag={t("tagNewBooking")}
               tone="warning"
               booking={newBooking}
               roomName={roomName}
@@ -344,14 +345,14 @@ export function RequestThread({
             className="my-3 flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-[0.14em] text-muted"
           >
             <span className="h-px flex-1 bg-divider" />
-            conflicts with
+            {t("conflictsWith")}
             <span className="h-px flex-1 bg-divider" />
           </div>
 
           {/* Incumbent booking card */}
           {oldBooking && (
             <BookingSideCard
-              tag="Incumbent — first booking wins"
+              tag={t("tagIncumbent")}
               tone="electric"
               booking={oldBooking}
               roomName={roomName}
@@ -372,10 +373,10 @@ export function RequestThread({
               </span>
               <span className="min-w-0">
                 <figcaption className="text-[11px] font-bold text-muted">
-                  {requester} wrote
+                  {t("wroteMessage", { requester })}
                 </figcaption>
                 <blockquote className="mt-1 text-[13px] leading-snug text-obsidian">
-                  “{cr.message}”
+                  {t("messageQuote", { message: cr.message })}
                 </blockquote>
               </span>
             </figure>
@@ -399,7 +400,7 @@ export function RequestThread({
                     </span>
                     <span className="min-w-0 rounded-sm border border-border bg-white px-3 py-2">
                       <span className="block text-[10px] font-bold uppercase tracking-[0.08em] text-muted">
-                        {author} · {new Date(m.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                        {author} · {new Date(m.at).toLocaleTimeString(intlLocale, { hour: "2-digit", minute: "2-digit" })}
                       </span>
                       <span className="mt-0.5 block text-[13px] leading-snug text-obsidian">
                         {m.body}
@@ -414,20 +415,20 @@ export function RequestThread({
           {/* Composer */}
           <form onSubmit={sendMessage} className="mt-4 flex items-center gap-2">
             <label className="sr-only" htmlFor="cr-message">
-              Add a message to the thread
+              {t("addMessageLabel")}
             </label>
             <input
               id="cr-message"
               type="text"
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              placeholder="Add a message to the thread…"
+              placeholder={t("addMessagePlaceholder")}
               autoComplete="off"
               className="input h-11 flex-1"
             />
             <button
               type="submit"
-              aria-label="Send message"
+              aria-label={t("sendMessageLabel")}
               className="btn btn-primary h-11 w-11 !px-0"
             >
               <Send size={17} strokeWidth={2} aria-hidden="true" />
@@ -444,15 +445,15 @@ export function RequestThread({
             id="status-heading"
             className="text-[12px] font-extrabold uppercase tracking-[0.12em] text-obsidian-light"
           >
-            Status timeline
+            {t("statusTimeline")}
           </h2>
 
           {/* Steps */}
           <ol className="mt-4">
             <TimelineStep
               done
-              title="Request created"
-              detail={`${requester} · ${createdAt.toLocaleDateString("en-GB", {
+              title={t("stepRequestCreated")}
+              detail={`${requester} · ${createdAt.toLocaleDateString(intlLocale, {
                 day: "numeric",
                 month: "short",
                 hour: "2-digit",
@@ -462,8 +463,8 @@ export function RequestThread({
             <TimelineStep
               done={outcome !== "pending"}
               active={outcome === "pending"}
-              title={`Pending — waiting on ${incumbent}`}
-              detail={`Incumbent has ${TTL_HOURS}h to respond`}
+              title={t("stepPendingTitle", { incumbent })}
+              detail={t("stepPendingDetail", { hours: TTL_HOURS })}
             />
             <TimelineStep
               done={outcome === "approved"}
@@ -472,17 +473,17 @@ export function RequestThread({
               last
               title={
                 outcome === "declined"
-                  ? "Declined"
+                  ? t("statusDeclined")
                   : outcome === "cancelled"
-                    ? "Cancelled by requester"
-                    : "Approved & moved"
+                    ? t("stepCancelledByRequester")
+                    : t("stepApprovedMoved")
               }
               detail={
                 outcome === "approved" && approvedSlot
-                  ? slotLabel(approvedSlot)
+                  ? slotLabel(approvedSlot, intlLocale)
                   : outcome === "pending"
-                    ? "Awaiting the incumbent’s decision"
-                    : "Resolved"
+                    ? t("stepAwaitingIncumbent")
+                    : t("stepResolved")
               }
             />
           </ol>
@@ -493,11 +494,11 @@ export function RequestThread({
               <div className="flex items-center justify-between gap-2">
                 <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.1em] text-obsidian-light">
                   <Hourglass size={13} strokeWidth={2.2} aria-hidden="true" />
-                  72h window
+                  {t("countdownWindow", { hours: TTL_HOURS })}
                 </span>
                 <span
                   className="chip bg-warning-tint text-[11px] font-bold tabular-nums text-[#a34d00]"
-                  aria-label={`Time remaining: ${countdown.aria}`}
+                  aria-label={t("timeRemaining", { time: countdown.aria })}
                 >
                   {countdown.text}
                 </span>
@@ -508,7 +509,7 @@ export function RequestThread({
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={Math.round(windowFraction * 100)}
-                aria-label="Elapsed share of the 72h response window"
+                aria-label={t("progressAria", { hours: TTL_HOURS })}
               >
                 <div
                   className="h-full rounded-pill bg-electric transition-[width] duration-500"
@@ -587,26 +588,34 @@ function initials(name: string): string {
     .join("");
 }
 
-function formatCountdown(ms: number): { text: string; aria: string } {
-  if (ms <= 0) return { text: "Expired", aria: "expired" };
+function formatCountdown(
+  ms: number,
+  translate: (key: string, values?: Record<string, string | number>) => string,
+): { text: string; aria: string } {
+  if (ms <= 0) return { text: translate("countdownExpired"), aria: translate("countdownExpired") };
   const totalMin = Math.floor(ms / 60000);
   const d = Math.floor(totalMin / (24 * 60));
   const h = Math.floor((totalMin % (24 * 60)) / 60);
   const m = totalMin % 60;
-  const text = d > 0 ? `${d}d ${h}h left` : h > 0 ? `${h}h ${m}m left` : `${m}m left`;
-  const aria = `${d} days, ${h} hours and ${m} minutes`;
+  const text =
+    d > 0
+      ? translate("countdownDaysHours", { days: d, hours: h })
+      : h > 0
+        ? translate("countdownHoursMinutes", { hours: h, minutes: m })
+        : translate("countdownMinutes", { minutes: m });
+  const aria = translate("countdownAria", { days: d, hours: h, minutes: m });
   return { text, aria };
 }
 
-function slotLabel(slot: { starts_at: string; ends_at: string }): string {
+function slotLabel(slot: { starts_at: string; ends_at: string }, localeTag?: string): string {
   const start = new Date(slot.starts_at);
   const end = new Date(slot.ends_at);
-  const day = start.toLocaleDateString("en-GB", {
+  const day = start.toLocaleDateString(localeTag ?? appLocaleTag(), {
     weekday: "short",
     day: "numeric",
     month: "long",
   });
-  return `${day} · ${formatTime(start)} – ${formatTime(end)}`;
+  return `${day} · ${formatTime(start, localeTag ?? appLocaleTag())} – ${formatTime(end, localeTag ?? appLocaleTag())}`;
 }
 
 function BookingSideCard({
@@ -627,16 +636,18 @@ function BookingSideCard({
   /** Live display name — falls back to the demo id lookup. */
   creatorName?: string | null;
 }) {
+  const t = useTranslations("requests");
+  const intlLocale = appLocaleTag(useLocale());
   const start = new Date(booking.starts_at);
   const end = new Date(booking.ends_at);
   const status =
     booking.status === "pending_conflict"
-      ? { label: "Pending conflict", dot: "bg-warning" }
+      ? { label: t("statusPendingConflict"), dot: "bg-warning" }
       : booking.status === "confirmed"
-        ? { label: "Confirmed", dot: "bg-success" }
+        ? { label: t("statusConfirmed"), dot: "bg-success" }
         : booking.status === "completed"
-          ? { label: "Completed", dot: "bg-obsidian-light" }
-          : { label: "Cancelled", dot: "bg-black/30" };
+          ? { label: t("statusCompleted"), dot: "bg-obsidian-light" }
+          : { label: t("statusCancelled"), dot: "bg-black/30" };
 
   const tagClass =
     tone === "warning"
@@ -671,7 +682,7 @@ function BookingSideCard({
         </div>
         <div className="flex items-center gap-1.5">
           <Clock size={13} strokeWidth={2} className="text-muted" aria-hidden="true" />
-          {start.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+          {start.toLocaleDateString(appLocaleTag(), { weekday: "short", day: "numeric", month: "short" })}
           {" · "}
           <span className="tabular-nums">
             {formatTime(start)} – {formatTime(end)}
@@ -679,11 +690,11 @@ function BookingSideCard({
         </div>
         <div className="flex items-center gap-1.5">
           <Users size={13} strokeWidth={2} className="text-muted" aria-hidden="true" />
-          {clientName ?? "No client"}
+          {clientName ?? t("noClient")}
         </div>
         <div className="flex items-center gap-1.5">
           <ShieldCheck size={13} strokeWidth={2} className="text-muted" aria-hidden="true" />
-          Created by {creatorNameProp ?? creatorName(booking.created_by)}
+          {t("createdBy", { name: creatorNameProp ?? creatorName(booking.created_by) })}
         </div>
       </dl>
     </article>
@@ -749,11 +760,13 @@ function TimelineStep({
 }
 
 function OutcomeChip({ outcome }: { outcome: Outcome }) {
+  const t = useTranslations("requests");
+  const intlLocale = appLocaleTag(useLocale());
   const meta = {
-    pending: { label: "Pending", dot: "bg-warning", ring: "ring-warning/40" },
-    approved: { label: "Approved", dot: "bg-success", ring: "ring-success/40" },
-    declined: { label: "Declined", dot: "bg-error", ring: "ring-error/40" },
-    cancelled: { label: "Cancelled", dot: "bg-black/30", ring: "ring-border" },
+    pending: { label: t("statusPending"), dot: "bg-warning", ring: "ring-warning/40" },
+    approved: { label: t("statusApproved"), dot: "bg-success", ring: "ring-success/40" },
+    declined: { label: t("statusDeclined"), dot: "bg-error", ring: "ring-error/40" },
+    cancelled: { label: t("statusCancelled"), dot: "bg-black/30", ring: "ring-border" },
   }[outcome];
   return (
     <span
@@ -780,14 +793,15 @@ function IncumbentActions({
   onApprove: (slot: { starts_at: string; ends_at: string }) => void;
   onDecline: () => void;
 }) {
+  const t = useTranslations("requests");
+  const intlLocale = appLocaleTag(useLocale());
   return (
     <div className="mt-5 border-t border-divider pt-4">
       <p className="text-[12px] font-extrabold uppercase tracking-[0.1em] text-obsidian-light">
-        Your move, incumbent
+        {t("incumbentMove")}
       </p>
       <p className="mt-1 text-[12px] leading-snug text-muted">
-        Approve one of {requester}’s suggested slots — we’ll move your booking automatically
-        and notify both parties.
+        {t("incumbentBody", { requester })}
       </p>
 
       {/* Suggested slots */}
@@ -799,7 +813,7 @@ function IncumbentActions({
           >
             <span className="flex min-w-0 items-center gap-2 text-[13px] font-bold text-electric">
               <CalendarClock size={16} strokeWidth={2} aria-hidden="true" className="shrink-0" />
-              <span className="truncate">{slotLabel(slot)}</span>
+              <span className="truncate">{slotLabel(slot, intlLocale)}</span>
             </span>
             <button
               type="button"
@@ -807,7 +821,7 @@ function IncumbentActions({
               className="btn btn-primary h-9 shrink-0 !px-4 !text-[12px]"
             >
               <Check size={14} strokeWidth={3} aria-hidden="true" />
-              Approve & move to this slot
+              {t("approveAndMove")}
             </button>
           </li>
         ))}
@@ -816,14 +830,14 @@ function IncumbentActions({
       {/* Decline */}
       <div className="mt-4">
         <label htmlFor="decline-reason" className="label">
-          Decline reason (optional)
+          {t("declineReasonLabel")}
         </label>
         <textarea
           id="decline-reason"
           rows={2}
           value={declineReason}
           onChange={(e) => setDeclineReason(e.target.value)}
-          placeholder="e.g. ONCF board must stay at 14:00 — propose another day instead."
+          placeholder={t("declineReasonPlaceholder")}
           className="input min-h-[64px] resize-y py-3"
         />
         <button
@@ -832,7 +846,7 @@ function IncumbentActions({
           className="btn btn-secondary mt-2 h-11 w-full border !border-error/30 text-error hover:!bg-error-tint"
         >
           <XCircle size={17} strokeWidth={2} aria-hidden="true" />
-          Decline request
+          {t("declineRequest")}
         </button>
       </div>
     </div>
@@ -848,20 +862,22 @@ function RequesterActions({
   suggestedSlots: Array<{ starts_at: string; ends_at: string }>;
   onCancel: () => void;
 }) {
+  const t = useTranslations("requests");
+  const intlLocale = appLocaleTag(useLocale());
   return (
     <div className="mt-5 border-t border-divider pt-4">
       <div className="rounded-sm border border-border bg-canvas/60 p-4 text-center">
         <Hourglass size={26} strokeWidth={1.8} className="mx-auto text-warning" aria-hidden="true" />
         <p className="mt-2 text-[14px] font-extrabold text-obsidian">
-          Waiting on {incumbent}
+          {t("waitingOn", { incumbent })}
         </p>
         <p className="mt-0.5 text-[12px] leading-snug text-muted">
-          You’ll be notified the moment they respond — usually within a few hours.
+          {t("waitingBody")}
         </p>
       </div>
 
       <p className="mt-4 text-[12px] font-extrabold uppercase tracking-[0.1em] text-obsidian-light">
-        Your suggested slot
+        {t("yourSuggestedSlot")}
       </p>
       <ul className="mt-2 space-y-1.5">
         {suggestedSlots.map((slot) => (
@@ -870,7 +886,7 @@ function RequesterActions({
             className="chip w-full justify-start border border-electric/20 bg-electric-tint px-3 py-2 text-[12px] text-electric"
           >
             <CalendarClock size={14} strokeWidth={2} aria-hidden="true" />
-            {slotLabel(slot)}
+            {slotLabel(slot, intlLocale)}
           </li>
         ))}
       </ul>
@@ -881,10 +897,10 @@ function RequesterActions({
         className="btn btn-secondary mt-4 h-11 w-full border !border-error/30 text-error hover:!bg-error-tint"
       >
         <Ban size={17} strokeWidth={2} aria-hidden="true" />
-        Cancel my booking
+        {t("cancelMyBooking")}
       </button>
       <Link href="/calendar" className="btn btn-ghost mt-2 h-11 w-full text-obsidian-light">
-        Back to calendar
+        {t("backToCalendar")}
         <ChevronRight size={16} strokeWidth={2.2} aria-hidden="true" />
       </Link>
     </div>
@@ -906,6 +922,8 @@ function OutcomePanel({
   roomName: string;
   onReset: () => void;
 }) {
+  const t = useTranslations("requests");
+  const intlLocale = appLocaleTag(useLocale());
   const slot = approvedSlot ?? suggestedSlots[0] ?? null;
 
   if (outcome === "approved") {
@@ -917,20 +935,22 @@ function OutcomePanel({
       >
         <CheckCircle2 size={38} strokeWidth={1.8} className="mx-auto text-success" aria-hidden="true" />
         <p className="mt-2 text-[16px] font-extrabold leading-snug text-obsidian">
-          Booking moved — both parties notified (demo)
+          {t("approvedTitle")}
         </p>
         <p className="mt-1.5 text-[12px] leading-snug text-obsidian-light">
-          ONCF — Steering committee now sits at{" "}
-          <strong>{slot ? slotLabel(slot) : "the suggested slot"}</strong> · {roomName}.
-          Confirmation emails went to yasmine@casatech.ma and events@oncf.ma.
+          {t.rich("approvedBody", {
+            strong: (chunks) => <strong>{chunks}</strong>,
+            slot: slot ? slotLabel(slot) : t("theSuggestedSlot"),
+            room: roomName,
+          })}
         </p>
         <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
           <Link href="/calendar" className="btn btn-primary h-11">
-            View in calendar
+            {t("viewInCalendar")}
             <ChevronRight size={16} strokeWidth={2.4} aria-hidden="true" />
           </Link>
           <button type="button" onClick={onReset} className="btn btn-ghost h-11 text-obsidian-light">
-            Reset demo
+            {t("resetDemo")}
           </button>
         </div>
       </div>
@@ -946,26 +966,26 @@ function OutcomePanel({
       >
         <XCircle size={38} strokeWidth={1.8} className="mx-auto text-error" aria-hidden="true" />
         <p className="mt-2 text-[16px] font-extrabold leading-snug text-obsidian">
-          Request declined — alternatives suggested (demo)
+          {t("declinedTitle")}
         </p>
         <p className="mt-1.5 text-[12px] leading-snug text-obsidian-light">
-          The incumbent keeps {roomName} at 14:00. Yasmine B. was notified
+          {t("declinedBody", { room: roomName })}
           {declineReason.trim() ? (
             <>
               {" "}— “<em>{declineReason.trim()}</em>”
             </>
           ) : (
-            " with alternative slots to pick from"
+            t("declinedWithAlternatives")
           )}
           .
         </p>
         <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
           <Link href="/calendar" className="btn btn-primary h-11">
-            View in calendar
+            {t("viewInCalendar")}
             <ChevronRight size={16} strokeWidth={2.4} aria-hidden="true" />
           </Link>
           <button type="button" onClick={onReset} className="btn btn-ghost h-11 text-obsidian-light">
-            Reset demo
+            {t("resetDemo")}
           </button>
         </div>
       </div>
@@ -980,19 +1000,18 @@ function OutcomePanel({
     >
       <Ban size={38} strokeWidth={1.8} className="mx-auto text-obsidian-light" aria-hidden="true" />
       <p className="mt-2 text-[16px] font-extrabold leading-snug text-obsidian">
-        Booking cancelled — conflict cleared (demo)
+        {t("cancelledTitle")}
       </p>
       <p className="mt-1.5 text-[12px] leading-snug text-obsidian-light">
-        Your follow-up booking was cancelled. ONCF keeps {roomName} at 14:00, and the
-        pending request is withdrawn.
+        {t("cancelledBody", { room: roomName })}
       </p>
       <div className="mt-4 flex flex-col justify-center gap-2 sm:flex-row">
         <Link href="/calendar" className="btn btn-primary h-11">
-          View in calendar
+          {t("viewInCalendar")}
           <ChevronRight size={16} strokeWidth={2.4} aria-hidden="true" />
         </Link>
         <button type="button" onClick={onReset} className="btn btn-ghost h-11 text-obsidian-light">
-          Reset demo
+          {t("resetDemo")}
         </button>
       </div>
     </div>

@@ -1,10 +1,11 @@
 "use client";
 
 import { GraduationCap } from "lucide-react";
+import { useTranslations, useLocale } from "next-intl";
 import type { BookingRow } from "@/lib/types/db";
 import {
   HATCH_STYLE,
-  WEEKDAY_SHORT,
+  WEEKDAY_SHORT_KEYS,
   bookingTint,
   isSameDay,
   isSameMonth,
@@ -12,6 +13,7 @@ import {
   monthMatrix,
   type Lookup,
 } from "./calendar-utils";
+import { appLocaleTag } from "@/lib/intl-locale";
 
 const MAX_CHIPS = 3;
 
@@ -34,13 +36,16 @@ export function MonthView({
   onBookingClick: (b: BookingRow) => void;
   onBookingContextMenu?: (b: BookingRow, x: number, y: number) => void;
 }) {
+  const t = useTranslations("calendar");
+  const intlLocale = appLocaleTag(useLocale());
   const weeks = monthMatrix(anchor);
+  const weekdayShort = WEEKDAY_SHORT_KEYS.map((k) => t(k));
 
   return (
-    <div className="card overflow-hidden" role="region" aria-label="Month grid">
+    <div className="card overflow-hidden" role="region" aria-label={t("monthGridLabel")}>
       {/* Weekday header */}
       <div className="grid grid-cols-7 border-b border-border">
-        {WEEKDAY_SHORT.map((label, i) => (
+        {weekdayShort.map((label, i) => (
           <div
             key={label}
             className={`border-r border-divider px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.12em] last:border-r-0 ${
@@ -75,11 +80,13 @@ export function MonthView({
               <button
                 type="button"
                 onClick={() => onSelectDay(day)}
-                aria-label={`Open ${day.toLocaleDateString("en-GB", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "long",
-                })} in day view`}
+                aria-label={t("openInDayView", {
+                  day: day.toLocaleDateString(intlLocale, {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                  }),
+                })}
                 className={`flex h-7 w-7 items-center justify-center self-end rounded-full text-[12px] font-bold transition-colors hover:bg-electric-tint hover:text-electric ${
                   dayIsToday
                     ? "bg-electric text-white hover:bg-electric hover:text-white"
@@ -125,7 +132,7 @@ export function MonthView({
                     onClick={() => onSelectDay(day)}
                     className="rounded-[6px] px-1.5 py-[2px] text-left text-[10px] font-bold text-electric transition-colors hover:bg-electric-tint"
                   >
-                    +{hidden} more
+                    {t("plusMore", { count: hidden })}
                   </button>
                 )}
               </div>

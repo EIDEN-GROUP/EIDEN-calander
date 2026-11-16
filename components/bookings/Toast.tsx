@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { CheckCircle2, TriangleAlert, X } from "lucide-react";
 
 export type ToastTone = "success" | "warning";
@@ -22,6 +23,7 @@ export function Toast({
   toast: ToastData | null;
   onDismiss: () => void;
 }) {
+  const t = useTranslations("calendar");
   const onDismissRef = useRef(onDismiss);
   useEffect(() => {
     onDismissRef.current = onDismiss;
@@ -68,7 +70,7 @@ export function Toast({
         <button
           type="button"
           onClick={onDismiss}
-          aria-label="Dismiss notification"
+          aria-label={t("dismissNotification")}
           className="ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-pill text-white/60 transition-colors hover:bg-white/10 hover:text-white"
         >
           <X size={15} strokeWidth={2} aria-hidden="true" />

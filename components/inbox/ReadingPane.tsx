@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslations, useLocale } from "next-intl";
+import { appLocaleTag } from "@/lib/intl-locale";
 import {
   Check,
   ChevronLeft,
@@ -16,6 +18,7 @@ import {
   PenLine,
 } from "lucide-react";
 import { fetchMessage, setSeenRemote } from "./client";
+import { mailErrorMessage } from "./error-copy";
 import { MailErrorBanner } from "./MailErrorBanner";
 import { ReplyBox } from "./ReplyBox";
 import { formatBytes, fullDateTime } from "./format";
@@ -63,6 +66,8 @@ export function ReadingPane({
   /** Optimistic sync back to the list pane (seen/unseen toggles). */
   onSeenChange?: (uid: number, seen: boolean) => void;
 }) {
+  const t = useTranslations("inbox");
+  const intlLocale = appLocaleTag(useLocale());
   const [message, setMessage] = useState<MailMessage | null>(null);
   const [demo, setDemo] = useState(false);
   const [offline, setOffline] = useState(false);
@@ -83,11 +88,11 @@ export function ReadingPane({
       setOffline(result.offline);
     } catch (err) {
       setMessage(null);
-      setError(err instanceof MailApiError ? err : new MailApiError(0, "UNKNOWN", "Something went wrong."));
+      setError(err instanceof MailApiError ? err : new MailApiError(0, "UNKNOWN", t("somethingWentWrong")));
     } finally {
       setLoading(false);
     }
-  }, [uid, folder]);
+  }, [uid, folder, t]);
 
   useEffect(() => {
     // Defer to a task so the fetch + state updates don't run synchronously in the effect.
@@ -101,7 +106,7 @@ export function ReadingPane({
     return () => window.clearTimeout(handle);
   }, [notice]);
 
-  const toggleSeen = useCallback(async () => {
+  const toggleSeen = async () => {
     if (!message) return;
     const next = !message.seen;
     setSeenPending(true);
@@ -112,11 +117,11 @@ export function ReadingPane({
     } catch (err) {
       setMessage((current) => (current ? { ...current, seen: !next } : current));
       onSeenChange?.(message.uid, !next);
-      setNotice({ text: err instanceof MailApiError ? err.message : "Could not update the read state.", tone: "error" });
+      setNotice({ text: err instanceof MailApiError ? mailErrorMessage(t, err) : t("updateSeenFailed"), tone: "error" });
     } finally {
       setSeenPending(false);
     }
-  }, [message, folder, onSeenChange]);
+  };
 
   // Sandboxed srcDoc. Remote images are swapped for a blank pixel unless the
   // user opts in via "Load images" — nothing is fetched otherwise.
@@ -140,13 +145,13 @@ export function ReadingPane({
             className="inline-flex items-center gap-1 text-[13px] font-semibold text-electric outline-none transition-colors hover:text-electric-hover"
           >
             <ChevronLeft size={16} strokeWidth={2.5} aria-hidden="true" />
-            {folder === "Sent" ? "Sent" : "Inbox"}
+            {folder === "Sent" ? t("folderSent") : t("folderInbox")}
           </Link>
         )}
         <div className="flex items-center gap-2">
           {(demo || offline) && (
             <span className="chip border border-electric/20 bg-electric-tint text-[10px] font-bold uppercase tracking-[0.08em] text-electric">
-              {offline ? "Offline preview" : "Demo"}
+              {offline ? t("offlinePreview") : t("demoChip")}
             </span>
           )}
           {notice && (
@@ -175,7 +180,7 @@ export function ReadingPane({
         {/* Header */}
         <header className="border-b border-border px-6 pb-5 pt-6">
           {loading ? (
-            <div className="space-y-3" aria-busy="true" aria-label="Loading message">
+            <div className="space-y-3" aria-busy="true" aria-label={t("loadingMessage")}>
               <div className="h-6 w-2/3 animate-pulse rounded-pill bg-track" />
               <div className="h-4 w-1/2 animate-pulse rounded-pill bg-track/70" />
               <div className="h-4 w-1/3 animate-pulse rounded-pill bg-track/50" />
@@ -196,11 +201,11 @@ export function ReadingPane({
                   >
                     {message.seen ? (
                       <>
-                        <Mail size={14} strokeWidth={2} aria-hidden="true" /> Mark unread
+                        <Mail size={14} strokeWidth={2} aria-hidden="true" /> {t("markUnread")}
                       </>
                     ) : (
                       <>
-                        <MailOpen size={14} strokeWidth={2} aria-hidden="true" /> Mark read
+                        <MailOpen size={14} strokeWidth={2} aria-hidden="true" /> {t("markRead")}
                       </>
                     )}
                   </button>
@@ -211,30 +216,30 @@ export function ReadingPane({
                     aria-controls="reply-panel"
                     className="btn btn-primary h-9 px-4 text-[12px]"
                   >
-                    <PenLine size={14} strokeWidth={2} aria-hidden="true" /> Reply
+                    <PenLine size={14} strokeWidth={2} aria-hidden="true" /> {t("reply")}
                   </button>
                 </div>
               </div>
 
               <dl className="mt-4 grid gap-1.5 text-[13px] sm:grid-cols-[auto_1fr] sm:gap-x-4">
-                <dt className="font-bold uppercase tracking-[0.08em] text-muted text-[10px] leading-5">From</dt>
+                <dt className="font-bold uppercase tracking-[0.08em] text-muted text-[10px] leading-5">{t("fromLabel")}</dt>
                 <dd className="min-w-0 text-obsidian">
-                  <span className="font-semibold">{message.from?.name || "Unknown sender"}</span>{" "}
+                  <span className="font-semibold">{message.from?.name || t("unknownSender")}</span>{" "}
                   <code className="font-mono text-[11px] text-muted">&lt;{message.from?.address ?? "—"}&gt;</code>
                 </dd>
-                <dt className="font-bold uppercase tracking-[0.08em] text-muted text-[10px] leading-5">To</dt>
+                <dt className="font-bold uppercase tracking-[0.08em] text-muted text-[10px] leading-5">{t("toLabel")}</dt>
                 <dd className="min-w-0 text-obsidian-light">
                   {message.to.length === 0
                     ? "—"
                     : message.to.map((t) => t.name || t.address).join(", ")}
                   {message.cc.length > 0 && (
-                    <span className="text-muted"> · cc {message.cc.map((t) => t.name || t.address).join(", ")}</span>
+                    <span className="text-muted"> · {t("ccList", { list: message.cc.map((t) => t.name || t.address).join(", ") })}</span>
                   )}
                 </dd>
-                <dt className="font-bold uppercase tracking-[0.08em] text-muted text-[10px] leading-5">Date</dt>
+                <dt className="font-bold uppercase tracking-[0.08em] text-muted text-[10px] leading-5">{t("dateLabel")}</dt>
                 <dd className="text-obsidian-light">
                   <time dateTime={message.date} title={message.date}>
-                    {fullDateTime(message.date)}
+                    {fullDateTime(message.date, intlLocale)}
                   </time>
                 </dd>
               </dl>
@@ -242,7 +247,7 @@ export function ReadingPane({
               {attachmentCount > 0 && (
                 <div className="mt-4">
                   <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-muted">
-                    {attachmentCount} attachment{attachmentCount === 1 ? "" : "s"}
+                    {t("attachmentCount", { count: attachmentCount })}
                   </p>
                   <ul className="flex flex-wrap gap-2">
                     {message.attachments.map((att) => (
@@ -251,7 +256,7 @@ export function ReadingPane({
                           href={`/api/mail/attachment?uid=${message.uid}&folder=${encodeURIComponent(folder)}&part=${encodeURIComponent(att.part)}&name=${encodeURIComponent(att.filename)}`}
                           download={att.filename}
                           className="inline-flex max-w-[260px] items-center gap-2 rounded-pill border border-border bg-canvas px-3 py-1.5 text-[12px] font-medium text-obsidian-light transition-colors hover:border-electric/40 hover:text-electric"
-                          title={`Download ${att.filename}`}
+                          title={t("downloadAttachment", { filename: att.filename })}
                         >
                           <Paperclip size={13} strokeWidth={2} aria-hidden="true" className="shrink-0" />
                           <span className="truncate">{att.filename}</span>
@@ -276,15 +281,15 @@ export function ReadingPane({
           ) : !message ? (
             <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
               <MailWarning size={34} strokeWidth={1.6} className="text-muted" aria-hidden="true" />
-              <p className="mt-3 text-[15px] font-bold text-obsidian">This message could not be loaded</p>
+              <p className="mt-3 text-[15px] font-bold text-obsidian">{t("messageLoadFailedTitle")}</p>
               <p className="mt-1 max-w-sm text-[13px] text-muted">
-                It may have been moved or the mailbox may be unreachable — use Retry above.
+                {t("messageLoadFailedBody")}
               </p>
             </div>
           ) : srcDoc ? (
             <>
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted">Message body</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted">{t("messageBody")}</p>
                 <button
                   type="button"
                   onClick={() => setShowImages((v) => !v)}
@@ -293,34 +298,34 @@ export function ReadingPane({
                 >
                   {showImages ? (
                     <>
-                      <EyeOff size={12} strokeWidth={2.2} aria-hidden="true" /> Hide images
+                      <EyeOff size={12} strokeWidth={2.2} aria-hidden="true" /> {t("hideImages")}
                     </>
                   ) : (
                     <>
-                      <ImageIcon size={12} strokeWidth={2.2} aria-hidden="true" /> Load images
+                      <ImageIcon size={12} strokeWidth={2.2} aria-hidden="true" /> {t("loadImages")}
                     </>
                   )}
                 </button>
               </div>
               <iframe
                 sandbox="allow-same-origin"
-                title="Message body"
+                title={t("messageBody")}
                 className="min-h-[400px] w-full rounded-md border border-border bg-white"
                 srcDoc={srcDoc}
               />
               {!showImages && (
                 <p className="mt-2 flex items-center gap-1.5 text-[11px] text-muted">
-                  <Eye size={12} strokeWidth={2} aria-hidden="true" /> Remote images are blocked to protect your mailbox. Load them only for messages you trust.
+                  <Eye size={12} strokeWidth={2} aria-hidden="true" /> {t("remoteImagesBlocked")}
                 </p>
               )}
             </>
           ) : (
             <>
               <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-muted">
-                Plain-text message
+                {t("plainTextMessage")}
               </p>
               <pre className="max-h-[560px] overflow-auto whitespace-pre-wrap rounded-md border border-border bg-canvas p-4 font-sans text-[13px] leading-relaxed text-obsidian-light">
-                {message.text || "(empty message)"}
+                {message.text || t("emptyMessage")}
               </pre>
             </>
           )}
@@ -333,7 +338,7 @@ export function ReadingPane({
               uid={message.uid}
               folder={folder}
               demo={demo || offline}
-              mailboxAddress={mailboxAddress ?? "the connected mailbox"}
+              mailboxAddress={mailboxAddress ?? t("connectedMailbox")}
               onSent={(text) => {
                 setNotice({ text, tone: "ok" });
                 setReplyOpen(false);
@@ -345,7 +350,7 @@ export function ReadingPane({
 
       {!inline && (
         <p className="text-[11px] text-muted">
-          Read-only mailbox · no delete, no forward, no compose — replies only. Attachments are always downloaded, never rendered inline.
+          {t("readOnlyFooter")}
         </p>
       )}
     </div>

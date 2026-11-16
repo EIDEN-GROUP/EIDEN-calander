@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { CalendarClient } from "@/components/calendar/CalendarClient";
 import { loadCalendarData } from "@/lib/live-data";
 
-export const metadata: Metadata = { title: "Calendar" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("calendar");
+  return { title: t("metaTitle") };
+}
 // Reads live data at request time — block prerender.
 export const instant = false;
 

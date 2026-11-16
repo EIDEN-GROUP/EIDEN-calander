@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { ChevronLeft, Users } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { NowBarMark, Wordmark } from "@/components/brand/NowBar";
 import { LoginForm } from "./LoginForm";
 
-export const metadata: Metadata = {
-  title: "Log in",
-  description: "Log in to CALENDAR. by Eiden Group — architecture for time.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("login");
+  return { title: t("signIn"), description: t("tagline") };
+}
 // Reads `next` from searchParams at request time.
 export const instant = false;
 
@@ -21,6 +23,7 @@ function ArtworkCard({
   seats,
   className = "",
   delay = "floaty",
+  tx,
 }: {
   time: string;
   duration: string;
@@ -30,6 +33,7 @@ function ArtworkCard({
   seats?: string;
   className?: string;
   delay?: "floaty" | "floaty-delay" | "floaty-slow";
+  tx: (key: string) => string;
 }) {
   const accentStyles = {
     green: "bg-tint-green text-tint-fg-green border-[rgba(36,138,61,0.25)]",
@@ -64,6 +68,8 @@ function ArtworkCard({
 }
 
 function BrandArtwork() {
+  const t = useTranslations("login");
+  const tx = (key: string) => t(key as Parameters<typeof t>[0]);
   return (
     <div
       aria-hidden="true"
@@ -93,31 +99,34 @@ function BrandArtwork() {
       {/* Floating schedule cards */}
       <ArtworkCard
         time="09:30"
-        duration="2h"
+        duration={`2${t("hourShort")}`}
         title="React Avancé — Session 3"
         meta="Salle Formation · Casablanca"
         accent="green"
-        seats="14 / 20 seats"
+        seats={`14 / 20 ${t("seats")}`}
         className="right-[14%] top-[16%] rotate-[1.5deg]"
         delay="floaty"
+        tx={tx}
       />
       <ArtworkCard
         time="14:00"
-        duration="3h"
+        duration={`3${t("hourShort")}`}
         title="Acme SARL — Board Meeting"
         meta="Salle Grande · 450 MAD / h"
         accent="blue"
         className="right-[30%] top-[42%] -rotate-[2deg]"
         delay="floaty-delay"
+        tx={tx}
       />
       <ArtworkCard
         time="17:30"
-        duration="45m"
+        duration={`45${t("minuteShort")}`}
         title="Revue produit — Équipe"
         meta="Salle Petite · Agadir"
         accent="purple"
         className="right-[10%] bottom-[15%] rotate-[1deg]"
         delay="floaty-slow"
+        tx={tx}
       />
 
       {/* Wordmark block, bottom-left */}
@@ -141,6 +150,7 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ next?: string }>;
 }) {
+  const t = await getTranslations("login");
   const { next } = await searchParams;
   const nextPath = next?.startsWith("/") ? next : "/dashboard";
 
@@ -179,7 +189,7 @@ export default async function LoginPage({
               className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-obsidian-light transition-colors hover:text-obsidian"
             >
               <ChevronLeft size={17} strokeWidth={2.2} aria-hidden="true" />
-              Back to website
+              {t("backToWebsite")}
             </a>
 
             {/* Brand */}
@@ -190,13 +200,13 @@ export default async function LoginPage({
 
             {/* Headline */}
             <h1 className="mt-6 text-[38px] font-extrabold leading-[1.05] tracking-[-0.05em] text-obsidian sm:text-[44px]">
-              Welcome!
+              {t("welcome")}
             </h1>
             <p className="mt-3 text-[16px] leading-snug text-obsidian-light">
-              Log in to CALENDAR. — the operations calendar by Eiden Group.
+              {t("tagline")}
             </p>
             <p className="mt-2 text-[13px] text-black/45">
-              Need access? Contact your administrator to get an account.
+              {t("needAccess")}
             </p>
 
             {/* Form */}
@@ -208,7 +218,7 @@ export default async function LoginPage({
 
         {/* Footer strip */}
         <div className="flex items-center justify-between gap-4 border-t border-divider px-6 py-4 text-[11px] font-medium text-black/40 sm:px-10">
-          <span>© 2026 Eiden Group · All rights reserved</span>
+          <span>{t("rights")}</span>
           <span className="font-mono uppercase tracking-[0.14em]">Architecture for Time.</span>
         </div>
       </div>

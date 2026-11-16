@@ -1,4 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import { connection } from "next/server";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "next-intl/server";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -22,11 +25,15 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Entire app is per-user/per-request — block prerender so cookie-based
+  // locale reads are legal everywhere (Cache Components mode).
+  await connection();
+  const locale = await getLocale();
   return (
-    <html lang="en" className="h-full">
+    <html lang={locale} className="h-full">
       <body className="min-h-full bg-canvas font-sans text-obsidian antialiased">
-        {children}
+        <NextIntlClientProvider>{children}</NextIntlClientProvider>
       </body>
     </html>
   );

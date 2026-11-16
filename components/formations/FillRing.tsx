@@ -3,6 +3,8 @@
  * Radius 18 on a 48 viewBox; stroke ramps success → warning (>80%) → error (100%).
  */
 
+import { useTranslations } from "next-intl";
+
 export function FillRing({
   percent,
   size = 56,
@@ -12,6 +14,7 @@ export function FillRing({
   size?: number;
   strokeWidth?: number;
 }) {
+  const t = useTranslations("formations");
   const r = 18;
   const circumference = 2 * Math.PI * r;
   const clamped = Math.min(100, Math.max(0, Math.round(percent)));
@@ -26,7 +29,7 @@ export function FillRing({
   return (
     <span
       role="img"
-      aria-label={`Fill rate ${clamped} percent`}
+      aria-label={t("fillRate", { percent: clamped })}
       className="relative inline-flex shrink-0 items-center justify-center"
       style={{ width: size, height: size }}
     >

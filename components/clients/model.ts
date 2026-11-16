@@ -5,6 +5,7 @@
 import { getDemoBookings } from "@/lib/demo-data";
 import { hashString } from "@/components/formations/Avatar";
 import type { BookingRow, ClientRow } from "@/lib/types/db";
+import { appLocaleTag } from "@/lib/intl-locale";
 
 export type ClientStatusFilter = "all" | "lead" | "active" | "inactive";
 export type ClientSort = "recent" | "name-asc" | "name-desc";
@@ -73,7 +74,7 @@ export function filterClients(
   });
 }
 
-const shortDayFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
-export function formatShortDate(d: Date): string {
-  return shortDayFmt.format(d);
+const shortDayFmt = (tag?: string) => new Intl.DateTimeFormat(tag ?? appLocaleTag(), { day: "numeric", month: "short" });
+export function formatShortDate(d: Date, localeTag?: string): string {
+  return shortDayFmt(localeTag).format(d);
 }

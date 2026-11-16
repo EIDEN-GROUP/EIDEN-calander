@@ -14,8 +14,10 @@ import {
   ServerCog,
   X,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { PageHeader } from "@/components/settings/PageHeader";
 import { ToastViewport, useToast } from "@/components/settings/Toast";
+import { appLocaleTag } from "@/lib/intl-locale";
 
 type Verb = "create" | "update" | "delete" | "auth" | "settings";
 
@@ -34,12 +36,12 @@ interface AuditEntry {
   };
 }
 
-const VERB_META: Record<Verb, { label: string; chip: string }> = {
-  create: { label: "Create", chip: "bg-success-tint text-tint-fg-green" },
-  update: { label: "Update", chip: "bg-tint-blue text-tint-fg-blue" },
-  delete: { label: "Delete", chip: "bg-error-tint text-error" },
-  auth: { label: "Auth", chip: "bg-warning-tint text-tint-fg-amber" },
-  settings: { label: "Settings", chip: "bg-canvas text-muted" },
+const VERB_META: Record<Verb, { labelKey: string; chip: string }> = {
+  create: { labelKey: "verbCreate", chip: "bg-success-tint text-tint-fg-green" },
+  update: { labelKey: "verbUpdate", chip: "bg-tint-blue text-tint-fg-blue" },
+  delete: { labelKey: "verbDelete", chip: "bg-error-tint text-error" },
+  auth: { labelKey: "verbAuth", chip: "bg-warning-tint text-tint-fg-amber" },
+  settings: { labelKey: "verbSettings", chip: "bg-canvas text-muted" },
 };
 
 const TEMPLATES: Array<{ verb: Verb; entity: string; details: string[] }> = [
@@ -116,8 +118,8 @@ export interface AuditEntryLive {
   meta: { requestId: string; ip: string; userAgent: string; entityId: string };
 }
 
-const dateFmt = new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short" });
-const timeFmt = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+const dateFmt = new Intl.DateTimeFormat(appLocaleTag(), { day: "2-digit", month: "short" });
+const timeFmt = new Intl.DateTimeFormat(appLocaleTag(), { hour: "2-digit", minute: "2-digit", hour12: false });
 
 function csvCell(value: string): string {
   return `"${value.replace(/"/g, '""')}"`;
@@ -130,6 +132,7 @@ export function AuditView({
   entries?: AuditEntryLive[];
   live?: boolean;
 }) {
+  const t = useTranslations("settings");
   const source: AuditEntry[] = entriesProp ?? ALL_ENTRIES;
   const actorOptions = live ? Array.from(new Set(source.map((e) => e.actor))).sort() : ACTOR_OPTIONS;
   const { toasts, push } = useToast();
@@ -188,9 +191,9 @@ export function AuditView({
   };
 
   const exportCsv = () => {
-    const header = ["When", "Actor", "Action", "Entity", "Details"].map(csvCell).join(",");
+    const header = [t("csvWhen"), t("csvActor"), t("csvAction"), t("csvEntity"), t("csvDetails")].map(csvCell).join(",");
     const rows = filtered.map((entry) =>
-      [entry.at.toISOString(), entry.actor, VERB_META[entry.verb].label, entry.entity, entry.details].map(csvCell).join(","),
+      [entry.at.toISOString(), entry.actor, t(VERB_META[entry.verb].labelKey), entry.entity, entry.details].map(csvCell).join(","),
     );
     const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -201,60 +204,60 @@ export function AuditView({
     anchor.download = `eiden-calendar-audit-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
-    push(`Exported ${filtered.length} row${filtered.length === 1 ? "" : "s"}${live ? "" : " (demo)"}`);
+    push(t("exportedRows", { count: filtered.length }) + (live ? "" : t("exportedDemoSuffix")));
   };
 
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
-        title="Audit Log"
-        sub="Every write, who made it, and when — searchable, filterable, exportable. Admin-only by policy."
+        title={t("tabAudit")}
+        sub={t("auditSub")}
       >
-        <span className="chip bg-obsidian text-[10px] uppercase tracking-[0.12em] text-white">Admin</span>
+        <span className="chip bg-obsidian text-[10px] uppercase tracking-[0.12em] text-white">{t("adminBadge")}</span>
       </PageHeader>
 
       {/* Filters */}
       <div className="card mt-5 flex flex-wrap items-end gap-2 p-3 sm:p-4">
         <div>
-          <label htmlFor="audit-actor" className="label">Actor</label>
+          <label htmlFor="audit-actor" className="label">{t("actorLabel")}</label>
           <select id="audit-actor" className="input h-10 w-36 px-2.5 text-[13px]" value={actor} onChange={(e) => resetAndSet(setActor)(e.target.value)}>
-            <option value="all">All actors</option>
+            <option value="all">{t("allActors")}</option>
             {actorOptions.map((a) => (
               <option key={a} value={a}>{a}</option>
             ))}
           </select>
         </div>
         <div>
-          <label htmlFor="audit-verb" className="label">Action</label>
+          <label htmlFor="audit-verb" className="label">{t("colAction")}</label>
           <select id="audit-verb" className="input h-10 w-32 px-2.5 text-[13px]" value={verb} onChange={(e) => resetAndSet(setVerb)(e.target.value)}>
-            <option value="all">All actions</option>
+            <option value="all">{t("allActions")}</option>
             {Object.entries(VERB_META).map(([key, meta]) => (
-              <option key={key} value={key}>{meta.label}</option>
+              <option key={key} value={key}>{t(meta.labelKey)}</option>
             ))}
           </select>
         </div>
         <div>
-          <label htmlFor="audit-from" className="label">From</label>
+          <label htmlFor="audit-from" className="label">{t("fromLabel")}</label>
           <input id="audit-from" type="date" className="input h-10 w-36 px-2.5 text-[13px]" value={from} onChange={(e) => resetAndSet(setFrom)(e.target.value)} />
         </div>
         <div>
-          <label htmlFor="audit-to" className="label">To</label>
+          <label htmlFor="audit-to" className="label">{t("toLabel")}</label>
           <input id="audit-to" type="date" className="input h-10 w-36 px-2.5 text-[13px]" value={to} onChange={(e) => resetAndSet(setTo)(e.target.value)} />
         </div>
         <div className="min-w-40 flex-1">
-          <label htmlFor="audit-search" className="label">Search</label>
+          <label htmlFor="audit-search" className="label">{t("searchLabel")}</label>
           <div className="relative">
             <Search size={14} strokeWidth={2.2} aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
             <input
               id="audit-search"
               className="input h-10 pl-9 text-[13px]"
-              placeholder="booking, actor, entity…"
+              placeholder={t("auditSearchPlaceholder")}
               value={query}
               onChange={(e) => resetAndSet(setQuery)(e.target.value)}
               autoComplete="off"
             />
             {query ? (
-              <button type="button" onClick={() => resetAndSet(setQuery)("")} aria-label="Clear search" className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-pill p-1 text-muted hover:text-obsidian">
+              <button type="button" onClick={() => resetAndSet(setQuery)("")} aria-label={t("clearSearchAria")} className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-pill p-1 text-muted hover:text-obsidian">
                 <X size={14} strokeWidth={2.4} aria-hidden="true" />
               </button>
             ) : null}
@@ -262,11 +265,11 @@ export function AuditView({
         </div>
         <button type="button" onClick={exportCsv} className="btn btn-secondary h-10 px-4 text-[13px]">
           <Download size={15} strokeWidth={2.1} aria-hidden="true" />
-          Export CSV
+          {t("exportCsv")}
         </button>
         {hasFilters ? (
           <button type="button" onClick={clearFilters} className="btn btn-ghost h-10 px-3 text-[12px]">
-            Clear filters
+            {t("clearFilters")}
           </button>
         ) : null}
       </div>
@@ -275,21 +278,21 @@ export function AuditView({
       <div className="card mt-4 overflow-hidden">
         <div className="flex items-center justify-between gap-2 border-b border-divider px-4 py-3 sm:px-5">
           <p className="text-[12px] font-semibold text-obsidian-light">
-            <span className="font-mono text-obsidian">{filtered.length}</span> of {source.length} entries
+            <span className="font-mono text-obsidian">{filtered.length}</span> {t("ofEntries", { total: source.length })}
           </p>
-          <p className="text-[11px] font-medium text-muted">Click a row for request metadata</p>
+          <p className="text-[11px] font-medium text-muted">{t("clickRowHint")}</p>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-left text-[13px]">
             <thead>
               <tr className="border-b border-border text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
-                <th scope="col" className="px-4 py-2.5 sm:px-5">When</th>
-                <th scope="col" className="px-3 py-2.5">Actor</th>
-                <th scope="col" className="px-3 py-2.5">Action</th>
-                <th scope="col" className="px-3 py-2.5">Entity</th>
-                <th scope="col" className="px-3 py-2.5">Details</th>
-                <th scope="col" className="w-12 px-2 py-2.5"><span className="sr-only">Expand</span></th>
+                <th scope="col" className="px-4 py-2.5 sm:px-5">{t("colWhen")}</th>
+                <th scope="col" className="px-3 py-2.5">{t("colActor")}</th>
+                <th scope="col" className="px-3 py-2.5">{t("colAction")}</th>
+                <th scope="col" className="px-3 py-2.5">{t("colEntity")}</th>
+                <th scope="col" className="px-3 py-2.5">{t("colDetails")}</th>
+                <th scope="col" className="w-12 px-2 py-2.5"><span className="sr-only">{t("expandSrOnly")}</span></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-divider">
@@ -297,9 +300,9 @@ export function AuditView({
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center">
                     <CircleExclamationPoint size={26} strokeWidth={1.8} aria-hidden="true" className="mx-auto text-muted" />
-                    <p className="mt-3 text-[14px] font-bold text-obsidian">No entries match</p>
-                    <p className="mt-1 text-[12px] font-medium text-muted">Try wider dates, another actor, or clear the search.</p>
-                    <button type="button" onClick={clearFilters} className="btn btn-secondary mt-4 h-9 px-4 text-[12px]">Clear filters</button>
+                    <p className="mt-3 text-[14px] font-bold text-obsidian">{t("noEntriesTitle")}</p>
+                    <p className="mt-1 text-[12px] font-medium text-muted">{t("noEntriesBody")}</p>
+                    <button type="button" onClick={clearFilters} className="btn btn-secondary mt-4 h-9 px-4 text-[12px]">{t("clearFilters")}</button>
                   </td>
                 </tr>
               ) : (
@@ -329,7 +332,7 @@ export function AuditView({
                         </span>
                       </td>
                       <td className="px-3 py-2.5">
-                        <span className={`chip ${VERB_META[entry.verb].chip}`}>{VERB_META[entry.verb].label}</span>
+                        <span className={`chip ${VERB_META[entry.verb].chip}`}>{t(VERB_META[entry.verb].labelKey)}</span>
                       </td>
                       <td className="px-3 py-2.5">
                         <code className="font-mono text-[11px] font-semibold text-obsidian-light">{entry.entity}</code>
@@ -346,7 +349,7 @@ export function AuditView({
                           }}
                           aria-expanded={isOpen}
                           aria-controls={metaId}
-                          aria-label={`${isOpen ? "Hide" : "Show"} request metadata for entry ${entry.id}`}
+                          aria-label={isOpen ? t("hideEntryMeta", { id: entry.id }) : t("showEntryMeta", { id: entry.id })}
                           className="rounded-pill p-1.5 text-muted transition-all hover:bg-canvas hover:text-obsidian"
                         >
                           <ChevronDown size={15} strokeWidth={2.2} aria-hidden="true" className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
@@ -381,14 +384,14 @@ export function AuditView({
         {/* Pagination */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-divider px-4 py-3 sm:px-5">
           <p className="text-[11px] font-medium text-muted" aria-live="polite">
-            Showing <span className="font-mono text-obsidian">{paged.length === 0 ? 0 : (effectivePage - 1) * PAGE_SIZE + 1}–{(effectivePage - 1) * PAGE_SIZE + paged.length}</span> of <span className="font-mono text-obsidian">{filtered.length}</span> · page {effectivePage} of {totalPages}
+            {t("showingLabel")} <span className="font-mono text-obsidian">{paged.length === 0 ? 0 : (effectivePage - 1) * PAGE_SIZE + 1}–{(effectivePage - 1) * PAGE_SIZE + paged.length}</span> {t("showingOf")} <span className="font-mono text-obsidian">{filtered.length}</span> · {t("pageLabel", { page: effectivePage, pages: totalPages })}
           </p>
-          <nav aria-label="Audit log pages" className="flex items-center gap-1.5">
+          <nav aria-label={t("auditPagesNavAria")} className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={effectivePage === 1}
-              aria-label="Previous page"
+              aria-label={t("prevPageAria")}
               className="rounded-pill border border-border bg-white p-2 text-obsidian-light transition-colors hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-30"
             >
               <ChevronLeft size={15} strokeWidth={2.2} aria-hidden="true" />
@@ -397,7 +400,7 @@ export function AuditView({
               type="button"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={effectivePage === totalPages}
-              aria-label="Next page"
+              aria-label={t("nextPageAria")}
               className="rounded-pill border border-border bg-white p-2 text-obsidian-light transition-colors hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-30"
             >
               <ChevronRight size={15} strokeWidth={2.2} aria-hidden="true" />
@@ -407,15 +410,15 @@ export function AuditView({
 
         <p className="flex flex-wrap items-center gap-2 border-t border-divider px-4 py-3 text-[11px] font-medium leading-snug text-muted sm:px-5">
           <ScrollText size={12} strokeWidth={2.2} aria-hidden="true" className="shrink-0" />
-          Retained 12 months, then purged nightly — change retention on{" "}
-          <Link href="/settings/data" className="font-semibold text-electric hover:text-electric-hover">Data &amp; Privacy</Link>.
-          Exports include only the filtered view.
+          {t("retainedNotePrefix")}{" "}
+          <Link href="/settings/data" className="font-semibold text-electric hover:text-electric-hover">{t("tabData")}</Link>.{" "}
+          {t("retainedNoteSuffix")}
         </p>
       </div>
 
       <div className="mt-4 flex items-center gap-2 text-[11px] font-semibold text-muted">
         <CircleCheck size={13} strokeWidth={2.2} aria-hidden="true" className="text-tint-fg-green" />
-        Every mutation in this workspace is recorded here — exports and anonymizations included.
+        {t("everyMutationNote")}
       </div>
 
       <ToastViewport toasts={toasts} />

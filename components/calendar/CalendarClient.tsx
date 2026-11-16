@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -42,12 +41,14 @@ import { PostponeModal } from "@/components/bookings/PostponeModal";
 import { Modal } from "@/components/formations/Modal";
 import { cancelBookingAction, pauseBookingAction } from "@/app/actions/bookings";
 import { Toast, type ToastData } from "@/components/bookings/Toast";
+import { useTranslations, useLocale } from "next-intl";
+import { appLocaleTag, categoryName } from "@/lib/intl-locale";
 
-const VIEWS: Array<{ id: CalendarView; label: string }> = [
-  { id: "day", label: "Day" },
-  { id: "week", label: "Week" },
-  { id: "month", label: "Month" },
-  { id: "agenda", label: "Agenda" },
+const VIEWS: Array<{ id: CalendarView; labelKey: "viewDay" | "viewWeek" | "viewMonth" | "viewAgenda" }> = [
+  { id: "day", labelKey: "viewDay" },
+  { id: "week", labelKey: "viewWeek" },
+  { id: "month", labelKey: "viewMonth" },
+  { id: "agenda", labelKey: "viewAgenda" },
 ];
 
 interface DrawerState {
@@ -59,6 +60,9 @@ interface DrawerState {
 }
 
 export function CalendarClient({ serverNow, data, prefillClientId = null }: { serverNow: string; data: CalendarData; prefillClientId?: string | null }) {
+  const t = useTranslations("calendar");
+  const locale = useLocale();
+  const intlLocale = appLocaleTag(locale);
   const router = useRouter();
   const today = useMemo(() => startOfDay(new Date(serverNow)), [serverNow]);
   const [view, setView] = useState<CalendarView>("week");
@@ -98,7 +102,8 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
       if (q) {
         const room = b.room_id ? (lookup.roomById.get(b.room_id)?.name ?? "") : "";
         const client = b.client_id ? (lookup.clientById.get(b.client_id)?.full_name ?? "") : "";
-        const cat = lookup.categoryById.get(b.category_id)?.name_en ?? "";
+        const catRow = lookup.categoryById.get(b.category_id);
+        const cat = `${catRow?.name_en ?? ""} ${catRow?.name_fr ?? ""}`;
         const hay = `${b.title} ${room} ${client} ${cat}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
@@ -116,14 +121,12 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
     return Array.from({ length: 7 }, (_, i) => addDays(start, i));
   }, [anchor]);
 
-  const stepLabel =
-    view === "month"
-      ? "month"
-      : view === "week"
-        ? "week"
-        : view === "agenda"
-          ? "14 days"
-          : "day";
+  const navLabels: Record<CalendarView, { prev: string; next: string }> = {
+    day: { prev: t("navPreviousDay"), next: t("navNextDay") },
+    week: { prev: t("navPreviousWeek"), next: t("navNextWeek") },
+    month: { prev: t("navPreviousMonth"), next: t("navNextMonth") },
+    agenda: { prev: t("navPreviousAgenda"), next: t("navNextAgenda") },
+  };
 
   const step = (dir: 1 | -1) => {
     if (view === "week") setAnchor((d) => addDays(d, dir * 7));
@@ -132,24 +135,23 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
     else setAnchor((d) => addMonths(d, dir));
   };
 
-  const openCreate = useCallback((initial?: { startsAt: string; endsAt: string }) => {
+  const openCreate = (initial?: { startsAt: string; endsAt: string }) => {
     setDrawer({ mode: "create", initial: initial ?? null, key: Date.now() });
-  }, []);
+  };
 
-  const openForRange = useCallback((_day: Date, startsAt: Date, endsAt: Date) => {
+  const openForRange = (_day: Date, startsAt: Date, endsAt: Date) => {
     setDrawer({
       mode: "create",
       initial: { startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() },
       key: Date.now(),
     });
-  }, []);
+  };
 
-  const openView = useCallback((booking: BookingRow) => {
+  const openView = (booking: BookingRow) => {
     setDrawer({ mode: "view", booking, key: Date.now() });
-  }, []);
+  };
 
-  const handleSaved = useCallback(
-    (payload: BookingPayload, opts: { conflict: boolean }) => {
+  const handleSaved = (payload: BookingPayload, opts: { conflict: boolean }) => {
       setBookings((prev) => {
         const row: BookingRow = {
           id: payload.id,
@@ -175,26 +177,24 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
         id: Date.now(),
         tone: opts.conflict ? "warning" : "success",
         title: opts.conflict
-          ? "Change request sent to the incumbent"
-          : "Booking saved",
+          ? t("toastChangeRequestSent")
+          : t("toastBookingSaved"),
         detail: opts.conflict
-          ? "The incumbent has 72h to approve the move."
+          ? t("toastChangeRequestDetail")
           : payload.title,
       });
-    },
-    [router],
-  );
+  };
 
-  const openContextMenu = useCallback((booking: BookingRow, x: number, y: number) => {
+  const openContextMenu = (booking: BookingRow, x: number, y: number) => {
     setCtxMenu({ x, y, booking });
-  }, []);
+  };
 
-  const handleMenuEdit = useCallback(() => {
+  const handleMenuEdit = () => {
     if (!ctxMenu) return;
     setDrawer({ mode: "edit", booking: ctxMenu.booking, key: Date.now() });
-  }, [ctxMenu]);
+  };
 
-  const handleMenuAdd = useCallback(() => {
+  const handleMenuAdd = () => {
     if (!ctxMenu) return;
     // New booking slotted right after this one, same duration.
     const start = new Date(ctxMenu.booking.starts_at);
@@ -205,9 +205,9 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
       key: Date.now(),
       initial: { startsAt: ctxMenu.booking.ends_at, endsAt: new Date(end.getTime() + duration).toISOString() },
     });
-  }, [ctxMenu]);
+  };
 
-  const handleMenuPause = useCallback(async () => {
+  const handleMenuPause = async () => {
     if (!ctxMenu) return;
     const target = ctxMenu.booking;
     const pause = target.status !== "paused";
@@ -221,46 +221,46 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
     setToast({
       id: Date.now(),
       tone: "success",
-      title: pause ? "Booking paused — room freed" : "Booking resumed",
-      detail: pause ? "Resume it anytime from the right-click menu." : target.title,
+      title: pause ? t("toastBookingPaused") : t("toastBookingResumed"),
+      detail: pause ? t("toastBookingPausedDetail") : target.title,
     });
     router.refresh();
-  }, [ctxMenu, router]);
+  };
 
-  const handleMenuPostpone = useCallback(() => {
+  const handleMenuPostpone = () => {
     if (!ctxMenu) return;
     setPostponeFor(ctxMenu.booking);
-  }, [ctxMenu]);
+  };
 
-  const handleMenuRemove = useCallback(() => {
+  const handleMenuRemove = () => {
     if (!ctxMenu) return;
     setRemoveFor(ctxMenu.booking);
-  }, [ctxMenu]);
+  };
 
-  const confirmRemove = useCallback(async () => {
+  const confirmRemove = async () => {
     if (!removeFor) return;
     const target = removeFor;
-    const res = await cancelBookingAction({ bookingId: target.id, reason: "Removed via calendar" });
+    const res = await cancelBookingAction({ bookingId: target.id, reason: t("auditReasonRemoved") });
     if (!res.ok) {
       setToast({ id: Date.now(), tone: "warning", title: res.error.message });
       return;
     }
     setBookings((prev) => prev.map((b) => (b.id === target.id ? { ...b, status: "cancelled" } : b)));
     setRemoveFor(null);
-    setToast({ id: Date.now(), tone: "success", title: "Booking removed entirely", detail: target.title });
+    setToast({ id: Date.now(), tone: "success", title: t("toastBookingRemoved"), detail: target.title });
     router.refresh();
-  }, [removeFor, router]);
+  };
 
-  const handlePostponeDone = useCallback((startsAt: string, endsAt: string) => {
+  const handlePostponeDone = (startsAt: string, endsAt: string) => {
     if (!postponeFor) return;
     setBookings((prev) =>
       prev.map((b) => (b.id === postponeFor.id ? { ...b, starts_at: startsAt, ends_at: endsAt } : b)),
     );
     const target = postponeFor;
     setPostponeFor(null);
-    setToast({ id: Date.now(), tone: "success", title: "Postponed", detail: target.title });
+    setToast({ id: Date.now(), tone: "success", title: t("toastPostponed"), detail: target.title });
     router.refresh();
-  }, [postponeFor, router]);
+  };
 
   const onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape" && query) {
@@ -275,16 +275,16 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.04em] text-obsidian sm:text-[32px]">
-            Calendar
+            {t("title")}
           </h1>
           <p className="mt-1 text-[14px] font-medium text-obsidian-light">
-            Bookings, formations and rooms — double-booking guarded
+            {t("subtitle")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {!data.live && (
             <span className="chip border border-warning/50 bg-warning-tint text-[11px] font-bold text-[#a34d00]">
-              Offline preview
+              {t("offlinePreview")}
             </span>
           )}
           {pendingConflicts.length > 0 && (
@@ -294,12 +294,12 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
               className="chip border border-dashed border-warning/70 bg-warning-tint !px-3 !py-1.5 text-[12px] font-bold text-[#a34d00] transition-all hover:-translate-y-px"
             >
               <TriangleAlert size={13} strokeWidth={2.4} aria-hidden="true" />
-              {pendingConflicts.length} pending conflict{pendingConflicts.length > 1 ? "s" : ""}
+              {t("pendingConflicts", { count: pendingConflicts.length })}
             </button>
           )}
           <button type="button" onClick={() => openCreate()} className="btn btn-primary">
             <Plus size={18} strokeWidth={2.4} aria-hidden="true" />
-            New booking
+            {t("newBooking")}
           </button>
         </div>
       </div>
@@ -313,21 +313,21 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
             aria-hidden="true"
             className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-black/35"
           />
-          <span className="sr-only">Search bookings</span>
+          <span className="sr-only">{t("searchBookingsSr")}</span>
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onSearchKeyDown}
-            placeholder="Search bookings, rooms, clients…"
-            aria-label="Search bookings, rooms, clients"
+            placeholder={t("searchPlaceholder")}
+            aria-label={t("searchAriaLabel")}
             className="h-11 w-full rounded-pill border border-border bg-white pl-11 pr-10 text-[14px] text-obsidian outline-none transition-shadow placeholder:text-black/30 focus:border-electric/40 focus:shadow-[0_0_0_4px_var(--color-electric-tint)]"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
-              aria-label="Clear search"
+              aria-label={t("clearSearch")}
               className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-pill text-muted transition-colors hover:bg-black/[0.04] hover:text-obsidian"
             >
               <X size={16} strokeWidth={2} aria-hidden="true" />
@@ -337,11 +337,11 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
 
         <div className="flex flex-wrap items-center gap-2">
           <FilterSelect
-            label="Filter by room"
+            label={t("filterRoom")}
             value={roomFilter}
             onChange={setRoomFilter}
             options={[
-              { value: "all", label: "All rooms" },
+              { value: "all", label: t("allRooms") },
               ...data.rooms.map((r) => ({
                 value: r.id,
                 label: `${r.name.replace(/\s*\(DEMO\)\s*$/, "")} · ${r.location}`,
@@ -349,27 +349,27 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
             ]}
           />
           <FilterSelect
-            label="Filter by location"
+            label={t("filterLocation")}
             value={locationFilter}
             onChange={(v) => setLocationFilter(v as "all" | "Casablanca" | "Agadir")}
             options={[
-              { value: "all", label: "All locations" },
+              { value: "all", label: t("allLocations") },
               { value: "Casablanca", label: "Casablanca" },
               { value: "Agadir", label: "Agadir" },
             ]}
           />
           <FilterSelect
-            label="Filter by category"
+            label={t("filterCategory")}
             value={categoryFilter}
             onChange={setCategoryFilter}
             options={[
-              { value: "all", label: "All categories" },
-              ...data.categories.map((c) => ({ value: c.id, label: c.name_en })),
+              { value: "all", label: t("allCategories") },
+              ...data.categories.map((c) => ({ value: c.id, label: categoryName(c, locale) })),
             ]}
           />
 
-          <div className="segmented" role="group" aria-label="Calendar view">
-            {VIEWS.map(({ id, label }) => (
+          <div className="segmented" role="group" aria-label={t("calendarViewLabel")}>
+            {VIEWS.map(({ id, labelKey }) => (
               <button
                 key={id}
                 type="button"
@@ -382,7 +382,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
                 ) : (
                   <CalendarDays size={14} strokeWidth={2.2} className="mr-1.5 hidden sm:inline" aria-hidden="true" />
                 )}
-                {label}
+                {t(labelKey)}
               </button>
             ))}
           </div>
@@ -395,7 +395,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
           <button
             type="button"
             onClick={() => step(-1)}
-            aria-label={`Previous ${stepLabel}`}
+            aria-label={navLabels[view].prev}
             className="flex h-9 w-9 items-center justify-center rounded-pill text-obsidian-light transition-colors hover:bg-black/[0.04] hover:text-obsidian"
           >
             <ChevronLeft size={18} strokeWidth={2.2} aria-hidden="true" />
@@ -405,12 +405,12 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
             onClick={() => setAnchor(today)}
             className="h-9 rounded-pill px-4 text-[13px] font-bold text-obsidian transition-colors hover:bg-electric-tint hover:text-electric"
           >
-            Today
+            {t("today")}
           </button>
           <button
             type="button"
             onClick={() => step(1)}
-            aria-label={`Next ${stepLabel}`}
+            aria-label={navLabels[view].next}
             className="flex h-9 w-9 items-center justify-center rounded-pill text-obsidian-light transition-colors hover:bg-black/[0.04] hover:text-obsidian"
           >
             <ChevronRight size={18} strokeWidth={2.2} aria-hidden="true" />
@@ -420,7 +420,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
           className="text-[15px] font-extrabold tracking-[-0.02em] text-obsidian sm:text-[17px]"
           aria-live="polite"
         >
-          {rangeLabel(view, anchor)}
+          {rangeLabel(view, anchor, intlLocale)}
         </h2>
 
         {/* Legend */}
@@ -429,16 +429,16 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
           aria-hidden="true"
         >
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-[4px] bg-tint-blue ring-1 ring-electric/30" /> Room
+            <span className="h-2.5 w-2.5 rounded-[4px] bg-tint-blue ring-1 ring-electric/30" /> {t("legendRoom")}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-[4px] bg-tint-green ring-1 ring-[#248a3d]/30" /> Formation
+            <span className="h-2.5 w-2.5 rounded-[4px] bg-tint-green ring-1 ring-[#248a3d]/30" /> {t("legendFormation")}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-[4px] bg-tint-purple ring-1 ring-[#5e5ce6]/30" /> Event
+            <span className="h-2.5 w-2.5 rounded-[4px] bg-tint-purple ring-1 ring-[#5e5ce6]/30" /> {t("legendEvent")}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-[4px] border border-dashed border-warning bg-warning-tint" /> Pending
+            <span className="h-2.5 w-2.5 rounded-[4px] border border-dashed border-warning bg-warning-tint" /> {t("legendPending")}
           </span>
         </div>
       </div>
@@ -503,7 +503,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
       </div>
 
       <p className="mt-4 text-[11px] font-medium text-muted">
-        Drag on empty grid cells to create a booking · double-booking is blocked at save time and enforced by database trigger.
+        {t("dragHint")}
       </p>
 
       {/* Right-click context menu */}
@@ -536,23 +536,23 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
       {/* Remove confirmation */}
       {removeFor && (
         <Modal
-          title="Remove booking?"
+          title={t("removeBookingTitle")}
           description={removeFor.title}
           onClose={() => setRemoveFor(null)}
         >
           <div className="rounded-sm border border-border bg-canvas px-4 py-3 text-[13px] font-medium leading-snug text-obsidian-light">
-            The booking is <span className="font-bold text-obsidian">removed entirely</span> — the row is deleted, not archived. The audit log (Settings → Audit log) records who removed it, when, and the booking details.
+            {t.rich("removeBookingBody", { strong: (chunks) => <span className="font-bold text-obsidian">{chunks}</span> })}
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-divider pt-4">
             <button type="button" onClick={() => setRemoveFor(null)} className="btn btn-ghost h-11 px-5 text-[14px]">
-              Keep booking
+              {t("keepBooking")}
             </button>
             <button
               type="button"
               onClick={() => void confirmRemove()}
               className="btn h-11 bg-error px-6 text-[14px] font-bold text-white transition-opacity hover:opacity-90"
             >
-              Remove booking
+              {t("removeBooking")}
             </button>
           </div>
         </Modal>

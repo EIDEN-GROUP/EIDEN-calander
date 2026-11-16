@@ -1,10 +1,14 @@
 import { connection } from "next/server";
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { getTranslations } from "next-intl/server";
 import { PlansBoard } from "@/components/plans/PlansBoard";
 import { loadPlans } from "@/lib/plans-live";
 
-export const metadata: Metadata = { title: "Plans" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("plans");
+  return { title: t("title") };
+}
 // Reads live data at request time — block prerender.
 export const instant = false;
 

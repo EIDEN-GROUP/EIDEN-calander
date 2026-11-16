@@ -10,6 +10,7 @@
 import { useMemo, useState, useSyncExternalStore, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createClientAction } from "@/app/actions/clients";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -55,13 +56,20 @@ import { ToastViewport, useToast } from "@/components/formations/Toast";
 
 const PAGE_SIZE = 9;
 
-const STATUS_META: Record<ClientStatus, { label: string; tone: ChipTone }> = {
-  lead: { label: "Lead", tone: "warning" },
-  active: { label: "Active", tone: "success" },
-  inactive: { label: "Inactive", tone: "muted" },
+const STATUS_META: Record<ClientStatus, { labelKey: "statusLead" | "statusActive" | "statusInactive"; tone: ChipTone }> = {
+  lead: { labelKey: "statusLead", tone: "warning" },
+  active: { labelKey: "statusActive", tone: "success" },
+  inactive: { labelKey: "statusInactive", tone: "muted" },
 };
 
 const SOURCES = ["referral", "web", "walk-in", "partner", "event"] as const;
+const SOURCE_KEYS: Record<(typeof SOURCES)[number], "sourceReferral" | "sourceWeb" | "sourceWalkin" | "sourcePartner" | "sourceEvent"> = {
+  referral: "sourceReferral",
+  web: "sourceWeb",
+  "walk-in": "sourceWalkin",
+  partner: "sourcePartner",
+  event: "sourceEvent",
+};
 
 interface NewClientForm {
   type: "person" | "company";
@@ -86,6 +94,7 @@ const EMPTY_FORM: NewClientForm = {
 };
 
 export function ClientsClient({ data }: { data?: ClientsListData | null }) {
+  const t = useTranslations("clients");
   const router = useRouter();
   const live = data?.live === true;
   const liveClients = data?.clients;
@@ -180,9 +189,9 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
     const fullName = form.fullName.trim();
     const email = form.email.trim();
     const company = form.company.trim();
-    if (!fullName) return setFormError("Full name is required.");
-    if (form.type === "company" && !company) return setFormError("Company name is required for a company account.");
-    if (!EMAIL_RE.test(email)) return setFormError("Enter a valid email address.");
+    if (!fullName) return setFormError(t("errorFullName"));
+    if (form.type === "company" && !company) return setFormError(t("errorCompanyRequired"));
+    if (!EMAIL_RE.test(email)) return setFormError(t("errorEmail"));
 
     const tags = [
       ...new Set(
@@ -225,20 +234,20 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
       if ("duplicate" in res.data) {
         const existing = res.data.duplicate.existing;
         setCreateOpen(false);
-        push(`Already exists — ${existing.full_name} (email/phone match)`, "info");
+        push(t("toastAlreadyExists", { name: existing.full_name }), "info");
         router.refresh();
         return;
       }
       setCreateOpen(false);
       setForm(EMPTY_FORM);
-      push(`Client added — ${fullName}`);
+      push(t("toastClientAdded", { name: fullName }));
       router.refresh();
       return;
     }
     appendStoredClient(client);
     setCreateOpen(false);
     setForm(EMPTY_FORM);
-    push(`Client added — ${fullName}`);
+    push(t("toastClientAdded", { name: fullName }));
   }
 
   /* ---------- quick actions ---------- */
@@ -258,15 +267,15 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="max-w-2xl">
           <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.04em] text-obsidian sm:text-[32px]">
-            Clients
+            {t("title")}
           </h1>
           <p className="mt-1.5 text-[14px] font-medium leading-snug text-obsidian-light">
-            Your renting customers — rooms, formations &amp; history in one place
+            {t("subtitle")}
           </p>
         </div>
         <button type="button" onClick={() => { setFormError(null); setCreateOpen(true); }} className="btn btn-primary h-11 shadow-electric">
           <Plus size={18} strokeWidth={2.4} aria-hidden="true" />
-          New client
+          {t("newClient")}
         </button>
       </div>
 
@@ -274,45 +283,45 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <div className="relative min-w-0 flex-1 basis-56">
           <Search size={16} aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-          <label htmlFor="client-search" className="sr-only">Search clients by name, company or email</label>
+          <label htmlFor="client-search" className="sr-only">{t("searchLabel")}</label>
           <input
             id="client-search"
             type="search"
             value={query}
             onChange={(e) => updateQuery(e.target.value)}
-            placeholder="Search name, company, email…"
+            placeholder={t("searchPlaceholder")}
             className="input h-11 w-full pl-10"
           />
         </div>
-        <label htmlFor="client-status" className="sr-only">Filter by status</label>
+        <label htmlFor="client-status" className="sr-only">{t("filterStatusLabel")}</label>
         <select id="client-status" value={statusFilter} onChange={(e) => updateStatusFilter(e.target.value as ClientStatusFilter)} className="input h-11 w-auto pr-9 text-[13px] font-semibold">
-          <option value="all">All statuses</option>
-          <option value="lead">Lead</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          <option value="all">{t("statusAll")}</option>
+          <option value="lead">{t("statusLead")}</option>
+          <option value="active">{t("statusActive")}</option>
+          <option value="inactive">{t("statusInactive")}</option>
         </select>
-        <label htmlFor="client-sort" className="sr-only">Sort clients</label>
+        <label htmlFor="client-sort" className="sr-only">{t("sortLabel")}</label>
         <select id="client-sort" value={sort} onChange={(e) => updateSort(e.target.value as ClientSort)} className="input h-11 w-auto pr-9 text-[13px] font-semibold">
-          <option value="recent">Recent activity</option>
-          <option value="name-asc">Name A–Z</option>
-          <option value="name-desc">Name Z–A</option>
+          <option value="recent">{t("sortRecent")}</option>
+          <option value="name-asc">{t("sortNameAsc")}</option>
+          <option value="name-desc">{t("sortNameDesc")}</option>
         </select>
-        <div className="segmented ml-auto max-w-full" role="group" aria-label="Switch between cards and table view">
+        <div className="segmented ml-auto max-w-full" role="group" aria-label={t("viewSwitchLabel")}>
           <button type="button" className={`segment ${view === "cards" ? "segment-active" : ""}`} aria-pressed={view === "cards"} onClick={() => setView("cards")}>
             <LayoutGrid size={15} aria-hidden="true" />
-            <span className="hidden sm:inline">Cards</span>
+            <span className="hidden sm:inline">{t("viewCards")}</span>
           </button>
           <button type="button" className={`segment ${view === "table" ? "segment-active" : ""}`} aria-pressed={view === "table"} onClick={() => setView("table")}>
             <Rows3 size={15} aria-hidden="true" />
-            <span className="hidden sm:inline">Table</span>
+            <span className="hidden sm:inline">{t("viewTable")}</span>
           </button>
         </div>
       </div>
 
       {/* Tag chips */}
       {allTags.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Filter by tag">
-          <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-muted">Tags</span>
+        <div className="mt-3 flex flex-wrap items-center gap-2" aria-label={t("filterByTag")}>
+          <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-muted">{t("tags")}</span>
           {allTags.map((tag) => {
             const active = activeTags.includes(tag);
             return (
@@ -334,7 +343,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
           {hasActiveFilters && (
             <button type="button" onClick={clearFilters} className="inline-flex items-center gap-1 rounded-pill px-2 py-1 text-[11px] font-bold text-electric hover:underline">
               <X size={12} strokeWidth={3} aria-hidden="true" />
-              Clear all
+              {t("clearAll")}
             </button>
           )}
         </div>
@@ -344,17 +353,17 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
       {pageItems.length === 0 ? (
         <div className="card mt-6 flex flex-col items-center px-6 py-16 text-center">
           <NowBarMark size={52} className="opacity-90" />
-          <h2 className="mt-5 text-[19px] font-extrabold tracking-[-0.03em] text-obsidian">No clients match</h2>
+          <h2 className="mt-5 text-[19px] font-extrabold tracking-[-0.03em] text-obsidian">{t("emptyTitle")}</h2>
           <p className="mt-1.5 max-w-md text-[14px] leading-snug text-obsidian-light">
-            Loosen the search or filters — or add the account yourself, it takes twenty seconds.
+            {t("emptyBody")}
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
             <button type="button" onClick={clearFilters} className="btn btn-secondary h-10 px-5 text-[14px]">
-              Clear filters
+              {t("clearFilters")}
             </button>
             <button type="button" onClick={() => setCreateOpen(true)} className="btn btn-primary h-10 px-5 text-[14px]">
               <Plus size={16} strokeWidth={2.4} aria-hidden="true" />
-              New client
+              {t("newClient")}
             </button>
           </div>
         </div>
@@ -371,20 +380,20 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
               <tr className="border-b border-border text-[10px] font-bold uppercase tracking-[0.09em] text-muted">
                 <th scope="col" className="px-5 py-3" aria-sort={sort === "name-asc" ? "ascending" : sort === "name-desc" ? "descending" : "none"}>
                   <button type="button" onClick={cycleNameSort} className="inline-flex items-center gap-1.5 hover:text-obsidian">
-                    Name
+                    {t("colName")}
                     <ArrowUpDown size={12} aria-hidden="true" />
                   </button>
                 </th>
-                <th scope="col" className="px-4 py-3">Type</th>
-                <th scope="col" className="px-4 py-3">Status</th>
-                <th scope="col" className="px-4 py-3">Tags</th>
+                <th scope="col" className="px-4 py-3">{t("colType")}</th>
+                <th scope="col" className="px-4 py-3">{t("colStatus")}</th>
+                <th scope="col" className="px-4 py-3">{t("tags")}</th>
                 <th scope="col" className="px-4 py-3" aria-sort={sort === "recent" ? "descending" : "none"}>
                   <button type="button" onClick={() => updateSort("recent")} className="inline-flex items-center gap-1.5 hover:text-obsidian">
-                    Last activity
+                    {t("colLastActivity")}
                     <ArrowUpDown size={12} aria-hidden="true" />
                   </button>
                 </th>
-                <th scope="col" className="px-4 py-3 text-right"><span className="sr-only">Actions</span></th>
+                <th scope="col" className="px-4 py-3 text-right"><span className="sr-only">{t("colActions")}</span></th>
               </tr>
             </thead>
             <tbody>
@@ -411,10 +420,10 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-obsidian-light">
                         {client.type === "company" ? <Building2 size={13} aria-hidden="true" /> : <User size={13} aria-hidden="true" />}
-                        {client.type === "company" ? "Company" : "Person"}
+                        {client.type === "company" ? t("typeCompany") : t("typePerson")}
                       </span>
                     </td>
-                    <td className="px-4 py-3"><StatusChip tone={meta.tone} dot>{meta.label}</StatusChip></td>
+                    <td className="px-4 py-3"><StatusChip tone={meta.tone} dot>{t(meta.labelKey)}</StatusChip></td>
                     <td className="px-4 py-3">
                       <div className="flex max-w-[180px] flex-wrap gap-1">
                         {tags.map((tag) => <span key={tag} className="chip bg-track px-2 py-0.5 text-[10px] font-semibold text-obsidian-light">{tag}</span>)}
@@ -425,13 +434,13 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
                     <td className="px-4 py-3 tabular-nums text-[12px] font-semibold text-obsidian-light">{formatShortDate(activity.at)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-1">
-                        <button type="button" onClick={() => quickBooking(client)} aria-label={`New booking for ${client.full_name}`} title="New booking (demo)" className="flex h-8 w-8 items-center justify-center rounded-pill text-obsidian-light transition-colors hover:bg-hover-fill hover:text-obsidian">
+                        <button type="button" onClick={() => quickBooking(client)} aria-label={t("newBookingFor", { name: client.full_name })} title={t("newBookingDemo")} className="flex h-8 w-8 items-center justify-center rounded-pill text-obsidian-light transition-colors hover:bg-hover-fill hover:text-obsidian">
                           <CalendarPlus size={16} aria-hidden="true" />
                         </button>
-                        <button type="button" onClick={() => quickEnroll()} aria-label={`Add ${client.full_name} to a formation`} title="Add to formation (demo)" className="flex h-8 w-8 items-center justify-center rounded-pill text-obsidian-light transition-colors hover:bg-hover-fill hover:text-obsidian">
+                        <button type="button" onClick={() => quickEnroll()} aria-label={t("addToFormationFor", { name: client.full_name })} title={t("addToFormationDemo")} className="flex h-8 w-8 items-center justify-center rounded-pill text-obsidian-light transition-colors hover:bg-hover-fill hover:text-obsidian">
                           <GraduationCap size={16} aria-hidden="true" />
                         </button>
-                        <Link href={`/clients/${client.id}`} aria-label={`Open ${client.full_name}`} className="flex h-8 w-8 items-center justify-center rounded-pill text-electric transition-colors hover:bg-electric-tint">
+                        <Link href={`/clients/${client.id}`} aria-label={t("openClient", { name: client.full_name })} className="flex h-8 w-8 items-center justify-center rounded-pill text-electric transition-colors hover:bg-electric-tint">
                           <ArrowRight size={16} aria-hidden="true" />
                         </Link>
                       </div>
@@ -448,14 +457,14 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
       {sorted.length > 0 && (
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
           <p aria-live="polite" className="text-[12px] font-medium tabular-nums text-muted">
-            Showing {rangeStart}–{rangeEnd} of {sorted.length} client{sorted.length === 1 ? "" : "s"}
+            {t("showingRange", { start: rangeStart, end: rangeEnd, count: sorted.length })}
           </p>
-          <nav aria-label="Clients pagination" className="flex items-center gap-1.5">
+          <nav aria-label={t("paginationLabel")} className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={clampedPage === 1}
-              aria-label="Previous page"
+              aria-label={t("previousPage")}
               className="flex h-9 w-9 items-center justify-center rounded-pill border border-border bg-white text-obsidian-light transition-colors hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronLeft size={17} aria-hidden="true" />
@@ -465,7 +474,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
                 key={pageNumber}
                 type="button"
                 onClick={() => setPage(pageNumber)}
-                aria-label={`Page ${pageNumber}`}
+                aria-label={t("pageNumber", { n: pageNumber })}
                 aria-current={pageNumber === clampedPage ? "page" : undefined}
                 className={`h-9 w-9 rounded-pill text-[13px] font-bold tabular-nums transition-colors ${
                   pageNumber === clampedPage
@@ -480,7 +489,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
               type="button"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={clampedPage === totalPages}
-              aria-label="Next page"
+              aria-label={t("nextPage")}
               className="flex h-9 w-9 items-center justify-center rounded-pill border border-border bg-white text-obsidian-light transition-colors hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronRight size={17} aria-hidden="true" />
@@ -492,62 +501,62 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
       {/* New client modal */}
       {createOpen && (
         <Modal
-          title="New client"
-          description="Accounts start as leads. Bookings and enrollments build the history automatically once wired."
+          title={t("newClient")}
+          description={t("createDescription")}
           onClose={() => setCreateOpen(false)}
           size="lg"
         >
           <form onSubmit={submitNewClient} noValidate className="grid gap-4">
             <div>
-              <span id="nc-type-label" className="label">Account type</span>
+              <span id="nc-type-label" className="label">{t("accountType")}</span>
               <div className="segmented" role="group" aria-labelledby="nc-type-label">
                 <button type="button" className={`segment ${form.type === "person" ? "segment-active" : ""}`} aria-pressed={form.type === "person"} onClick={() => setType("person")}>
                   <User size={15} aria-hidden="true" />
-                  Person
+                  {t("typePerson")}
                 </button>
                 <button type="button" className={`segment ${form.type === "company" ? "segment-active" : ""}`} aria-pressed={form.type === "company"} onClick={() => setType("company")}>
                   <Building2 size={15} aria-hidden="true" />
-                  Company
+                  {t("typeCompany")}
                 </button>
               </div>
             </div>
             <div>
-              <label htmlFor="nc-name" className="label">{form.type === "company" ? "Contact full name" : "Full name"} *</label>
+              <label htmlFor="nc-name" className="label">{form.type === "company" ? t("contactFullNameRequired") : t("fullNameRequired")}</label>
               <input id="nc-name" type="text" value={form.fullName} onChange={(e) => { setForm({ ...form, fullName: e.target.value }); setFormError(null); }} placeholder={form.type === "company" ? "Yasmine Bouhlal" : "Salma Bennani"} className="input" autoComplete="off" />
             </div>
             {form.type === "company" && (
               <div>
-                <label htmlFor="nc-company" className="label">Company *</label>
+                <label htmlFor="nc-company" className="label">{t("companyRequired")}</label>
                 <input id="nc-company" type="text" value={form.company} onChange={(e) => { setForm({ ...form, company: e.target.value }); setFormError(null); }} placeholder="Acme SARL" className="input" autoComplete="off" />
               </div>
             )}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="nc-email" className="label">Email *</label>
+                <label htmlFor="nc-email" className="label">{t("emailRequired")}</label>
                 <input id="nc-email" type="email" value={form.email} onChange={(e) => { setForm({ ...form, email: e.target.value }); setFormError(null); }} placeholder="name@company.ma" className="input" autoComplete="off" />
               </div>
               <div>
-                <label htmlFor="nc-phone" className="label">Phone</label>
+                <label htmlFor="nc-phone" className="label">{t("labelPhone")}</label>
                 <input id="nc-phone" type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+212 5 22 00 00 00" className="input" autoComplete="off" />
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="nc-source" className="label">Source</label>
+                <label htmlFor="nc-source" className="label">{t("labelSource")}</label>
                 <select id="nc-source" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} className="input">
                   {SOURCES.map((source) => (
-                    <option key={source} value={source}>{source.charAt(0).toUpperCase() + source.slice(1)}</option>
+                    <option key={source} value={source}>{t(SOURCE_KEYS[source])}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label htmlFor="nc-tags" className="label">Tags <span className="font-medium normal-case text-muted">(comma-separated)</span></label>
+                <label htmlFor="nc-tags" className="label">{t("labelTags")} <span className="font-medium normal-case text-muted">{t("commaSeparated")}</span></label>
                 <input id="nc-tags" type="text" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="recurring, boardroom" className="input" autoComplete="off" />
               </div>
             </div>
             <div>
-              <label htmlFor="nc-notes" className="label">Notes</label>
-              <textarea id="nc-notes" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Context worth keeping — preferences, billing terms…" className="input h-auto min-h-[64px] py-3 leading-snug" />
+              <label htmlFor="nc-notes" className="label">{t("labelNotes")}</label>
+              <textarea id="nc-notes" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t("placeholderNotes")} className="input h-auto min-h-[64px] py-3 leading-snug" />
             </div>
             {formError && (
               <p role="alert" className="rounded-sm border border-error/30 bg-error-tint px-4 py-2.5 text-[13px] font-semibold text-error">
@@ -556,11 +565,11 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
             )}
             <div className="flex justify-end gap-2 border-t border-divider pt-4">
               <button type="button" onClick={() => setCreateOpen(false)} className="btn btn-ghost h-11 px-5 text-[14px]">
-                Cancel
+                {t("cancel")}
               </button>
               <button type="submit" className="btn btn-primary h-11">
                 <Plus size={17} strokeWidth={2.4} aria-hidden="true" />
-                Add client
+                {t("addClient")}
               </button>
             </div>
           </form>
@@ -585,6 +594,7 @@ function ClientCard({
   onQuickBooking: (client: ClientRow) => void;
   onQuickEnroll: (client: ClientRow) => void;
 }) {
+  const t = useTranslations("clients");
   const meta = STATUS_META[client.status];
   const secondaryLine =
     client.company && client.company !== client.full_name
@@ -611,7 +621,7 @@ function ClientCard({
           </div>
         </div>
         <StatusChip tone={meta.tone} dot className="shrink-0">
-          {meta.label}
+          {t(meta.labelKey)}
         </StatusChip>
       </div>
 
@@ -644,14 +654,14 @@ function ClientCard({
       <div className="mt-4 flex items-center justify-between gap-2 border-t border-divider pt-4">
         <p className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-muted">
           <CalendarDays size={13} aria-hidden="true" className="shrink-0" />
-          <span className="truncate">Latest booking: {formatShortDate(activity.at)}</span>
+          <span className="truncate">{t("latestBooking", { date: formatShortDate(activity.at) })}</span>
         </p>
         <div className="flex shrink-0 items-center gap-1">
           <button
             type="button"
             onClick={() => onQuickBooking(client)}
-            aria-label={`New booking for ${client.full_name}`}
-            title="New booking (demo)"
+            aria-label={t("newBookingFor", { name: client.full_name })}
+            title={t("newBookingDemo")}
             className="flex h-8 w-8 items-center justify-center rounded-pill text-obsidian-light transition-colors hover:bg-hover-fill hover:text-obsidian"
           >
             <CalendarPlus size={16} aria-hidden="true" />
@@ -659,8 +669,8 @@ function ClientCard({
           <button
             type="button"
             onClick={() => onQuickEnroll(client)}
-            aria-label={`Add ${client.full_name} to a formation`}
-            title="Add to formation (demo)"
+            aria-label={t("addToFormationFor", { name: client.full_name })}
+            title={t("addToFormationDemo")}
             className="flex h-8 w-8 items-center justify-center rounded-pill text-obsidian-light transition-colors hover:bg-hover-fill hover:text-obsidian"
           >
             <GraduationCap size={16} aria-hidden="true" />
@@ -669,7 +679,7 @@ function ClientCard({
             href={`/clients/${client.id}`}
             className="inline-flex items-center gap-1 rounded-pill px-2 py-1 text-[12px] font-bold text-electric transition-colors hover:bg-electric-tint"
           >
-            View
+            {t("view")}
             <ArrowRight size={13} aria-hidden="true" />
           </Link>
         </div>

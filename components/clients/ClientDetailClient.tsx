@@ -8,6 +8,8 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
+import { useTranslations, useLocale } from "next-intl";
+import { appLocaleTag } from "@/lib/intl-locale";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -42,17 +44,17 @@ import { StatusChip, type ChipTone } from "@/components/formations/StatusChip";
 import { ToastViewport, useToast } from "@/components/formations/Toast";
 import { formatDuration, formatTime, formatTimeRange, roomById, stripDemoSuffix } from "@/components/formations/model";
 
-const STATUS_META: Record<ClientRow["status"], { label: string; tone: ChipTone }> = {
-  lead: { label: "Lead", tone: "warning" },
-  active: { label: "Active", tone: "success" },
-  inactive: { label: "Inactive", tone: "muted" },
+const STATUS_META: Record<ClientRow["status"], { labelKey: "statusLead" | "statusActive" | "statusInactive"; tone: ChipTone }> = {
+  lead: { labelKey: "statusLead", tone: "warning" },
+  active: { labelKey: "statusActive", tone: "success" },
+  inactive: { labelKey: "statusInactive", tone: "muted" },
 };
 
 type Tab = "overview" | "bookings" | "notes";
-const TABS: Array<{ key: Tab; label: string }> = [
-  { key: "overview", label: "Overview" },
-  { key: "bookings", label: "Bookings" },
-  { key: "notes", label: "Notes" },
+const TABS: Array<{ key: Tab; labelKey: "tabOverview" | "tabBookings" | "tabNotes" }> = [
+  { key: "overview", labelKey: "tabOverview" },
+  { key: "bookings", labelKey: "tabBookings" },
+  { key: "notes", labelKey: "tabNotes" },
 ];
 
 /* Demo notes per client — timestamps derived at render so they always look fresh. */
@@ -80,21 +82,29 @@ interface NoteEntry {
   createdAt: string;
 }
 
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
+const MONTH_KEYS = [
+  "monthJanuary", "monthFebruary", "monthMarch", "monthApril", "monthMay", "monthJune",
+  "monthJuly", "monthAugust", "monthSeptember", "monthOctober", "monthNovember", "monthDecember",
+] as const;
 
-const noteDayFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
-const noteTimeFmt = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
-const bookingDayFmt = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" });
+const noteDayFmt = (tag?: string) => new Intl.DateTimeFormat(tag ?? appLocaleTag(), { day: "numeric", month: "short" });
+const noteTimeFmt = (tag?: string) => new Intl.DateTimeFormat(tag ?? appLocaleTag(), { hour: "2-digit", minute: "2-digit", hour12: false });
+const bookingDayFmt = (tag?: string) => new Intl.DateTimeFormat(tag ?? appLocaleTag(), { weekday: "short", day: "numeric", month: "short" });
 
-const BOOKING_STATUS_META: Record<string, { label: string; tone: ChipTone }> = {
-  confirmed: { label: "Confirmed", tone: "success" },
-  pending_conflict: { label: "Pending conflict", tone: "warning" },
-  cancelled: { label: "Cancelled", tone: "error" },
-  paused: { label: "Paused", tone: "warning" },
-  completed: { label: "Completed", tone: "muted" },
+const BOOKING_STATUS_META: Record<string, { labelKey: "bookingConfirmed" | "bookingPendingConflict" | "bookingCancelled" | "bookingPaused" | "bookingCompleted"; tone: ChipTone }> = {
+  confirmed: { labelKey: "bookingConfirmed", tone: "success" },
+  pending_conflict: { labelKey: "bookingPendingConflict", tone: "warning" },
+  cancelled: { labelKey: "bookingCancelled", tone: "error" },
+  paused: { labelKey: "bookingPaused", tone: "warning" },
+  completed: { labelKey: "bookingCompleted", tone: "muted" },
+};
+
+const SOURCE_KEYS: Record<string, "sourceReferral" | "sourceWeb" | "sourceWalkin" | "sourcePartner" | "sourceEvent"> = {
+  referral: "sourceReferral",
+  web: "sourceWeb",
+  "walk-in": "sourceWalkin",
+  partner: "sourcePartner",
+  event: "sourceEvent",
 };
 
 const subscribeMounted = () => () => {};
@@ -106,6 +116,8 @@ export function ClientDetailClient({
   id: string;
   data?: ClientDetailData | null;
 }) {
+  const t = useTranslations("clients");
+  const intlLocale = appLocaleTag(useLocale());
   const liveClient = data?.client ?? null;
   const liveBookings = data?.bookings ?? null;
   const demoClient = useMemo<ClientRow | null>(
@@ -141,7 +153,7 @@ export function ClientDetailClient({
       <div className="mx-auto max-w-[1440px]" aria-busy="true">
         <div className="h-6 w-40 animate-pulse rounded-pill bg-track" />
         <div className="card mt-4 h-[180px] animate-pulse bg-canvas" />
-        <p className="sr-only">Loading client…</p>
+        <p className="sr-only">{t("loadingClient")}</p>
       </div>
     );
   }
@@ -149,19 +161,19 @@ export function ClientDetailClient({
     <div className="mx-auto max-w-[1440px]">
       <Link href="/clients" className="inline-flex items-center gap-1.5 text-[13px] font-bold text-muted transition-colors hover:text-obsidian">
         <ChevronLeft size={15} aria-hidden="true" />
-        Clients
+        {t("title")}
       </Link>
       <div className="card mt-4 flex flex-col items-center px-6 py-20 text-center">
         <NowBarMark size={52} className="opacity-90" />
         <h1 className="mt-5 text-[22px] font-extrabold tracking-[-0.03em] text-obsidian">
-          Client not found
+          {t("notFoundTitle")}
         </h1>
         <p className="mt-1.5 max-w-md text-[14px] leading-snug text-obsidian-light">
-          This account doesn&apos;t exist in the demo dataset — it may live in another browser tab or session.
+          {t("notFoundBody")}
         </p>
         <Link href="/clients" className="btn btn-primary mt-6 h-11">
           <ArrowLeft size={17} aria-hidden="true" />
-          Back to Clients
+          {t("backToClients")}
         </Link>
       </div>
     </div>
@@ -178,6 +190,8 @@ function ClientDetailView({
   live: boolean;
 }) {
   const router = useRouter();
+  const t = useTranslations("clients");
+  const intlLocale = appLocaleTag(useLocale());
   const id = client.id;
   const { toasts, push, dismiss } = useToast();
   const [anonymized, setAnonymized] = useState(false);
@@ -224,7 +238,7 @@ function ClientDetailView({
         ...current,
       ]);
       setNoteDraft("");
-      push("Note added");
+      push(t("toastNoteAdded"));
       router.refresh();
       return;
     }
@@ -233,7 +247,7 @@ function ClientDetailView({
       ...current,
     ]);
     setNoteDraft("");
-    push("Note added");
+    push(t("toastNoteAdded"));
   }
 
   const meta = STATUS_META[client.status];
@@ -247,9 +261,11 @@ function ClientDetailView({
     outstanding,
   };
   const memberSince = client.created_at
-    ? `${MONTHS[new Date(client.created_at).getMonth()]} ${new Date(client.created_at).getFullYear()}`
-    : MONTHS[hashString(client.id) % 12] + " " + (2023 + (hashString(client.id) % 3));
-  const sourceLabel = client.source ? client.source.charAt(0).toUpperCase() + client.source.slice(1) : "—";
+    ? `${t(MONTH_KEYS[new Date(client.created_at).getMonth()])} ${new Date(client.created_at).getFullYear()}`
+    : t(MONTH_KEYS[hashString(client.id) % 12]) + " " + (2023 + (hashString(client.id) % 3));
+  const sourceLabel = client.source
+    ? (SOURCE_KEYS[client.source] ? t(SOURCE_KEYS[client.source]) : client.source.charAt(0).toUpperCase() + client.source.slice(1))
+    : "—";
 
   function exportJson() {
     const payload = anonymized
@@ -272,7 +288,7 @@ function ClientDetailView({
       { type: "application/json" },
     );
     downloadBlob(blob, `client-${client.id}.json`);
-    push("Client profile exported as JSON");
+    push(t("toastExportJson"));
   }
 
   return (
@@ -280,7 +296,7 @@ function ClientDetailView({
       {/* Back link */}
       <Link href="/clients" className="inline-flex items-center gap-1.5 text-[13px] font-bold text-muted transition-colors hover:text-obsidian">
         <ChevronLeft size={15} aria-hidden="true" />
-        Clients
+        {t("title")}
       </Link>
 
       {/* Anonymization banner */}
@@ -288,8 +304,8 @@ function ClientDetailView({
         <div role="alert" className="mt-3 flex items-start gap-3 rounded-sm border border-border bg-track px-4 py-3 text-[13px] font-semibold text-obsidian-light">
           <ShieldCheck size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-electric" />
           <div>
-            <p>Anonymized — bookings kept as aggregates.</p>
-            <p className="mt-0.5 font-medium text-muted">Contact details, tags and notes are redacted in this view and in exports.</p>
+            <p>{t("anonymizedBannerTitle")}</p>
+            <p className="mt-0.5 font-medium text-muted">{t("anonymizedBannerBody")}</p>
           </div>
         </div>
       )}
@@ -310,15 +326,15 @@ function ClientDetailView({
             </h1>
             <p className="mt-0.5 text-[13px] font-medium text-obsidian-light">
               {anonymized
-                ? "Personal details redacted"
+                ? t("redactedDetails")
                 : client.company && client.company !== client.full_name
                   ? client.company
-                  : (client.city ?? (client.type === "company" ? "Company" : "Individual"))}
+                  : (client.city ?? (client.type === "company" ? t("typeCompany") : t("typeIndividual")))}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <StatusChip tone={meta.tone} dot>{meta.label}</StatusChip>
+              <StatusChip tone={meta.tone} dot>{t(meta.labelKey)}</StatusChip>
               <span className="chip bg-track text-[10px] font-bold uppercase tracking-[0.08em] text-muted">
-                {client.type === "company" ? "Company" : "Person"}
+                {client.type === "company" ? t("typeCompany") : t("typePerson")}
               </span>
               {!anonymized &&
                 client.tags.map((tag) => (
@@ -336,15 +352,15 @@ function ClientDetailView({
             className="btn btn-primary h-10 px-4 text-[13px]"
           >
             <CalendarPlus size={16} aria-hidden="true" />
-            New booking
+            {t("newBooking")}
           </button>
           <button
             type="button"
-            onClick={() => push(`Add ${client.full_name} to a formation (demo)`, "info")}
+            onClick={() => push(t("toastAddToFormationDemo", { name: client.full_name }), "info")}
             className="btn btn-secondary h-10 px-4 text-[13px]"
           >
             <GraduationCap size={16} aria-hidden="true" />
-            Enroll in formation
+            {t("enrollInFormation")}
           </button>
           <button
             type="button"
@@ -352,7 +368,7 @@ function ClientDetailView({
             className="btn btn-secondary h-10 px-4 text-[13px]"
           >
             <FileJson size={16} aria-hidden="true" />
-            Export JSON
+            {t("exportJson")}
           </button>
           {!anonymized && (
             <button
@@ -361,15 +377,15 @@ function ClientDetailView({
               className="btn h-10 border border-error/30 bg-error-tint px-4 text-[13px] font-bold text-error transition-colors hover:bg-error hover:text-white"
             >
               <AlertTriangle size={15} aria-hidden="true" />
-              Anonymize…
+              {t("anonymize")}
             </button>
           )}
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="segmented mt-5" role="tablist" aria-label="Client sections">
-        {TABS.map(({ key, label }) => (
+      <div className="segmented mt-5" role="tablist" aria-label={t("tabListAria")}>
+        {TABS.map(({ key, labelKey }) => (
           <button
             key={key}
             type="button"
@@ -380,7 +396,7 @@ function ClientDetailView({
             onClick={() => setTab(key)}
             className={`segment ${tab === key ? "segment-active" : ""}`}
           >
-            {label}
+            {t(labelKey)}
             {key === "bookings" && (
               <span className="ml-1.5 text-[11px] font-bold tabular-nums text-muted">{bookings.length}</span>
             )}
@@ -397,31 +413,31 @@ function ClientDetailView({
           {/* Contact details */}
           <section className="card p-5 sm:p-6 lg:col-span-3" aria-labelledby="contact-heading">
             <h2 id="contact-heading" className="text-[15px] font-extrabold tracking-[-0.02em] text-obsidian">
-              Contact details
+              {t("contactDetails")}
             </h2>
             <dl className="mt-4 divide-y divide-divider">
-              <ContactRow icon={Mail} label="Email">
+              <ContactRow icon={Mail} label={t("labelEmail")}>
                 {anonymized ? "—" : client.email ?? "—"}
               </ContactRow>
-              <ContactRow icon={Phone} label="Phone">
+              <ContactRow icon={Phone} label={t("labelPhone")}>
                 {anonymized ? "—" : <span className="tabular-nums">{client.phone ?? "—"}</span>}
               </ContactRow>
-              <ContactRow icon={MapPin} label="Address">
+              <ContactRow icon={MapPin} label={t("labelAddress")}>
                 {anonymized ? "—" : (client.address ?? "—")}
               </ContactRow>
-              <ContactRow icon={Building2} label="City">
+              <ContactRow icon={Building2} label={t("labelCity")}>
                 {anonymized ? "—" : client.city ?? "—"}
               </ContactRow>
-              <ContactRow icon={Tag} label="Source">
+              <ContactRow icon={Tag} label={t("labelSource")}>
                 {sourceLabel}
               </ContactRow>
-              <ContactRow icon={CalendarDays} label="Member since">
+              <ContactRow icon={CalendarDays} label={t("labelMemberSince")}>
                 {anonymized ? "—" : memberSince}
               </ContactRow>
             </dl>
             {!anonymized && client.notes && (
               <div className="mt-4 rounded-sm border border-border bg-canvas px-4 py-3">
-                <p className="label mb-1">Account notes</p>
+                <p className="label mb-1">{t("accountNotes")}</p>
                 <p className="text-[13px] leading-snug text-obsidian-light">{client.notes}</p>
               </div>
             )}
@@ -430,16 +446,16 @@ function ClientDetailView({
           {/* Quick stats */}
           <section className="card p-5 sm:p-6 lg:col-span-2" aria-labelledby="stats-heading">
             <h2 id="stats-heading" className="text-[15px] font-extrabold tracking-[-0.02em] text-obsidian">
-              Quick stats
+              {t("quickStats")}
             </h2>
             <dl className="mt-3 divide-y divide-divider">
-              <StatRow label="Total bookings" value={stats.totalBookings} hint="all time, this account" />
-              <StatRow label="Formations attended" value={stats.formationsAttended} hint="formation bookings, this client" />
-              <StatRow label="Outstanding requests" value={stats.outstanding} hint="pending conflict reviews" alert={stats.outstanding > 0} />
+              <StatRow label={t("statTotalBookings")} value={stats.totalBookings} hint={t("statTotalHint")} />
+              <StatRow label={t("statFormations")} value={stats.formationsAttended} hint={t("statFormationsHint")} />
+              <StatRow label={t("statOutstanding")} value={stats.outstanding} hint={t("statOutstandingHint")} alert={stats.outstanding > 0} />
             </dl>
             {!live && (
               <p className="mt-4 border-t border-divider pt-4 text-[11px] font-medium leading-snug text-muted">
-                Demo figures — the Supabase project is not connected.
+                {t("demoFigures")}
               </p>
             )}
           </section>
@@ -452,10 +468,10 @@ function ClientDetailView({
           <section className="card p-5 sm:p-6" aria-labelledby="bookings-heading">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 id="bookings-heading" className="text-[15px] font-extrabold tracking-[-0.02em] text-obsidian">
-                Bookings history
+                {t("bookingsHistory")}
               </h2>
               {bookings.length > 0 && (
-                <span className="chip bg-track tabular-nums text-muted">{bookings.length} on record</span>
+                <span className="chip bg-track tabular-nums text-muted">{t("onRecord", { count: bookings.length })}</span>
               )}
             </div>
             {bookings.length > 0 ? (
@@ -466,7 +482,7 @@ function ClientDetailView({
                   .map((booking) => {
                     const bookingStatus = BOOKING_STATUS_META[booking.status] ?? BOOKING_STATUS_META.confirmed;
                     const room = roomById(booking.room_id);
-                    const title = anonymized ? "Booking — details redacted" : booking.title;
+                    const title = anonymized ? t("bookingRedacted") : booking.title;
                     return (
                       <li key={booking.id} className="flex items-stretch gap-4 rounded-sm border border-border bg-canvas p-4">
                         <div className="flex w-16 shrink-0 flex-col items-center justify-center border-r border-border pr-4 text-center">
@@ -474,7 +490,7 @@ function ClientDetailView({
                             {formatTime(booking.starts_at)}
                           </span>
                           <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted">
-                            {bookingDayFmt.format(new Date(booking.starts_at))}
+                            {bookingDayFmt(intlLocale).format(new Date(booking.starts_at))}
                           </span>
                         </div>
                         <div className="min-w-0 flex-1">
@@ -482,7 +498,7 @@ function ClientDetailView({
                           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] font-medium text-obsidian-light">
                             <span className="inline-flex items-center gap-1.5">
                               <DoorOpen size={13} aria-hidden="true" className="text-muted" />
-                              {room ? `${stripDemoSuffix(room.name)} · ${room.location}` : "Off-site / room TBD"}
+                              {room ? `${stripDemoSuffix(room.name)} · ${room.location}` : t("offsiteRoomTbd")}
                             </span>
                             <span className="inline-flex items-center gap-1.5 tabular-nums">
                               <Clock size={13} aria-hidden="true" className="text-muted" />
@@ -491,7 +507,7 @@ function ClientDetailView({
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center">
-                          <StatusChip tone={bookingStatus?.tone ?? "muted"} dot>{bookingStatus?.label ?? "Unknown"}</StatusChip>
+                          <StatusChip tone={bookingStatus?.tone ?? "muted"} dot>{bookingStatus ? t(bookingStatus.labelKey) : t("bookingUnknown")}</StatusChip>
                         </div>
                       </li>
                     );
@@ -500,7 +516,7 @@ function ClientDetailView({
             ) : (
               <div className="mt-4">
                 <p className="text-[13px] font-medium text-obsidian-light">
-                  No bookings on record yet — showing three sample rows for reference.
+                  {t("noBookings")}
                 </p>
                 <ul className="mt-3 space-y-3">
                   {[
@@ -510,7 +526,7 @@ function ClientDetailView({
                   ].map((sample) => (
                     <li key={sample.title} className="flex items-stretch gap-4 rounded-sm border border-dashed border-border bg-canvas p-4 opacity-80">
                       <div className="flex w-16 shrink-0 flex-col items-center justify-center border-r border-border pr-4 text-center">
-                        <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">Sample</span>
+                        <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{t("sample")}</span>
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-[14px] font-bold text-obsidian">{sample.title}</p>
@@ -537,31 +553,31 @@ function ClientDetailView({
           <section className="card p-5 sm:p-6" aria-labelledby="notes-heading">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 id="notes-heading" className="text-[15px] font-extrabold tracking-[-0.02em] text-obsidian">
-                Account notes
+                {t("accountNotes")}
               </h2>
-              <span className="chip bg-track tabular-nums text-muted">{anonymized ? 0 : notes.length} on record</span>
+              <span className="chip bg-track tabular-nums text-muted">{t("onRecord", { count: anonymized ? 0 : notes.length })}</span>
             </div>
 
             {anonymized ? (
               <p role="status" className="mt-6 rounded-sm border border-border bg-canvas px-4 py-6 text-center text-[13px] font-medium text-muted">
-                Notes redacted — this account has been anonymized.
+                {t("notesRedacted")}
               </p>
             ) : (
               <>
                 <form onSubmit={addNote} className="mt-4">
-                  <label htmlFor="note-draft" className="label">Add a note</label>
+                  <label htmlFor="note-draft" className="label">{t("addANote")}</label>
                   <textarea
                     id="note-draft"
                     rows={2}
                     value={noteDraft}
                     onChange={(e) => setNoteDraft(e.target.value)}
-                    placeholder="Preferences, billing context, follow-ups…"
+                    placeholder={t("placeholderNote")}
                     className="input h-auto min-h-[64px] py-3 leading-snug"
                   />
                   <div className="mt-2 flex justify-end">
                     <button type="submit" disabled={noteDraft.trim().length === 0} className="btn btn-primary h-10 px-5 text-[13px] disabled:cursor-not-allowed disabled:opacity-50">
                       <Plus size={16} strokeWidth={2.4} aria-hidden="true" />
-                      Add note
+                      {t("addNote")}
                     </button>
                   </div>
                 </form>
@@ -571,14 +587,14 @@ function ClientDetailView({
                     <li key={note.id} className="rounded-sm border border-border bg-canvas p-4">
                       <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.09em] text-muted">
                         <StickyNote size={12} aria-hidden="true" />
-                        {noteDayFmt.format(new Date(note.createdAt))} · {noteTimeFmt.format(new Date(note.createdAt))}
+                        {noteDayFmt(intlLocale).format(new Date(note.createdAt))} · {noteTimeFmt(intlLocale).format(new Date(note.createdAt))}
                       </p>
                       <p className="mt-1.5 text-[13px] leading-snug text-obsidian">{note.body}</p>
                     </li>
                   ))}
                   {notes.length === 0 && (
                     <li className="rounded-sm border border-dashed border-border px-4 py-8 text-center text-[13px] font-medium text-muted">
-                      No notes yet — capture context the whole team should see.
+                      {t("noNotes")}
                     </li>
                   )}
                 </ul>
@@ -591,18 +607,18 @@ function ClientDetailView({
       {/* ============ Anonymize modal ============ */}
       {anonymizeOpen && (
         <Modal
-          title="Anonymize this client?"
-          description="GDPR right to erasure. The account becomes unusable for outreach but stays in aggregated reporting."
+          title={t("anonymizeTitle")}
+          description={t("anonymizeDescription")}
           onClose={() => setAnonymizeOpen(false)}
         >
           <ul className="space-y-1.5 rounded-sm border border-border bg-canvas px-4 py-3 text-[13px] font-medium leading-snug text-obsidian-light">
-            <li className="flex items-start gap-2"><ChevronRight size={13} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />Name becomes “Client #ANON”</li>
-            <li className="flex items-start gap-2"><ChevronRight size={13} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />Email, phone, address, city are removed</li>
-            <li className="flex items-start gap-2"><ChevronRight size={13} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />Tags and notes are wiped</li>
-            <li className="flex items-start gap-2"><ChevronRight size={13} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />Bookings stay as aggregates — counts, not names</li>
+            <li className="flex items-start gap-2"><ChevronRight size={13} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />{t("anonymizeItemName")}</li>
+            <li className="flex items-start gap-2"><ChevronRight size={13} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />{t("anonymizeItemContact")}</li>
+            <li className="flex items-start gap-2"><ChevronRight size={13} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />{t("anonymizeItemTags")}</li>
+            <li className="flex items-start gap-2"><ChevronRight size={13} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />{t("anonymizeItemBookings")}</li>
           </ul>
           <label htmlFor="anon-confirm" className="label mt-4">
-            Type “{client.full_name}” to confirm
+            {t("anonymizeConfirmLabel", { name: client.full_name })}
           </label>
           <input
             id="anon-confirm"
@@ -616,7 +632,7 @@ function ClientDetailView({
           />
           <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-divider pt-4">
             <button type="button" onClick={() => setAnonymizeOpen(false)} className="btn btn-ghost h-11 px-5 text-[14px]">
-              Keep client
+              {t("keepClient")}
             </button>
             <button
               type="button"
@@ -632,7 +648,7 @@ function ClientDetailView({
                     setAnonymized(true);
                     setAnonymizeOpen(false);
                     setConfirmName("");
-                    push("Client anonymized — contact data redacted", "info");
+                    push(t("toastClientAnonymized"), "info");
                     router.refresh();
                   })();
                   return;
@@ -640,12 +656,12 @@ function ClientDetailView({
                 setAnonymized(true);
                 setAnonymizeOpen(false);
                 setConfirmName("");
-                push("Client anonymized — contact data redacted", "info");
+                push(t("toastClientAnonymized"), "info");
               }}
               className="btn h-11 bg-error px-6 text-[14px] font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ShieldCheck size={16} aria-hidden="true" />
-              Anonymize client
+              {t("anonymizeConfirm")}
             </button>
           </div>
         </Modal>

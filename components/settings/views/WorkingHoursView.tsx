@@ -11,6 +11,7 @@ import {
   Info,
   Lock,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { PageHeader } from "@/components/settings/PageHeader";
 import { ToastViewport, useToast } from "@/components/settings/Toast";
 import { Switch } from "@/components/settings/Switch";
@@ -19,21 +20,21 @@ type DayKey = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
 
 interface DayHours {
   key: DayKey;
-  label: string;
-  short: string;
+  labelKey: string;
+  shortKey: string;
   isOpen: boolean;
   open: string;
   close: string;
 }
 
 const DEFAULT_WEEK: DayHours[] = [
-  { key: "mon", label: "Monday", short: "Mon", isOpen: true, open: "09:00", close: "18:30" },
-  { key: "tue", label: "Tuesday", short: "Tue", isOpen: true, open: "09:00", close: "18:30" },
-  { key: "wed", label: "Wednesday", short: "Wed", isOpen: true, open: "09:00", close: "18:30" },
-  { key: "thu", label: "Thursday", short: "Thu", isOpen: true, open: "09:00", close: "18:30" },
-  { key: "fri", label: "Friday", short: "Fri", isOpen: true, open: "09:00", close: "18:30" },
-  { key: "sat", label: "Saturday", short: "Sat", isOpen: true, open: "09:30", close: "13:00" },
-  { key: "sun", label: "Sunday", short: "Sun", isOpen: false, open: "09:00", close: "18:30" },
+  { key: "mon", labelKey: "dayMonday", shortKey: "dayMonShort", isOpen: true, open: "09:00", close: "18:30" },
+  { key: "tue", labelKey: "dayTuesday", shortKey: "dayTueShort", isOpen: true, open: "09:00", close: "18:30" },
+  { key: "wed", labelKey: "dayWednesday", shortKey: "dayWedShort", isOpen: true, open: "09:00", close: "18:30" },
+  { key: "thu", labelKey: "dayThursday", shortKey: "dayThuShort", isOpen: true, open: "09:00", close: "18:30" },
+  { key: "fri", labelKey: "dayFriday", shortKey: "dayFriShort", isOpen: true, open: "09:00", close: "18:30" },
+  { key: "sat", labelKey: "daySaturday", shortKey: "daySatShort", isOpen: true, open: "09:30", close: "13:00" },
+  { key: "sun", labelKey: "daySunday", shortKey: "daySunShort", isOpen: false, open: "09:00", close: "18:30" },
 ];
 
 const SLOT_OPTIONS = [15, 30, 60] as const;
@@ -61,6 +62,7 @@ export interface WorkingHoursInitial {
 const toHHMM = (t: string) => (t ?? "08:00").slice(0, 5);
 
 export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursInitial | null }) {
+  const t = useTranslations("settings");
   const router = useRouter();
   const { toasts, push } = useToast();
   const baseWeek = initial
@@ -85,7 +87,7 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
       push(res.error.message);
       return;
     }
-    push("Working hours saved");
+    push(t("workingHoursSaved"));
     router.refresh();
   };
 
@@ -108,7 +110,7 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
     const monday = week.find((d) => d.key === "mon");
     if (!monday) return;
     updateDay(key, { isOpen: monday.isOpen, open: monday.open, close: monday.close });
-    push("Monday hours copied");
+    push(t("mondayHoursCopied"));
   };
 
   const applyMondayTo = (keys: DayKey[], label: string) => {
@@ -117,14 +119,14 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
     setWeek((prev) =>
       prev.map((d) => (keys.includes(d.key) ? { ...d, isOpen: monday.isOpen, open: monday.open, close: monday.close } : d)),
     );
-    push(`Monday hours applied ${label} — save to persist`);
+    push(t("mondayHoursApplied", { scope: label }));
   };
 
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
-        title="Working Hours"
-        sub="When the business is open — the booking engine respects this for every new reservation, buffer included."
+        title={t("tabWorkingHours")}
+        sub={t("workingHoursSub")}
       />
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
@@ -132,24 +134,24 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
           {/* Week table */}
           <div className="card overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider px-4 py-3 sm:px-5">
-              <p className="text-[12px] font-semibold text-obsidian-light">Weekly schedule</p>
+              <p className="text-[12px] font-semibold text-obsidian-light">{t("weeklySchedule")}</p>
               <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={() => applyMondayTo(["mon", "tue", "wed", "thu", "fri"], "to all weekdays")} className="btn btn-secondary h-9 px-3 text-[12px]">
+                <button type="button" onClick={() => applyMondayTo(["mon", "tue", "wed", "thu", "fri"], t("scopeAllWeekdays"))} className="btn btn-secondary h-9 px-3 text-[12px]">
                   <Copy size={13} strokeWidth={2.2} aria-hidden="true" />
-                  Apply to all weekdays
+                  {t("applyAllWeekdays")}
                 </button>
-                <button type="button" onClick={() => applyMondayTo(["mon", "tue", "wed", "thu", "fri", "sat"], "to Mon–Sat")} className="btn btn-secondary h-9 px-3 text-[12px]">
+                <button type="button" onClick={() => applyMondayTo(["mon", "tue", "wed", "thu", "fri", "sat"], t("scopeMonSat"))} className="btn btn-secondary h-9 px-3 text-[12px]">
                   <Copy size={13} strokeWidth={2.2} aria-hidden="true" />
-                  Apply to Mon–Sat
+                  {t("applyMonSat")}
                 </button>
               </div>
             </div>
 
             <div className="hidden grid-cols-[150px_auto_1fr_auto] gap-3 border-b border-divider px-4 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted sm:grid sm:px-5">
-              <span>Day</span>
-              <span className="w-11">Open</span>
-              <span>Hours</span>
-              <span className="w-[76px] text-right">Copy</span>
+              <span>{t("colDay")}</span>
+              <span className="w-11">{t("colOpen")}</span>
+              <span>{t("colHours")}</span>
+              <span className="w-[76px] text-right">{t("colCopy")}</span>
             </div>
 
             <ul className="divide-y divide-divider">
@@ -160,15 +162,15 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                   <li key={day.key} className="px-4 py-3 transition-colors hover:bg-canvas/50 sm:px-5">
                     <div className="grid grid-cols-[110px_auto_1fr_auto] items-center gap-2 sm:grid-cols-[150px_auto_1fr_auto] sm:gap-3">
                       <div className="min-w-0">
-                        <p className="text-[13px] font-bold text-obsidian">{day.label}</p>
+                        <p className="text-[13px] font-bold text-obsidian">{t(day.labelKey)}</p>
                         <p className={`text-[10px] font-bold uppercase tracking-[0.1em] ${day.isOpen ? "text-tint-fg-green" : "text-muted"}`}>
-                          {day.isOpen ? "Open" : "Closed"}
+                          {day.isOpen ? t("dayOpenLabel") : t("dayClosedLabel")}
                         </p>
                       </div>
                       <Switch
                         checked={day.isOpen}
                         onChange={(next) => updateDay(day.key, { isOpen: next })}
-                        label={`${day.label} — ${day.isOpen ? "mark closed" : "mark open"}`}
+                        label={day.isOpen ? t("markDayClosed", { day: t(day.labelKey) }) : t("markDayOpen", { day: t(day.labelKey) })}
                       />
                       <div className="flex flex-wrap items-center gap-1.5">
                         <input
@@ -176,7 +178,7 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                           className={`input h-10 w-[6.6rem] px-2 font-mono text-[13px] disabled:cursor-not-allowed disabled:opacity-40 ${invalid ? "border-error/60" : ""}`}
                           value={day.open}
                           disabled={!day.isOpen}
-                          aria-label={`${day.label} opens at`}
+                          aria-label={t("dayOpensAt", { day: t(day.labelKey) })}
                           aria-invalid={invalid}
                           aria-describedby={invalid ? errorId : undefined}
                           onChange={(e) => updateDay(day.key, { open: e.target.value })}
@@ -187,7 +189,7 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                           className={`input h-10 w-[6.6rem] px-2 font-mono text-[13px] disabled:cursor-not-allowed disabled:opacity-40 ${invalid ? "border-error/60" : ""}`}
                           value={day.close}
                           disabled={!day.isOpen}
-                          aria-label={`${day.label} closes at`}
+                          aria-label={t("dayClosesAt", { day: t(day.labelKey) })}
                           aria-invalid={invalid}
                           aria-describedby={invalid ? errorId : undefined}
                           onChange={(e) => updateDay(day.key, { close: e.target.value })}
@@ -199,20 +201,20 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                             type="button"
                             onClick={() => copyMondayTo(day.key)}
                             className="inline-flex items-center gap-1 rounded-pill border border-border bg-white px-2 py-1.5 text-[10px] font-bold text-obsidian-light transition-colors hover:bg-canvas hover:text-obsidian"
-                            title="Copy Monday's hours to this day"
+                            title={t("copyMondayTitle")}
                           >
                             <Copy size={11} strokeWidth={2.2} aria-hidden="true" />
-                            Mon
+                            {t("dayMonShort")}
                           </button>
                         ) : (
-                          <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted">Source</span>
+                          <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted">{t("sourceLabel")}</span>
                         )}
                       </div>
                     </div>
                     {invalid ? (
                       <p id={errorId} role="alert" className="mt-2 flex items-center gap-1.5 pl-[118px] text-[11px] font-semibold text-error sm:pl-[166px]">
                         <CircleExclamationPoint size={12} strokeWidth={2.4} aria-hidden="true" />
-                        Opens before it closes — fix {day.label}.
+                        {t("hoursOrderError", { day: t(day.labelKey) })}
                       </p>
                     ) : null}
                   </li>
@@ -225,25 +227,25 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                 {hasErrors ? (
                   <>
                     <CircleExclamationPoint size={13} strokeWidth={2.4} aria-hidden="true" />
-                    Fix the highlighted rows to save.
+                    {t("fixHighlightedRows")}
                   </>
                 ) : (
-                  "Opening must be before closing — enforced per row."
+                  t("openingBeforeClosing")
                 )}
               </p>
               <button type="button" disabled={hasErrors || saving} onClick={save} className="btn btn-primary h-11 disabled:cursor-not-allowed disabled:opacity-40">
-                Save hours
+                {t("saveHours")}
               </button>
             </div>
           </div>
 
           {/* Global booking rules */}
           <div className="card p-5 sm:p-6">
-            <h2 className="text-[15px] font-extrabold text-obsidian">Booking rules</h2>
-            <p className="mt-0.5 text-[11px] font-medium text-muted">Applied to every new booking, everywhere.</p>
+            <h2 className="text-[15px] font-extrabold text-obsidian">{t("bookingRulesHeading")}</h2>
+            <p className="mt-0.5 text-[11px] font-medium text-muted">{t("bookingRulesDesc")}</p>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <span className="label" id="slot-label">Slot increment</span>
+                <span className="label" id="slot-label">{t("slotIncrementLabel")}</span>
                 <div role="group" aria-labelledby="slot-label" className="segmented">
                   {SLOT_OPTIONS.map((option) => (
                     <button
@@ -259,7 +261,7 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                 </div>
               </div>
               <div>
-                <label htmlFor="buffer-minutes" className="label">Buffer between bookings</label>
+                <label htmlFor="buffer-minutes" className="label">{t("bufferLabel")}</label>
                 <div className="relative">
                   <input
                     id="buffer-minutes"
@@ -272,10 +274,10 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                   />
                   <span aria-hidden="true" className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[11px] font-bold text-muted">min</span>
                 </div>
-                <p className="mt-1.5 text-[10px] font-medium text-muted">Setup &amp; cleaning time before the next slot</p>
+                <p className="mt-1.5 text-[10px] font-medium text-muted">{t("bufferNote")}</p>
               </div>
               <div>
-                <label htmlFor="min-notice" className="label">Minimum notice to book</label>
+                <label htmlFor="min-notice" className="label">{t("minNoticeLabel")}</label>
                 <div className="relative">
                   <input
                     id="min-notice"
@@ -288,20 +290,20 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                   />
                   <span aria-hidden="true" className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[11px] font-bold text-muted">h</span>
                 </div>
-                <p className="mt-1.5 text-[10px] font-medium text-muted">Last-minute bookings closer than this are blocked</p>
+                <p className="mt-1.5 text-[10px] font-medium text-muted">{t("minNoticeNote")}</p>
               </div>
               <div className="sm:col-span-2">
-                <span className="label" id="week-start-label">Week starts on</span>
+                <span className="label" id="week-start-label">{t("weekStartLabel")}</span>
                 <div className="flex items-center gap-2">
                   <input
                     className="input h-11 w-40 cursor-not-allowed bg-canvas text-muted"
-                    value="Monday"
+                    value={t("dayMonday")}
                     disabled
                     aria-labelledby="week-start-label"
                   />
                   <span className="chip border border-border bg-canvas text-muted">
                     <Lock size={11} strokeWidth={2.4} aria-hidden="true" />
-                    Business standard
+                    {t("businessStandard")}
                   </span>
                 </div>
               </div>
@@ -316,12 +318,12 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
               <CalendarDays size={18} strokeWidth={1.9} aria-hidden="true" />
             </span>
             <div>
-              <h2 id="preview-heading" className="text-[15px] font-extrabold text-obsidian">Preview — a typical week</h2>
-              <p className="text-[11px] font-medium text-muted">Bars render open hours between 07:00 and 21:00</p>
+              <h2 id="preview-heading" className="text-[15px] font-extrabold text-obsidian">{t("previewHeading")}</h2>
+              <p className="text-[11px] font-medium text-muted">{t("previewDesc")}</p>
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-7 gap-1.5" role="img" aria-label="Week preview chart — one bar per open day showing open hours">
+          <div className="mt-4 grid grid-cols-7 gap-1.5" role="img" aria-label={t("weekPreviewAria")}>
             {week.map((day) => {
               const valid = day.isOpen && toMinutes(day.open) < toMinutes(day.close);
               const top = valid ? windowPct(toMinutes(day.open)) : 0;
@@ -349,12 +351,12 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                       />
                     ) : (
                       <span className="absolute inset-0 flex items-center justify-center">
-                        <span className="-rotate-90 whitespace-nowrap text-[8px] font-bold uppercase tracking-[0.18em] text-muted">Closed</span>
+                        <span className="-rotate-90 whitespace-nowrap text-[8px] font-bold uppercase tracking-[0.18em] text-muted">{t("dayClosedLabel")}</span>
                       </span>
                     )}
                   </div>
                   <span className="font-mono text-[9px] leading-none text-muted">{valid ? day.close : ""}</span>
-                  <span className="text-[11px] font-bold text-obsidian">{day.short}</span>
+                  <span className="text-[11px] font-bold text-obsidian">{t(day.shortKey)}</span>
                 </div>
               );
             })}
@@ -363,18 +365,18 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
           <div className="mt-3 flex items-center justify-between gap-2 border-t border-divider pt-3 text-[10px] font-medium leading-snug text-muted">
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-pill bg-electric" aria-hidden="true" />
-              Open interval
+              {t("openInterval")}
             </span>
             <span className="font-mono">Africa/Casablanca</span>
           </div>
 
           <div className="mt-3 flex items-start gap-2 rounded-sm bg-tint-blue p-3 text-[11px] font-medium leading-snug text-tint-fg-blue">
             <Info size={13} strokeWidth={2.2} aria-hidden="true" className="mt-0.5 shrink-0" />
-            The grid updates live as you edit — the booking engine will never offer a slot outside these hours.
+            {t("previewLiveNote")}
           </div>
           <p className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold text-muted">
             <ArrowRight size={11} strokeWidth={2.4} aria-hidden="true" />
-            Slot: {slot} min · buffer {buffer || "0"} min · notice {minNotice || "0"} h
+            {t("slotSummary", { slot, buffer: buffer || "0", notice: minNotice || "0" })}
           </p>
         </aside>
       </div>

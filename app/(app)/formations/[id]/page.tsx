@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { FormationDetailClient } from "@/components/formations/FormationDetailClient";
 import { loadFormation } from "@/lib/formation-vms";
 
-export const metadata: Metadata = { title: "Formation" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("formations");
+  return { title: t("detailTitle") };
+}
 export const instant = false;
 
 export default async function FormationDetailPage({

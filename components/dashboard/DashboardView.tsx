@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   ArrowUpRight,
   BarChart3,
@@ -79,6 +80,7 @@ const hatch = {
 
 /* ---------------- view ---------------- */
 export function DashboardView({ data }: { data?: DashboardData | null }) {
+  const t = useTranslations("dashboard");
   // When live data exists, use it — otherwise the demo set above.
   const todayLong = data?.todayLong ?? DEMO.todayLong;
   const firstName = data?.firstName ?? DEMO.firstName;
@@ -91,10 +93,10 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
   const utilization = data?.utilization ?? DEMO.utilization;
 
   const kpiTiles = [
-    { label: "Today's bookings", value: String(kpis.todayBookings), delta: "Live", up: true, tint: "bg-tint-blue text-electric" },
-    { label: "Room utilization (week)", value: `${kpis.weekUtilization}%`, delta: "Booked ÷ available hours", up: true, tint: "bg-tint-green text-tint-fg-green" },
-    { label: "Formation fill-rate", value: `${kpis.formationFillRate}%`, delta: "Enrolled seats ÷ capacity", up: true, tint: "bg-tint-purple text-tint-fg-purple" },
-    { label: "Pending change requests", value: String(kpis.pendingChangeRequests), delta: kpis.pendingChangeRequests > 0 ? "Awaiting response" : "Nothing pending", up: false, tint: "bg-warning-tint text-[#a34d00]" },
+    { label: t("kpiTodayBookings"), value: String(kpis.todayBookings), delta: t("deltaLive"), up: true, tint: "bg-tint-blue text-electric" },
+    { label: t("kpiWeekUtilization"), value: `${kpis.weekUtilization}%`, delta: t("deltaBookedHours"), up: true, tint: "bg-tint-green text-tint-fg-green" },
+    { label: t("kpiFormationFillRate"), value: `${kpis.formationFillRate}%`, delta: t("deltaEnrolledSeats"), up: true, tint: "bg-tint-purple text-tint-fg-purple" },
+    { label: t("kpiPendingChangeRequests"), value: String(kpis.pendingChangeRequests), delta: kpis.pendingChangeRequests > 0 ? t("deltaAwaitingResponse") : t("deltaNothingPending"), up: false, tint: "bg-warning-tint text-[#a34d00]" },
   ];
 
   return (
@@ -103,18 +105,18 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.04em] text-obsidian sm:text-[32px]">
-            Good morning, {firstName}
+            {t("greeting", { firstName })}
           </h1>
-          <p className="mt-1 text-[14px] font-medium text-obsidian-light">{todayLong} · Eiden Group</p>
+          <p className="mt-1 text-[14px] font-medium text-obsidian-light">{t("headerMeta", { today: todayLong })}</p>
         </div>
         <Link href="/calendar" className="btn btn-primary h-11 shadow-electric">
           <Plus size={18} strokeWidth={2.4} aria-hidden="true" />
-          New booking
+          {t("newBooking")}
         </Link>
       </div>
 
       {/* KPI row */}
-      <section aria-label="Key metrics" className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <section aria-label={t("keyMetricsLabel")} className="mt-5 grid grid-cols-2 gap-3 xl:grid-cols-4">
         {kpiTiles.map((kpi) => (
           <div key={kpi.label} className="card p-4 sm:p-5">
             <span className={`flex h-9 w-9 items-center justify-center rounded-sm ${kpi.tint}`}>
@@ -133,14 +135,14 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
       {/* Hero: schedule grid + right rail */}
       <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_340px]">
         {/* ----- Schedule grid card ----- */}
-        <section aria-label="This week" className="card overflow-hidden">
+        <section aria-label={t("thisWeekLabel")} className="card overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-divider p-4 sm:p-5">
-            <h2 className="text-[17px] font-bold tracking-[-0.02em] text-obsidian">This week — rooms</h2>
+            <h2 className="text-[17px] font-bold tracking-[-0.02em] text-obsidian">{t("thisWeekRooms")}</h2>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="chip bg-tint-green text-tint-fg-green">Formation</span>
-              <span className="chip bg-tint-blue text-tint-fg-blue">Room rental</span>
-              <span className="chip bg-tint-purple text-tint-fg-purple">Internal</span>
-              <span className="chip border border-dashed border-warning/60 bg-warning-tint text-[#a34d00]">Pending</span>
+              <span className="chip bg-tint-green text-tint-fg-green">{t("chipFormation")}</span>
+              <span className="chip bg-tint-blue text-tint-fg-blue">{t("chipRoomRental")}</span>
+              <span className="chip bg-tint-purple text-tint-fg-purple">{t("chipInternal")}</span>
+              <span className="chip border border-dashed border-warning/60 bg-warning-tint text-[#a34d00]">{t("chipPending")}</span>
             </div>
           </div>
 
@@ -174,9 +176,9 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
             <div className="min-w-[760px] p-3 sm:p-4">
               {rooms.length === 0 ? (
                 <div className="rounded-md border border-dashed border-border px-4 py-10 text-center">
-                  <p className="text-[14px] font-bold text-obsidian">No rooms configured yet</p>
-                  <p className="mt-1 text-[12px] font-medium text-muted">Add your meeting rooms in Settings → Rooms &amp; Resources to see the live grid.</p>
-                  <Link href="/settings/rooms" className="btn btn-secondary mt-4 h-10 text-[13px]">Add rooms</Link>
+                  <p className="text-[14px] font-bold text-obsidian">{t("noRoomsTitle")}</p>
+                  <p className="mt-1 text-[12px] font-medium text-muted">{t("noRoomsBody")}</p>
+                  <Link href="/settings/rooms" className="btn btn-secondary mt-4 h-10 text-[13px]">{t("addRooms")}</Link>
                 </div>
               ) : (
                 rooms.map((room) => (
@@ -224,10 +226,10 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
 
           <div className="flex items-center justify-between border-t border-divider px-4 py-3">
             <p className="text-[11px] font-medium text-muted">
-              {data ? "Live from your Supabase database." : "Preview with demo data."}
+              {data ? t("dataLiveFromDb") : t("dataPreviewDemo")}
             </p>
             <Link href="/calendar" className="inline-flex items-center gap-1 text-[12px] font-bold text-electric hover:text-electric-hover">
-              Open calendar <ChevronRight size={14} strokeWidth={2.5} aria-hidden="true" />
+              {t("openCalendar")} <ChevronRight size={14} strokeWidth={2.5} aria-hidden="true" />
             </Link>
           </div>
         </section>
@@ -235,64 +237,64 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
         {/* ----- Right rail ----- */}
         <div className="flex flex-col gap-4">
           {/* Welcome card */}
-          <section aria-label="Welcome" className="card relative overflow-hidden p-5">
+          <section aria-label={t("welcomeLabel")} className="card relative overflow-hidden p-5">
             <div className="absolute -right-6 -top-6 opacity-[0.07]" aria-hidden="true">
               <NowBarMark size={150} />
             </div>
             <div className="relative">
               <NowBarMark size={36} />
               <h2 className="mt-3 text-[20px] font-extrabold leading-tight tracking-[-0.03em] text-obsidian">
-                Welcome back,
+                {t("welcomeBack")}
                 <br />
                 {firstName}
               </h2>
               <p className="mt-1.5 text-[13px] font-medium text-obsidian-light">
-                {kpis.todayBookings} booking{kpis.todayBookings === 1 ? "" : "s"} today · {plansInFlight.length} plan{plansInFlight.length === 1 ? "" : "s"} in flight · {kpis.pendingChangeRequests} pending change request{kpis.pendingChangeRequests === 1 ? "" : "s"}.
+                {t("summaryLine", { bookings: kpis.todayBookings, plans: plansInFlight.length, requests: kpis.pendingChangeRequests })}
               </p>
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <Link href="/calendar" className="btn btn-primary h-10 w-full gap-1.5 text-[12px]">
-                  <Plus size={15} strokeWidth={2.6} aria-hidden="true" /> Booking
+                  <Plus size={15} strokeWidth={2.6} aria-hidden="true" /> {t("quickBooking")}
                 </Link>
                 <Link href="/formations" className="btn btn-secondary h-10 w-full gap-1.5 border border-border bg-white text-[12px]">
-                  <GraduationCap size={15} strokeWidth={2} aria-hidden="true" /> Formation
+                  <GraduationCap size={15} strokeWidth={2} aria-hidden="true" /> {t("quickFormation")}
                 </Link>
                 <Link href="/clients" className="btn btn-secondary h-10 w-full gap-1.5 border border-border bg-white text-[12px]">
-                  <Users size={15} strokeWidth={2} aria-hidden="true" /> Client
+                  <Users size={15} strokeWidth={2} aria-hidden="true" /> {t("quickClient")}
                 </Link>
                 <Link href="/plans" className="btn btn-secondary h-10 w-full gap-1.5 border border-border bg-white text-[12px]">
-                  <Zap size={15} strokeWidth={2} aria-hidden="true" /> Plan
+                  <Zap size={15} strokeWidth={2} aria-hidden="true" /> {t("quickPlan")}
                 </Link>
               </div>
             </div>
           </section>
 
           {/* Pending change requests */}
-          <section aria-label="Pending change requests" className="card p-5">
+          <section aria-label={t("pendingChangeRequestsLabel")} className="card p-5">
             <div className="flex items-center justify-between">
-              <h3 className="text-[14px] font-bold text-obsidian">Change requests</h3>
+              <h3 className="text-[14px] font-bold text-obsidian">{t("changeRequestsTitle")}</h3>
               <span className={`chip ${kpis.pendingChangeRequests > 0 ? "bg-warning-tint font-bold text-[#a34d00]" : "bg-success-tint text-tint-fg-green"}`}>
-                {kpis.pendingChangeRequests > 0 ? `${kpis.pendingChangeRequests} pending` : "All clear"}
+                {kpis.pendingChangeRequests > 0 ? t("chipPendingCount", { count: kpis.pendingChangeRequests }) : t("allClear")}
               </span>
             </div>
             {kpis.pendingChangeRequests === 0 ? (
               <p className="mt-3 rounded-sm border border-divider bg-canvas/60 px-3 py-3 text-[12px] font-medium text-muted">
-                No change requests pending — your week is conflict-free.
+                {t("noChangeRequests")}
               </p>
             ) : (
               <Link href="/notifications" className="mt-3 block rounded-sm border border-warning/40 bg-warning-tint p-3 text-[12px] font-semibold text-[#a34d00] transition-colors hover:border-warning/70">
-                Review {kpis.pendingChangeRequests} pending request{kpis.pendingChangeRequests === 1 ? "" : "s"} →
+                {t("reviewRequests", { count: kpis.pendingChangeRequests })}
               </Link>
             )}
           </section>
 
           {/* Upcoming formations */}
-          <section aria-label="Next up" className="card p-5">
-            <h3 className="text-[14px] font-bold text-obsidian">Up next</h3>
+          <section aria-label={t("nextUpLabel")} className="card p-5">
+            <h3 className="text-[14px] font-bold text-obsidian">{t("upNextTitle")}</h3>
             <ul className="mt-3 space-y-3">
               {futureEvents.slice(0, 3).map((f, i) => (
                 <li key={i} className="flex items-center gap-3">
                   <span className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-sm bg-tint-green text-[13px] font-extrabold leading-none text-tint-fg-green">
-                    {f.day === "Today" ? "Today".slice(0, 3).toUpperCase() : f.day.slice(0, 3).toUpperCase()}
+                    {f.day === "Today" ? t("today").slice(0, 3).toUpperCase() : f.day.slice(0, 3).toUpperCase()}
                   </span>
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-bold text-obsidian">{f.title}</p>
@@ -302,7 +304,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
               ))}
               {futureEvents.length === 0 && (
                 <li className="rounded-sm border border-dashed border-border px-3 py-4 text-center text-[12px] font-medium text-muted">
-                  Nothing scheduled yet — create your first booking.
+                  {t("nothingScheduled")}
                 </li>
               )}
             </ul>
@@ -313,10 +315,10 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
       {/* Bottom row */}
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         {/* Future events */}
-        <section aria-label="Future events" className="card p-5">
+        <section aria-label={t("futureEventsLabel")} className="card p-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-[15px] font-bold tracking-[-0.01em] text-obsidian">Future events</h3>
-            <Link href="/calendar" className="text-[12px] font-bold text-electric hover:text-electric-hover">View all</Link>
+            <h3 className="text-[15px] font-bold tracking-[-0.01em] text-obsidian">{t("futureEventsTitle")}</h3>
+            <Link href="/calendar" className="text-[12px] font-bold text-electric hover:text-electric-hover">{t("viewAll")}</Link>
           </div>
           <ul className="mt-4 space-y-3">
             {futureEvents.map((e, i) => (
@@ -337,17 +339,17 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
             ))}
             {futureEvents.length === 0 && (
               <li className="rounded-md border border-dashed border-border px-4 py-8 text-center text-[12px] font-medium text-muted">
-                No upcoming events — your calendar is clear.
+                {t("noUpcomingEvents")}
               </li>
             )}
           </ul>
         </section>
 
         {/* Plans in flight */}
-        <section aria-label="Plans in flight" className="card p-5">
+        <section aria-label={t("plansInFlightLabel")} className="card p-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-[15px] font-bold tracking-[-0.01em] text-obsidian">Plans in flight</h3>
-            <Link href="/plans" className="text-[12px] font-bold text-electric hover:text-electric-hover">View all</Link>
+            <h3 className="text-[15px] font-bold tracking-[-0.01em] text-obsidian">{t("plansInFlightTitle")}</h3>
+            <Link href="/plans" className="text-[12px] font-bold text-electric hover:text-electric-hover">{t("viewAll")}</Link>
           </div>
           <ul className="mt-4 space-y-4">
             {plansInFlight.map((p, i) => (
@@ -366,17 +368,17 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
             ))}
             {plansInFlight.length === 0 && (
               <li className="rounded-md border border-dashed border-border px-4 py-8 text-center">
-                <p className="text-[12px] font-medium text-muted">No active plans yet.</p>
-                <Link href="/plans" className="btn btn-secondary mt-3 h-9 text-[12px]">Create the first plan</Link>
+                <p className="text-[12px] font-medium text-muted">{t("noActivePlans")}</p>
+                <Link href="/plans" className="btn btn-secondary mt-3 h-9 text-[12px]">{t("createFirstPlan")}</Link>
               </li>
             )}
           </ul>
         </section>
 
         {/* Room utilization */}
-        <section aria-label="Room utilization" className="card p-5">
+        <section aria-label={t("roomUtilizationLabel")} className="card p-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-[15px] font-bold tracking-[-0.01em] text-obsidian">Room utilization</h3>
+            <h3 className="text-[15px] font-bold tracking-[-0.01em] text-obsidian">{t("roomUtilizationTitle")}</h3>
             <BarChart3 size={16} className="text-muted" aria-hidden="true" />
           </div>
           <ul className="mt-4 space-y-4">
@@ -396,13 +398,13 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
             ))}
             {utilization.length === 0 && (
               <li className="rounded-md border border-dashed border-border px-4 py-8 text-center text-[12px] font-medium text-muted">
-                Add rooms to see utilization.
+                {t("addRoomsUtilization")}
               </li>
             )}
           </ul>
           <p className="mt-4 flex items-center gap-1.5 border-t border-divider pt-3 text-[11px] font-medium text-muted">
             <CalendarDays size={12} strokeWidth={2} aria-hidden="true" />
-            Hours booked ÷ hours available (working hours × rooms), per week.
+            {t("utilizationFootnote")}
           </p>
         </section>
       </div>

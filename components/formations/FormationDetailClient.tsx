@@ -11,6 +11,8 @@
 import { useEffect, useMemo, useState, useSyncExternalStore, type ChangeEvent, type FormEvent, type MouseEvent as ReactMouseEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
+import { appLocaleTag } from "@/lib/intl-locale";
 import { createFormationAction, enrollParticipantAction, importParticipantsAction, markAttendanceAction, removeParticipantAction, setParticipantWaitlistAction } from "@/app/actions/formations";
 import { cancelBookingAction } from "@/app/actions/bookings";
 import Papa from "papaparse";
@@ -85,14 +87,21 @@ const CANCEL_REASONS = [
   "Other",
 ] as const;
 
-const STATUS_LABEL: Record<ParticipantStatus, string> = {
-  enrolled: "Enrolled",
-  confirmed: "Confirmed",
-  attended: "Attended",
-  no_show: "No show",
-  cancelled: "Cancelled",
+const CANCEL_REASON_KEYS: Record<string, "cancelReasonFacilitator" | "cancelReasonRoomConflict" | "cancelReasonClientRequest" | "cancelReasonOther"> = {
+  "Facilitator unavailable": "cancelReasonFacilitator",
+  "Room conflict": "cancelReasonRoomConflict",
+  "Client / cohort request": "cancelReasonClientRequest",
+  Other: "cancelReasonOther",
 };
-const STATUS_OPTIONS = Object.keys(STATUS_LABEL) as ParticipantStatus[];
+
+const STATUS_LABEL_KEYS: Record<ParticipantStatus, "participantStatusEnrolled" | "participantStatusConfirmed" | "participantStatusAttended" | "participantStatusNoShow" | "participantStatusCancelled"> = {
+  enrolled: "participantStatusEnrolled",
+  confirmed: "participantStatusConfirmed",
+  attended: "participantStatusAttended",
+  no_show: "participantStatusNoShow",
+  cancelled: "participantStatusCancelled",
+};
+const STATUS_OPTIONS = Object.keys(STATUS_LABEL_KEYS) as ParticipantStatus[];
 
 interface CsvRow {
   fullName: string;
@@ -128,6 +137,8 @@ export function FormationDetailClient({
   id: string;
   data?: FormationListData | null;
 }) {
+  const t = useTranslations("formations");
+  const intlLocale = appLocaleTag(useLocale());
   const liveVm = data?.vms[0] ?? null;
   const live = data?.live === true;
   // Demo formations render identically on server and client.
@@ -165,31 +176,30 @@ export function FormationDetailClient({
       <div className="mx-auto max-w-[1440px]" aria-busy="true">
         <div className="h-6 w-56 animate-pulse rounded-pill bg-track" />
         <div className="card mt-4 h-[420px] animate-pulse bg-canvas" />
-        <p className="sr-only">Loading formation…</p>
+        <p className="sr-only">{t("loadingFormation")}</p>
       </div>
     );
   }
   return (
     <div className="mx-auto max-w-[1440px]">
-      <nav aria-label="Breadcrumb" className="print:hidden flex items-center gap-2 text-[13px] font-semibold">
+      <nav aria-label={t("breadcrumbLabel")} className="print:hidden flex items-center gap-2 text-[13px] font-semibold">
         <Link href="/formations" className="text-muted transition-colors hover:text-obsidian">
-          Formations
+          {t("title")}
         </Link>
         <ChevronRight size={14} aria-hidden="true" className="text-muted" />
-        <span aria-current="page" className="text-obsidian">Not found</span>
+        <span aria-current="page" className="text-obsidian">{t("notFound")}</span>
       </nav>
       <div className="card mt-5 flex flex-col items-center px-6 py-20 text-center">
         <NowBarMark size={52} className="opacity-90" />
         <h1 className="mt-5 text-[22px] font-extrabold tracking-[-0.03em] text-obsidian">
-          Formation not found
+          {t("notFoundTitle")}
         </h1>
         <p className="mt-1.5 max-w-md text-[14px] leading-snug text-obsidian-light">
-          This session doesn&apos;t exist in the demo dataset. It may have been created in another
-          browser tab or session.
+          {t("notFoundBody")}
         </p>
         <Link href="/formations" className="btn btn-primary mt-6 h-11">
           <ArrowLeft size={17} aria-hidden="true" />
-          Back to Formations
+          {t("backToFormations")}
         </Link>
       </div>
     </div>
@@ -208,6 +218,8 @@ function FormationDetailView({
   live: boolean;
 }) {
   const router = useRouter();
+  const t = useTranslations("formations");
+  const intlLocale = appLocaleTag(useLocale());
   const { toasts, push, dismiss } = useToast();
   const [participants, setParticipants] = useState<FormationParticipantRow[]>(
     () => vm.participants,
@@ -218,6 +230,7 @@ function FormationDetailView({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState<string>(CANCEL_REASONS[0]);
   const isCancelled = vm.formation.status === "cancelled" || cancelledReason !== null;
+  const cancelReasonLabel = (reason: string) => t(CANCEL_REASON_KEYS[reason] ?? "cancelReasonOther");
 
   /* ---------- roster search / filters ---------- */
   const [rosterQuery, setRosterQuery] = useState("");
@@ -281,7 +294,7 @@ function FormationDetailView({
     if (live) {
       const res = await markAttendanceAction({ participantId: participant.id, status: next });
       if (!res.ok) {
-        push("Could not save attendance — try again", "error");
+        push(t("toastAttendanceError"), "error");
         router.refresh();
       }
     }
@@ -297,10 +310,10 @@ function FormationDetailView({
         router.refresh();
         return;
       }
-      push("Participant removed from the roster", "info");
+      push(t("toastParticipantRemoved"), "info");
       return;
     }
-    push("Participant removed from the roster", "info");
+    push(t("toastParticipantRemoved"), "info");
   }
 
   async function promoteWaitlist(participant: FormationParticipantRow) {
@@ -312,10 +325,10 @@ function FormationDetailView({
         router.refresh();
         return;
       }
-      push(`${participant.full_name} promoted from the waitlist`);
+      push(t("toastPromoted", { name: participant.full_name }));
       return;
     }
-    push(`${participant.full_name} promoted from the waitlist`);
+    push(t("toastPromoted", { name: participant.full_name }));
   }
 
   function markAllPresent() {
@@ -323,7 +336,7 @@ function FormationDetailView({
       (p) => (p.status === "enrolled" || p.status === "confirmed") && !p.waitlist,
     );
     if (eligible.length === 0) {
-      push("Nothing to mark — every confirmed seat is already resolved", "info");
+      push(t("toastNothingToMark"), "info");
       return;
     }
     const now = new Date().toISOString();
@@ -340,7 +353,7 @@ function FormationDetailView({
           : p,
       ),
     );
-    push(`${eligible.length} marked present`);
+    push(t("toastMarkedPresent", { count: eligible.length }));
   }
 
   /* ---------- enroll modal ---------- */
@@ -377,8 +390,8 @@ function FormationDetailView({
     event.preventDefault();
     const name = enroll.name.trim();
     const email = enroll.email.trim();
-    if (!name) return setEnrollError("Full name is required.");
-    if (!EMAIL_RE.test(email)) return setEnrollError("Enter a valid email address.");
+    if (!name) return setEnrollError(t("errorFullName"));
+    if (!EMAIL_RE.test(email)) return setEnrollError(t("errorEmail"));
 
     if (live) {
       const res = await enrollParticipantAction({
@@ -394,7 +407,9 @@ function FormationDetailView({
         return;
       }
       push(
-        res.data.waitlisted ? `${name} added to the waitlist — session is full` : `${name} enrolled`,
+        res.data.waitlisted
+          ? t("toastWaitlistedSessionFull", { name })
+          : t("toastEnrolled", { name }),
         res.data.waitlisted ? "info" : "success",
       );
       router.refresh();
@@ -420,7 +435,9 @@ function FormationDetailView({
     };
     setParticipants((current) => [...current, participant]);
     push(
-      waitlist ? `${name} added to the waitlist — session is full` : `${name} enrolled`,
+      waitlist
+        ? t("toastWaitlistedSessionFull", { name })
+        : t("toastEnrolled", { name }),
       waitlist ? "info" : "success",
     );
     setEnrollOpen(false);
@@ -451,7 +468,7 @@ function FormationDetailView({
     if (missing.length > 0) {
       setCsvRows(null);
       setCsvError(
-        `Missing column(s): ${missing.join(", ")} — expected headers: full_name, email, phone, company`,
+        t("importMissingColumns", { missing: missing.join(", ") }),
       );
       return;
     }
@@ -465,9 +482,9 @@ function FormationDetailView({
       const phone = (raw.phone ?? "").trim();
       const company = (raw.company ?? "").trim();
       const errors: string[] = [];
-      if (!fullName) errors.push("full_name is required");
-      if (!email) errors.push("email is required");
-      else if (!EMAIL_RE.test(email)) errors.push("invalid email");
+      if (!fullName) errors.push(t("csvFullNameRequired"));
+      if (!email) errors.push(t("csvEmailRequired"));
+      else if (!EMAIL_RE.test(email)) errors.push(t("csvInvalidEmail"));
       const key = email.toLowerCase();
       const duplicate = key !== "" && (existing.has(key) || seen.has(key));
       if (key) seen.add(key);
@@ -508,7 +525,7 @@ function FormationDetailView({
         push(res.error.message, "error");
         return;
       }
-      push(`Enrolled ${res.data.enrolled}${res.data.skipped ? ` (${res.data.skipped} skipped duplicates)` : ""}`);
+      push(`${t("importEnrolled", { count: res.data.enrolled })}${res.data.skipped ? ` ${t("importSkipped", { skipped: res.data.skipped })}` : ""}`);
       router.refresh();
       setImportOpen(false);
       resetImport();
@@ -535,7 +552,7 @@ function FormationDetailView({
     // TODO(WIRE): bulkEnrollParticipants action — server dedupes + enforces capacity atomically.
     setParticipants((current) => [...current, ...newbies]);
     push(
-      `Enrolled ${newbies.length}${duplicateImportCount ? ` (${duplicateImportCount} skipped duplicates)` : ""}`,
+      `${t("importEnrolled", { count: newbies.length })}${duplicateImportCount ? ` ${t("importSkipped", { skipped: duplicateImportCount })}` : ""}`,
     );
     setImportOpen(false);
     resetImport();
@@ -560,7 +577,7 @@ function FormationDetailView({
       type: "text/csv;charset=utf-8",
     });
     downloadBlob(blob, `roster-${vm.booking.id}.csv`);
-    push("Roster exported as CSV");
+    push(t("toastRosterExported"));
   }
 
   const { booking, formation } = vm;
@@ -573,9 +590,9 @@ function FormationDetailView({
       <style>{PRINT_CSS}</style>
 
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="print:hidden flex items-center gap-2 text-[13px] font-semibold">
+      <nav aria-label={t("breadcrumbLabel")} className="print:hidden flex items-center gap-2 text-[13px] font-semibold">
         <Link href="/formations" className="text-muted transition-colors hover:text-obsidian">
-          Formations
+          {t("title")}
         </Link>
         <ChevronRight size={14} aria-hidden="true" className="text-muted" />
         <span aria-current="page" className="max-w-[62ch] truncate text-obsidian" title={booking.title}>
@@ -591,19 +608,19 @@ function FormationDetailView({
         >
           <AlertTriangle size={18} aria-hidden="true" className="mt-0.5 shrink-0" />
           <div>
-            <p>Session cancelled — participants would be notified.</p>
-            <p className="mt-0.5 font-medium text-error/80">Reason: {cancelledReason ?? "Cancelled"}</p>
+            <p>{t("cancelBannerTitle")}</p>
+            <p className="mt-0.5 font-medium text-error/80">{t("cancelBannerReason", { reason: cancelledReason ? cancelReasonLabel(cancelledReason) : t("statusCancelled") })}</p>
           </div>
         </div>
       )}
 
       {/* Print-only masthead */}
       <div className="print-only hidden border-b border-border pb-4">
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted">CALENDAR. — attendance roster</p>
+        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted">{t("printMasthead")}</p>
         <h1 className="mt-1 text-[22px] font-extrabold tracking-[-0.03em] text-obsidian">{booking.title}</h1>
         <p className="mt-0.5 text-[13px] font-medium text-obsidian-light">
-          {formatFullDay(booking.starts_at)} · {formatTimeRange(booking.starts_at, booking.ends_at)} ·{" "}
-          {room ? stripDemoSuffix(room.name) : "Room TBD"} · {capacity} seats
+          {formatFullDay(booking.starts_at, intlLocale)} · {formatTimeRange(booking.starts_at, booking.ends_at, intlLocale)} ·{" "}
+          {room ? stripDemoSuffix(room.name) : t("roomTbd")} · {t("seatsCount", { count: capacity })}
         </p>
       </div>
 
@@ -611,7 +628,7 @@ function FormationDetailView({
         {/* ============ LEFT: session info ============ */}
         <section className="card min-w-0 p-5 print:hidden sm:p-6" aria-labelledby="session-heading">
           <div className="print:hidden flex flex-wrap items-center gap-2">
-            <StatusChip tone="green" className="tracking-[0.06em]">FORMATION</StatusChip>
+            <StatusChip tone="green" className="tracking-[0.06em]">{t("chipFormation")}</StatusChip>
             <FormationStatusChip status={status} seatsLeft={left} />
           </div>
 
@@ -622,7 +639,7 @@ function FormationDetailView({
             {booking.title}
           </h1>
           <p className="print:hidden mt-2 text-[14px] leading-snug text-obsidian-light">
-            {formation.description?.trim() || "No description yet — add one from the bookings console."}
+            {formation.description?.trim() || t("noDescription")}
           </p>
 
           {/* Meta grid */}
@@ -630,16 +647,16 @@ function FormationDetailView({
             <div className="flex items-start gap-2.5">
               <CalendarDays size={17} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />
               <div>
-                <dt className="label mb-0.5">Date</dt>
-                <dd className="text-[13px] font-semibold leading-snug text-obsidian">{formatFullDay(booking.starts_at)}</dd>
+                <dt className="label mb-0.5">{t("labelDate")}</dt>
+                <dd className="text-[13px] font-semibold leading-snug text-obsidian">{formatFullDay(booking.starts_at, intlLocale)}</dd>
               </div>
             </div>
             <div className="flex items-start gap-2.5">
               <Clock size={17} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />
               <div>
-                <dt className="label mb-0.5">Hours</dt>
+                <dt className="label mb-0.5">{t("labelHours")}</dt>
                 <dd className="text-[13px] font-semibold tabular-nums leading-snug text-obsidian">
-                  {formatTimeRange(booking.starts_at, booking.ends_at)}{" "}
+                  {formatTimeRange(booking.starts_at, booking.ends_at, intlLocale)}{" "}
                   <span className="font-medium text-muted">· {formatDuration(booking.starts_at, booking.ends_at)}</span>
                 </dd>
               </div>
@@ -647,9 +664,9 @@ function FormationDetailView({
             <div className="flex items-start gap-2.5">
               <DoorOpen size={17} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />
               <div>
-                <dt className="label mb-0.5">Room</dt>
+                <dt className="label mb-0.5">{t("labelRoom")}</dt>
                 <dd className="flex flex-wrap items-center gap-2 text-[13px] font-semibold leading-snug text-obsidian">
-                  {room ? stripDemoSuffix(room.name) : "To be assigned"}
+                  {room ? stripDemoSuffix(room.name) : t("toBeAssigned")}
                   <span className="chip bg-track px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-muted">
                     {locationBadge(room?.location)}
                   </span>
@@ -659,10 +676,10 @@ function FormationDetailView({
             <div className="flex items-start gap-2.5">
               <Info size={17} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />
               <div>
-                <dt className="label mb-0.5">Price / seat</dt>
+                <dt className="label mb-0.5">{t("labelPricePerSeat")}</dt>
                 <dd className="font-mono text-[13px] font-semibold leading-snug text-obsidian">
-                  {formation.price_label != null ? formatMad(formation.price_label) : "On request"}
-                  {formation.price_label != null && <span className="font-sans text-[11px] font-medium text-muted"> / seat</span>}
+                  {formation.price_label != null ? formatMad(formation.price_label) : t("priceOnRequest")}
+                  {formation.price_label != null && <span className="font-sans text-[11px] font-medium text-muted"> {t("perSeat")}</span>}
                 </dd>
               </div>
             </div>
@@ -670,9 +687,9 @@ function FormationDetailView({
             {/* Capacity — spans both columns with a live progress bar */}
             <div className="sm:col-span-2">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-                <dt className="label mb-0.5" id="capacity-label">Capacity</dt>
+                <dt className="label mb-0.5" id="capacity-label">{t("labelCapacity")}</dt>
                 <dd className="text-[12px] font-bold tabular-nums text-obsidian-light">
-                  {active} / {capacity} filled · <span className={left > 0 ? "text-tint-fg-green" : "text-error"}>{left} left</span>
+                  {t("capacityFilledPrefix", { active, capacity })} · <span className={left > 0 ? "text-tint-fg-green" : "text-error"}>{t("statusSeatsLeft", { count: left })}</span>
                 </dd>
               </div>
               <div
@@ -712,17 +729,17 @@ function FormationDetailView({
                     description: vm.formation.description ?? null,
                   });
                   if (!res.ok) return push(res.error.message, "error");
-                  push("Duplicated as next week — roster ready to fill", "success");
+                  push(t("toastDuplicateNextWeek"), "success");
                   router.refresh();
                   return;
                 }
                 const duplicated = duplicateFormation(vm);
-                push(`Duplicated as “${duplicated.booking.title}” (+1 week)`, "info");
+                push(t("toastDuplicateDemo", { title: duplicated.booking.title }), "info");
               }}
               className="btn btn-secondary h-11 px-5 text-[13px]"
             >
               <Copy size={16} aria-hidden="true" />
-              Duplicate
+              {t("duplicate")}
             </button>
             <button
               type="button"
@@ -731,7 +748,7 @@ function FormationDetailView({
               className="btn h-11 border border-error/30 bg-error-tint px-5 text-[13px] font-bold text-error transition-colors hover:bg-error hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
               <AlertTriangle size={16} aria-hidden="true" />
-              {isCancelled ? "Cancelled" : "Cancel session…"}
+              {isCancelled ? t("cancelledButton") : t("cancelSessionLabel")}
             </button>
           </div>
         </section>
@@ -740,30 +757,30 @@ function FormationDetailView({
         <section className="card min-w-0 p-5 sm:p-6 print:rounded-none print:border-0 print:p-0 print:shadow-none" aria-labelledby="roster-heading">
           <div className="print:hidden flex flex-wrap items-center gap-2.5">
             <h2 id="roster-heading" className="text-[17px] font-extrabold tracking-[-0.02em] text-obsidian">
-              Participants
+              {t("participants")}
             </h2>
             <span aria-live="polite" className="flex flex-wrap items-center gap-2">
-              <span className="chip bg-tint-blue tabular-nums text-tint-fg-blue">{active} enrolled</span>
+              <span className="chip bg-tint-blue tabular-nums text-tint-fg-blue">{t("chipEnrolled", { count: active })}</span>
               <span className={`chip tabular-nums ${left > 0 ? "bg-success-tint text-tint-fg-green" : "bg-error-tint text-error"}`}>
-                {left} seats left
+                {t("statusSeatsLeft", { count: left })}
               </span>
             </span>
             <div className="ml-auto flex flex-wrap items-center gap-2">
               <div className="relative">
                 <Search size={15} aria-hidden="true" className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
-                <label htmlFor="roster-search" className="sr-only">Search participants</label>
+                <label htmlFor="roster-search" className="sr-only">{t("searchParticipantsLabel")}</label>
                 <input
                   id="roster-search"
                   type="search"
                   value={rosterQuery}
                   onChange={(e) => setRosterQuery(e.target.value)}
-                  placeholder="Search roster…"
+                  placeholder={t("searchRosterPlaceholder")}
                   className="input h-10 w-36 pl-9 text-[13px] sm:w-44"
                 />
               </div>
               <button type="button" onClick={openEnroll} className="btn btn-primary h-10 px-4 text-[13px]">
                 <UserPlus size={16} aria-hidden="true" />
-                Enroll
+                {t("enroll")}
               </button>
             </div>
           </div>
@@ -772,22 +789,22 @@ function FormationDetailView({
           <div className="print:hidden mt-3 flex flex-wrap items-center gap-2 border-b border-divider pb-4">
             <button type="button" onClick={() => setImportOpen(true)} className="btn btn-secondary h-9 px-4 text-[12px]">
               <FileUp size={15} aria-hidden="true" />
-              Import CSV
+              {t("importCsv")}
             </button>
             <button type="button" onClick={markAllPresent} className="btn btn-secondary h-9 px-4 text-[12px]">
               <CheckCheck size={15} aria-hidden="true" />
-              Mark all present
+              {t("markAllPresent")}
             </button>
             <button type="button" onClick={exportCsv} className="btn btn-secondary h-9 px-4 text-[12px]">
               <Download size={15} aria-hidden="true" />
-              Export CSV
+              {t("exportCsv")}
             </button>
             <button type="button" onClick={() => window.print()} className="btn btn-secondary h-9 px-4 text-[12px]">
               <Printer size={15} aria-hidden="true" />
-              Print roster
+              {t("printRoster")}
             </button>
             {waitlisted > 0 && (
-              <span className="chip bg-tint-amber text-tint-fg-amber tabular-nums">{waitlisted} waitlisted</span>
+              <span className="chip bg-tint-amber text-tint-fg-amber tabular-nums">{t("chipWaitlisted", { count: waitlisted })}</span>
             )}
           </div>
 
@@ -799,12 +816,12 @@ function FormationDetailView({
                   <thead>
                     <tr className="border-b border-border text-[10px] font-bold uppercase tracking-[0.09em] text-muted">
                       <th scope="col" className="w-10 pb-2.5 pr-2">#</th>
-                      <th scope="col" className="pb-2.5 pr-3">Name</th>
-                      <th scope="col" className="pb-2.5 pr-3">Contact</th>
-                      <th scope="col" className="pb-2.5 pr-3">Status</th>
-                      <th scope="col" className="pb-2.5 pr-3">Waitlist</th>
-                      <th scope="col" className="pb-2.5 pr-3">Check-in</th>
-                      <th scope="col" className="w-14 pb-2.5 text-right"><span className="sr-only">Actions</span></th>
+                      <th scope="col" className="pb-2.5 pr-3">{t("colName")}</th>
+                      <th scope="col" className="pb-2.5 pr-3">{t("colContact")}</th>
+                      <th scope="col" className="pb-2.5 pr-3">{t("colStatus")}</th>
+                      <th scope="col" className="pb-2.5 pr-3">{t("colWaitlist")}</th>
+                      <th scope="col" className="pb-2.5 pr-3">{t("colCheckIn")}</th>
+                      <th scope="col" className="w-14 pb-2.5 text-right"><span className="sr-only">{t("colActions")}</span></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -828,7 +845,7 @@ function FormationDetailView({
                         </td>
                         <td className="py-2.5 pr-3">
                           <label className="sr-only" htmlFor={`status-${p.id}`}>
-                            Status for {p.full_name}
+                            {t("statusFor", { name: p.full_name })}
                           </label>
                           <select
                             id={`status-${p.id}`}
@@ -845,20 +862,20 @@ function FormationDetailView({
                             className="input h-9 w-[126px] px-2 text-[12px] font-semibold"
                           >
                             {STATUS_OPTIONS.map((s) => (
-                              <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                              <option key={s} value={s}>{t(STATUS_LABEL_KEYS[s])}</option>
                             ))}
                           </select>
                         </td>
                         <td className="py-2.5 pr-3">
                           {p.waitlist ? (
                             <span className="inline-flex flex-wrap items-center gap-2">
-                              <StatusChip tone="amber">Waitlist</StatusChip>
+                              <StatusChip tone="amber">{t("waitlistChip")}</StatusChip>
                               <button
                                 type="button"
                                 onClick={() => promoteWaitlist(p)}
                                 className="text-[11px] font-bold text-electric underline-offset-2 hover:underline"
                               >
-                                Promote
+                                {t("promote")}
                               </button>
                             </span>
                           ) : (
@@ -870,7 +887,7 @@ function FormationDetailView({
                             type="button"
                             disabled={p.status === "cancelled"}
                             aria-pressed={p.status === "attended"}
-                            aria-label={`Toggle attendance for ${p.full_name}`}
+                            aria-label={t("toggleAttendance", { name: p.full_name })}
                             onClick={() => cycleCheckIn(p)}
                             className={`inline-flex h-8 w-[104px] items-center justify-center gap-1.5 rounded-pill text-[11px] font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                               p.status === "attended"
@@ -881,18 +898,18 @@ function FormationDetailView({
                             }`}
                           >
                             {p.status === "attended" ? (
-                              <><Check size={13} strokeWidth={3} aria-hidden="true" />Attended</>
+                              <><Check size={13} strokeWidth={3} aria-hidden="true" />{t("checkInAttended")}</>
                             ) : p.status === "no_show" ? (
-                              <><X size={13} strokeWidth={3} aria-hidden="true" />No show</>
+                              <><X size={13} strokeWidth={3} aria-hidden="true" />{t("checkInNoShow")}</>
                             ) : (
-                              <><UserCheck size={13} aria-hidden="true" />Check in</>
+                              <><UserCheck size={13} aria-hidden="true" />{t("checkIn")}</>
                             )}
                           </button>
                         </td>
                         <td className="py-2.5 text-right">
                           <button
                             type="button"
-                            aria-label={`Remove ${p.full_name} from roster`}
+                            aria-label={t("removeFromRoster", { name: p.full_name })}
                             aria-haspopup="dialog"
                             aria-expanded={removeTarget?.id === p.id}
                             onClick={(event) => requestRemove(event, p.id)}
@@ -919,10 +936,10 @@ function FormationDetailView({
                         {p.company && <p className="truncate text-[11px] font-medium text-muted">{p.company}</p>}
                         <p className="mt-1 truncate text-[11px] text-obsidian-light">{p.email ?? "—"}{p.phone ? ` · ${p.phone}` : ""}</p>
                       </div>
-                      {p.waitlist && <StatusChip tone="amber" className="shrink-0">Waitlist</StatusChip>}
+                      {p.waitlist && <StatusChip tone="amber" className="shrink-0">{t("waitlistChip")}</StatusChip>}
                     </div>
                     <div className="mt-2.5 flex flex-wrap items-center gap-2 pl-[52px]">
-                      <label className="sr-only" htmlFor={`m-status-${p.id}`}>Status for {p.full_name}</label>
+                      <label className="sr-only" htmlFor={`m-status-${p.id}`}>{t("statusFor", { name: p.full_name })}</label>
                       <select
                         id={`m-status-${p.id}`}
                         value={p.status}
@@ -935,14 +952,14 @@ function FormationDetailView({
                         className="input h-9 flex-1 min-w-[120px] px-2 text-[12px] font-semibold"
                       >
                         {STATUS_OPTIONS.map((s) => (
-                          <option key={s} value={s}>{STATUS_LABEL[s]}</option>
+                          <option key={s} value={s}>{t(STATUS_LABEL_KEYS[s])}</option>
                         ))}
                       </select>
                       <button
                         type="button"
                         disabled={p.status === "cancelled"}
                         aria-pressed={p.status === "attended"}
-                        aria-label={`Toggle attendance for ${p.full_name}`}
+                        aria-label={t("toggleAttendance", { name: p.full_name })}
                         onClick={() => cycleCheckIn(p)}
                         className={`inline-flex h-9 w-[104px] items-center justify-center gap-1.5 rounded-pill text-[11px] font-bold disabled:cursor-not-allowed disabled:opacity-40 ${
                           p.status === "attended"
@@ -953,21 +970,21 @@ function FormationDetailView({
                         }`}
                       >
                         {p.status === "attended" ? (
-                          <><Check size={13} strokeWidth={3} aria-hidden="true" />Attended</>
+                          <><Check size={13} strokeWidth={3} aria-hidden="true" />{t("checkInAttended")}</>
                         ) : p.status === "no_show" ? (
-                          <><X size={13} strokeWidth={3} aria-hidden="true" />No show</>
+                          <><X size={13} strokeWidth={3} aria-hidden="true" />{t("checkInNoShow")}</>
                         ) : (
-                          <><UserCheck size={13} aria-hidden="true" />Check in</>
+                          <><UserCheck size={13} aria-hidden="true" />{t("checkIn")}</>
                         )}
                       </button>
                       {p.waitlist && (
                         <button type="button" onClick={() => promoteWaitlist(p)} className="text-[11px] font-bold text-electric hover:underline">
-                          Promote
+                          {t("promote")}
                         </button>
                       )}
                       <button
                         type="button"
-                        aria-label={`Remove ${p.full_name} from roster`}
+                        aria-label={t("removeFromRoster", { name: p.full_name })}
                         aria-haspopup="dialog"
                         onClick={(event) => requestRemove(event, p.id)}
                         className="flex h-9 w-9 items-center justify-center rounded-pill text-muted hover:bg-error-tint hover:text-error"
@@ -984,20 +1001,20 @@ function FormationDetailView({
               <Users size={30} aria-hidden="true" className="text-muted" strokeWidth={1.75} />
               {rosterQuery.trim() ? (
                 <>
-                  <p className="text-[15px] font-bold text-obsidian">No participants match “{rosterQuery.trim()}”</p>
+                  <p className="text-[15px] font-bold text-obsidian">{t("noParticipantsMatch", { query: rosterQuery.trim() })}</p>
                   <button type="button" onClick={() => setRosterQuery("")} className="btn btn-secondary h-9 px-4 text-[13px]">
-                    Clear search
+                    {t("clearSearch")}
                   </button>
                 </>
               ) : (
                 <>
-                  <p className="text-[15px] font-bold text-obsidian">No participants yet</p>
+                  <p className="text-[15px] font-bold text-obsidian">{t("noParticipantsYet")}</p>
                   <p className="max-w-sm text-[13px] leading-snug text-obsidian-light">
-                    Enroll attendees one by one, or drop a CSV with columns full_name, email, phone, company.
+                    {t("noParticipantsBody")}
                   </p>
                   <button type="button" onClick={openEnroll} className="btn btn-primary h-10 px-5 text-[13px]">
                     <UserPlus size={16} aria-hidden="true" />
-                    Enroll first participant
+                    {t("enrollFirst")}
                   </button>
                 </>
               )}
@@ -1009,20 +1026,20 @@ function FormationDetailView({
       {/* ============ Enroll modal ============ */}
       {enrollOpen && (
         <Modal
-          title="Enroll participant"
-          description={full ? "This session is at capacity — the participant joins the waitlist." : "Add someone to this session's roster."}
+          title={t("enrollTitle")}
+          description={full ? t("enrollDescFull") : t("enrollDescOpen")}
           onClose={() => setEnrollOpen(false)}
         >
           <form onSubmit={submitEnroll} noValidate className="grid gap-4">
             {full && (
               <div role="status" className="rounded-sm border border-warning/30 bg-warning-tint px-4 py-2.5 text-[12px] font-semibold leading-snug text-tint-fg-amber">
-                Session is full ({capacity}/{capacity}). New enrollments are automatically waitlisted.
+                {t("sessionFullNote", { capacity })}
               </div>
             )}
             <div>
-              <label htmlFor="en-client" className="label">Link existing client <span className="font-medium normal-case text-muted">(optional)</span></label>
+              <label htmlFor="en-client" className="label">{t("linkClient")} <span className="font-medium normal-case text-muted">{t("optionalParen")}</span></label>
               <select id="en-client" value={enroll.clientId} onChange={(e) => linkClient(e.target.value)} className="input">
-                <option value="">No linked client — new contact</option>
+                <option value="">{t("noLinkedClient")}</option>
                 {clients.map((client) => (
                   <option key={client.id} value={client.id}>
                     {client.full_name}{client.company && client.company !== client.full_name ? ` — ${client.company}` : ""}
@@ -1032,7 +1049,7 @@ function FormationDetailView({
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label htmlFor="en-name" className="label">Full name *</label>
+                <label htmlFor="en-name" className="label">{t("fullNameRequired")}</label>
                 <input
                   id="en-name"
                   type="text"
@@ -1044,7 +1061,7 @@ function FormationDetailView({
                 />
               </div>
               <div>
-                <label htmlFor="en-email" className="label">Email *</label>
+                <label htmlFor="en-email" className="label">{t("emailRequired")}</label>
                 <input
                   id="en-email"
                   type="email"
@@ -1056,7 +1073,7 @@ function FormationDetailView({
                 />
               </div>
               <div>
-                <label htmlFor="en-phone" className="label">Phone</label>
+                <label htmlFor="en-phone" className="label">{t("labelPhone")}</label>
                 <input
                   id="en-phone"
                   type="tel"
@@ -1068,7 +1085,7 @@ function FormationDetailView({
                 />
               </div>
               <div className="sm:col-span-2">
-                <label htmlFor="en-company" className="label">Company</label>
+                <label htmlFor="en-company" className="label">{t("labelCompany")}</label>
                 <input
                   id="en-company"
                   type="text"
@@ -1089,8 +1106,8 @@ function FormationDetailView({
                 className="mt-0.5 h-4 w-4 accent-[var(--color-electric)]"
               />
               <span className="text-[13px] font-medium leading-snug text-obsidian-light">
-                <span className="font-bold text-obsidian">Add to waitlist</span>
-                {full ? " — required while the session is full." : " — participant is confirmed automatically when a seat frees up."}
+                <span className="font-bold text-obsidian">{t("addToWaitlist")}</span>
+                {full ? t("waitlistRequiredSuffix") : t("waitlistAutoSuffix")}
               </span>
             </label>
             {enrollError && (
@@ -1100,11 +1117,11 @@ function FormationDetailView({
             )}
             <div className="flex justify-end gap-2 border-t border-divider pt-4">
               <button type="button" onClick={() => setEnrollOpen(false)} className="btn btn-ghost h-11 px-5 text-[14px]">
-                Cancel
+                {t("cancel")}
               </button>
               <button type="submit" className="btn btn-primary h-11">
                 {full || enroll.waitlist ? <Users size={17} aria-hidden="true" /> : <UserPlus size={17} aria-hidden="true" />}
-                {full || enroll.waitlist ? "Add to waitlist" : "Enroll participant"}
+                {full || enroll.waitlist ? t("addToWaitlist") : t("enrollParticipant")}
               </button>
             </div>
           </form>
@@ -1114,21 +1131,21 @@ function FormationDetailView({
       {/* ============ CSV import modal (dry run) ============ */}
       {importOpen && (
         <Modal
-          title="Import participants — dry run"
-          description="Nothing is saved yet. Drop a CSV (full_name, email, phone, company) or paste rows, review the preview, then confirm."
+          title={t("importTitle")}
+          description={t("importDescription")}
           onClose={() => { setImportOpen(false); resetImport(); }}
           size="lg"
         >
           <div className="flex flex-wrap items-center gap-3">
             <label className="btn btn-secondary h-10 cursor-pointer px-4 text-[13px]">
               <FileUp size={16} aria-hidden="true" />
-              Choose .csv file
+              {t("chooseCsvFile")}
               <input type="file" accept=".csv,text/csv" className="sr-only" onChange={onCsvFile} />
             </label>
             {csvFileName && (
               <span className="inline-flex items-center gap-2 text-[12px] font-semibold text-obsidian-light">
                 {csvFileName}
-                <button type="button" onClick={resetImport} aria-label="Clear imported file" className="rounded-pill p-1 text-muted hover:text-obsidian">
+                <button type="button" onClick={resetImport} aria-label={t("clearImportedFile")} className="rounded-pill p-1 text-muted hover:text-obsidian">
                   <X size={14} aria-hidden="true" />
                 </button>
               </span>
@@ -1136,7 +1153,7 @@ function FormationDetailView({
           </div>
 
           <div className="mt-3">
-            <label htmlFor="csv-paste" className="label">Or paste CSV</label>
+            <label htmlFor="csv-paste" className="label">{t("orPasteCsv")}</label>
             <textarea
               id="csv-paste"
               value={csvText}
@@ -1158,12 +1175,12 @@ function FormationDetailView({
             <div className="mt-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-[12px] font-bold uppercase tracking-[0.08em] text-muted">
-                  Preview — {csvRows.length} row{csvRows.length === 1 ? "" : "s"}
+                  {t("previewTitle", { count: csvRows.length })}
                 </p>
                 <p aria-live="polite" className="text-[12px] font-semibold text-obsidian-light">
-                  <span className="text-tint-fg-green">{validImportRows.length} ready</span>
-                  {duplicateImportCount > 0 && <> · <span className="text-tint-fg-amber">{duplicateImportCount} duplicate{duplicateImportCount === 1 ? "" : "s"} skipped</span></>}
-                  {errorImportCount > 0 && <> · <span className="text-error">{errorImportCount} with errors</span></>}
+                  <span className="text-tint-fg-green">{t("previewReady", { count: validImportRows.length })}</span>
+                  {duplicateImportCount > 0 && <> · <span className="text-tint-fg-amber">{t("previewDuplicates", { count: duplicateImportCount })}</span></>}
+                  {errorImportCount > 0 && <> · <span className="text-error">{t("previewErrors", { count: errorImportCount })}</span></>}
                 </p>
               </div>
               <div className="mt-2 max-h-64 overflow-auto rounded-sm border border-border">
@@ -1171,10 +1188,10 @@ function FormationDetailView({
                   <thead className="sticky top-0 bg-canvas">
                     <tr className="text-[10px] font-bold uppercase tracking-[0.09em] text-muted">
                       <th scope="col" className="px-3 py-2">#</th>
-                      <th scope="col" className="px-3 py-2">Full name</th>
-                      <th scope="col" className="px-3 py-2">Email</th>
-                      <th scope="col" className="px-3 py-2">Company</th>
-                      <th scope="col" className="px-3 py-2">Row result</th>
+                      <th scope="col" className="px-3 py-2">{t("colFullName")}</th>
+                      <th scope="col" className="px-3 py-2">{t("colEmail")}</th>
+                      <th scope="col" className="px-3 py-2">{t("colCompany")}</th>
+                      <th scope="col" className="px-3 py-2">{t("colRowResult")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1188,9 +1205,9 @@ function FormationDetailView({
                           {row.errors.length > 0 ? (
                             <span className="font-semibold text-error">{row.errors.join("; ")}</span>
                           ) : row.duplicate ? (
-                            <span className="font-semibold text-tint-fg-amber">Duplicate — skipped</span>
+                            <span className="font-semibold text-tint-fg-amber">{t("rowDuplicate")}</span>
                           ) : (
-                            <span className="font-semibold text-tint-fg-green">OK</span>
+                            <span className="font-semibold text-tint-fg-green">{t("rowOk")}</span>
                           )}
                         </td>
                       </tr>
@@ -1204,15 +1221,15 @@ function FormationDetailView({
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-divider pt-4">
             <p className="flex items-center gap-2 text-[12px] font-medium text-muted">
               <Info size={14} aria-hidden="true" />
-              Duplicates vs. existing roster emails are skipped. Seats fill in CSV order.
+              {t("importFooterNote")}
             </p>
             <div className="flex items-center gap-2">
               <button type="button" onClick={() => { setImportOpen(false); resetImport(); }} className="btn btn-ghost h-11 px-5 text-[14px]">
-                Cancel
+                {t("cancel")}
               </button>
               <button type="button" onClick={confirmImport} disabled={validImportRows.length === 0} className="btn btn-primary h-11 disabled:cursor-not-allowed disabled:opacity-50">
                 <Check size={17} aria-hidden="true" />
-                Confirm enroll {validImportRows.length} participant{validImportRows.length === 1 ? "" : "s"}
+                {t("confirmImport", { count: validImportRows.length })}
               </button>
             </div>
           </div>
@@ -1222,19 +1239,19 @@ function FormationDetailView({
       {/* ============ Cancel session modal ============ */}
       {cancelOpen && (
         <Modal
-          title="Cancel session?"
-          description="The booking is released and participants would be notified by email. Nothing is sent in demo mode."
+          title={t("cancelSessionTitle")}
+          description={t("cancelSessionDescription")}
           onClose={() => setCancelOpen(false)}
         >
-          <label htmlFor="cancel-reason" className="label">Reason</label>
+          <label htmlFor="cancel-reason" className="label">{t("cancelReasonLabel")}</label>
           <select id="cancel-reason" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} className="input">
             {CANCEL_REASONS.map((reason) => (
-              <option key={reason} value={reason}>{reason}</option>
+              <option key={reason} value={reason}>{cancelReasonLabel(reason)}</option>
             ))}
           </select>
           <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-divider pt-4">
             <button type="button" onClick={() => setCancelOpen(false)} className="btn btn-ghost h-11 px-5 text-[14px]">
-              Keep session
+              {t("keepSession")}
             </button>
             <button
               type="button"
@@ -1245,13 +1262,13 @@ function FormationDetailView({
                 }
                 setCancelledReason(cancelReason);
                 setCancelOpen(false);
-                push("Session cancelled — participants would be notified", "error");
+                push(t("toastSessionCancelled"), "error");
                 if (live) router.refresh();
               }}
               className="btn h-11 bg-error px-6 text-[14px] font-bold text-white transition-opacity hover:opacity-90"
             >
               <AlertTriangle size={16} aria-hidden="true" />
-              Cancel session
+              {t("cancelSessionConfirm")}
             </button>
           </div>
         </Modal>
@@ -1262,22 +1279,22 @@ function FormationDetailView({
         <>
           <button
             type="button"
-            aria-label="Dismiss"
+            aria-label={t("dismiss")}
             onClick={() => setRemoveTarget(null)}
             className="fixed inset-0 z-10 cursor-default"
           />
           <div
             role="alertdialog"
-            aria-label={`Remove ${removeTargetParticipant.full_name}?`}
+            aria-label={t("removeParticipantTitle", { name: removeTargetParticipant.full_name })}
             className="fixed z-20 w-60 rounded-sm border border-border bg-white p-3 text-left shadow-lg"
             style={{
               top: removeTarget.openUpward ? removeTarget.y - 156 : removeTarget.y + 8,
               left: Math.max(8, removeTarget.x - 240),
             }}
           >
-            <p className="text-[13px] font-bold text-obsidian">Remove participant?</p>
+            <p className="text-[13px] font-bold text-obsidian">{t("removeParticipantQuestion")}</p>
             <p className="mt-0.5 text-[12px] leading-snug text-muted">
-              {removeTargetParticipant.full_name} leaves the roster. Demo only — nothing is sent.
+              {t("removeParticipantBody", { name: removeTargetParticipant.full_name })}
             </p>
             <div className="mt-2.5 flex justify-end gap-1.5">
               <button
@@ -1285,14 +1302,14 @@ function FormationDetailView({
                 onClick={() => setRemoveTarget(null)}
                 className="btn btn-ghost h-8 px-3 text-[12px]"
               >
-                Keep
+                {t("keep")}
               </button>
               <button
                 type="button"
                 onClick={() => removeParticipant(removeTargetParticipant.id)}
                 className="h-8 rounded-pill bg-error px-3 text-[12px] font-bold text-white transition-opacity hover:opacity-90"
               >
-                Remove
+                {t("remove")}
               </button>
             </div>
           </div>

@@ -16,6 +16,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { PageHeader } from "@/components/settings/PageHeader";
 import { createTeamUserAction, setTeamUserActiveAction, updateTeamUserAction } from "@/app/actions/settings";
 import { ToastViewport, useToast } from "@/components/settings/Toast";
@@ -79,6 +80,7 @@ export function TeamView({
   currentUserId?: string | null;
   live?: boolean;
 }) {
+  const t = useTranslations("settings");
   const router = useRouter();
   const isLive = live === true && !!members;
   const initialTeam: TeamMember[] = isLive
@@ -88,7 +90,7 @@ export function TeamView({
         email: m.email,
         phone: m.phone ?? "",
         role: m.role,
-        lastActive: m.is_active ? "Active" : "Deactivated",
+        lastActive: m.is_active ? t("lastActiveActive") : t("lastActiveDeactivated"),
         status: m.is_active ? ("active" as const) : ("deactivated" as const),
         you: m.id === currentUserId,
       }))
@@ -130,7 +132,7 @@ export function TeamView({
     if (!editing) return;
     const trimmed = editName.trim();
     if (!trimmed) {
-      setEditError("Name is required.");
+      setEditError(t("nameRequired"));
       return;
     }
     if (isLive) {
@@ -140,7 +142,7 @@ export function TeamView({
           setEditError(res.error.message);
           return;
         }
-        push("User updated");
+        push(t("userUpdated"));
         setEditing(null);
         router.refresh();
       })();
@@ -150,7 +152,7 @@ export function TeamView({
       prev.map((m) => (m.id === editing.id ? { ...m, name: trimmed, role: editRole, phone: editPhone.trim() } : m)),
     );
     setEditing(null);
-    push("User updated");
+    push(t("userUpdated"));
   };
 
   const toggleDeactivate = (member: TeamMember) => {
@@ -163,14 +165,14 @@ export function TeamView({
           push(res.error.message);
           return;
         }
-        push(next === "deactivated" ? member.name + " deactivated — sessions revoked" : member.name + " reactivated");
+        push(next === "deactivated" ? t("userDeactivatedSessions", { name: member.name }) : t("userReactivated", { name: member.name }));
         setTeam((prev) => prev.map((m) => (m.id === member.id ? { ...m, status: next } : m)));
         router.refresh();
       })();
       return;
     }
     setTeam((prev) => prev.map((m) => (m.id === member.id ? { ...m, status: next } : m)));
-    push(next === "deactivated" ? member.name + " deactivated — sessions revoked" : member.name + " reactivated");
+    push(next === "deactivated" ? t("userDeactivatedSessions", { name: member.name }) : t("userReactivated", { name: member.name }));
   };
 
   const openCreate = () => {
@@ -190,21 +192,21 @@ export function TeamView({
     const trimmedName = name.trim();
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedName) {
-      setFormError("Full name is required.");
+      setFormError(t("fullNameRequired"));
       return;
     }
     if (!EMAIL_RE.test(trimmedEmail)) {
-      setFormError("Enter a valid email address, e.g. name@eiden-group.com.");
+      setFormError(t("invalidEmail"));
       return;
     }
     if (team.some((m) => m.email.toLowerCase() === trimmedEmail)) {
-      setFormError("A user with " + trimmedEmail + " already exists.");
+      setFormError(t("userExists", { email: trimmedEmail }));
       return;
     }
     if (isLive) {
       const res = await createTeamUserAction({ fullName: trimmedName, email: trimmedEmail, role });
       if (!res.ok) {
-        setFormError(res.error.code === "duplicate" ? "An account with this email already exists." : res.error.message);
+        setFormError(res.error.code === "duplicate" ? t("accountExists") : res.error.message);
         return;
       }
       setTempPassword(res.data.tempPassword);
@@ -214,7 +216,7 @@ export function TeamView({
         email: trimmedEmail,
         phone: "",
         role,
-        lastActive: "Just now",
+        lastActive: t("lastActiveJustNow"),
         status: "active",
       });
       setCreateStage("password");
@@ -229,7 +231,7 @@ export function TeamView({
       email: trimmedEmail,
       phone: "",
       role,
-      lastActive: "Just now",
+      lastActive: t("lastActiveJustNow"),
       status: "active",
     });
     setCreateStage("password");
@@ -241,14 +243,14 @@ export function TeamView({
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      setFormError("Clipboard unavailable — select the password and copy it manually.");
+      setFormError(t("clipboardUnavailable"));
     }
   };
 
   const finishCreate = () => {
     if (pendingMember) {
       setTeam((prev) => [...prev, pendingMember]);
-      push(`${pendingMember.name} created — temp password shown once`);
+      push(t("userCreated", { name: pendingMember.name }));
     }
     setCreateOpen(false);
   };
@@ -256,13 +258,13 @@ export function TeamView({
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
-        title="Team & Users"
-        sub="The only place staff accounts are managed. One-time passwords are issued at creation and never shown again."
+        title={t("tabTeam")}
+        sub={t("teamSub")}
       >
-        <span className="chip bg-obsidian text-[10px] uppercase tracking-[0.12em] text-white">Admin</span>
+        <span className="chip bg-obsidian text-[10px] uppercase tracking-[0.12em] text-white">{t("adminBadge")}</span>
         <button type="button" onClick={openCreate} className="btn btn-primary h-10 px-4 text-[13px]">
           <Plus size={15} strokeWidth={2.4} aria-hidden="true" />
-          Create user
+          {t("createUser")}
         </button>
       </PageHeader>
 
@@ -270,21 +272,20 @@ export function TeamView({
         <div className="card overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider px-4 py-3 sm:px-5">
             <p className="text-[12px] font-semibold text-obsidian-light">
-              <span className="font-mono text-obsidian">{team.length}</span> users ·{" "}
-              <span className="font-mono text-obsidian">{activeCount}</span> active
+              <span className="font-mono text-obsidian">{team.length}</span> {t("usersCountBefore")} <span className="font-mono text-obsidian">{activeCount}</span> {t("usersActiveSuffix")}
             </p>
-            <p className="text-[11px] font-medium text-muted">Roles gate everything — Admin and Staff</p>
+            <p className="text-[11px] font-medium text-muted">{t("rolesGateNote")}</p>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-left text-[13px]">
               <thead>
                 <tr className="border-b border-border text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
-                  <th scope="col" className="px-4 py-2.5 sm:px-5">User</th>
-                  <th scope="col" className="px-3 py-2.5">Role</th>
-                  <th scope="col" className="px-3 py-2.5">Last active</th>
-                  <th scope="col" className="px-3 py-2.5">Status</th>
-                  <th scope="col" className="px-4 py-2.5 text-right">Actions</th>
+                  <th scope="col" className="px-4 py-2.5 sm:px-5">{t("colUser")}</th>
+                  <th scope="col" className="px-3 py-2.5">{t("colRole")}</th>
+                  <th scope="col" className="px-3 py-2.5">{t("colLastActive")}</th>
+                  <th scope="col" className="px-3 py-2.5">{t("colStatus")}</th>
+                  <th scope="col" className="px-4 py-2.5 text-right">{t("colActions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-divider">
@@ -306,7 +307,7 @@ export function TeamView({
                           <div className="min-w-0">
                             <p className="flex items-center gap-1.5 font-semibold leading-tight text-obsidian">
                               {member.name}
-                              {member.you ? <span className="rounded-pill bg-canvas px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-muted">You</span> : null}
+                              {member.you ? <span className="rounded-pill bg-canvas px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-muted">{t("youBadge")}</span> : null}
                             </p>
                             <p className="mt-0.5 flex items-center gap-1 truncate font-mono text-[11px] text-muted">
                               <Mail size={10} strokeWidth={2.2} aria-hidden="true" className="shrink-0" />
@@ -317,7 +318,7 @@ export function TeamView({
                       </td>
                       <td className="px-3 py-3">
                         <span className={member.role === "admin" ? "chip bg-obsidian text-white" : "chip border border-border bg-white text-obsidian-light"}>
-                          {member.role === "admin" ? "Admin" : "Staff"}
+                          {member.role === "admin" ? t("roleAdmin") : t("roleStaff")}
                         </span>
                       </td>
                       <td className="px-3 py-3 text-[12px] font-medium text-obsidian-light">{member.lastActive}</td>
@@ -325,32 +326,32 @@ export function TeamView({
                         {deactivated ? (
                           <span className="chip bg-canvas text-muted">
                             <span className="h-1.5 w-1.5 rounded-pill bg-muted" aria-hidden="true" />
-                            Deactivated
+                            {t("statusDeactivated")}
                           </span>
                         ) : (
                           <span className="chip bg-success-tint text-tint-fg-green">
                             <span className="h-1.5 w-1.5 rounded-pill bg-success" aria-hidden="true" />
-                            Active
+                            {t("statusActive")}
                           </span>
                         )}
                       </td>
                       <td className="px-4 py-3">
                         {confirming ? (
                           <div className="flex flex-wrap items-center justify-end gap-1.5">
-                            <span className="text-[11px] font-bold text-obsidian">{deactivated ? "Reactivate?" : "Deactivate?"}</span>
+                            <span className="text-[11px] font-bold text-obsidian">{deactivated ? t("reactivateQuestion") : t("deactivateQuestion")}</span>
                             <button
                               type="button"
                               onClick={() => toggleDeactivate(member)}
                               className="rounded-pill bg-error px-2.5 py-1.5 text-[11px] font-bold text-white transition-opacity hover:opacity-85"
                             >
-                              {deactivated ? "Reactivate" : "Deactivate"}
+                              {deactivated ? t("reactivateButton") : t("deactivateButton")}
                             </button>
                             <button
                               type="button"
                               onClick={() => setConfirmId(null)}
                               className="rounded-pill border border-border bg-white px-2.5 py-1.5 text-[11px] font-bold text-obsidian-light transition-colors hover:bg-canvas"
                             >
-                              Cancel
+                              {t("cancel")}
                             </button>
                           </div>
                         ) : (
@@ -358,7 +359,7 @@ export function TeamView({
                             <button
                               type="button"
                               onClick={() => openEdit(member)}
-                              aria-label={`Edit ${member.name}`}
+                              aria-label={t("editUserAria", { name: member.name })}
                               className="rounded-pill p-2 text-muted transition-colors hover:bg-canvas hover:text-obsidian"
                             >
                               <UserRoundPen size={15} strokeWidth={2} aria-hidden="true" />
@@ -367,8 +368,8 @@ export function TeamView({
                               type="button"
                               onClick={() => setConfirmId(member.id)}
                               disabled={member.you}
-                              title={member.you ? "You can't deactivate your own account" : deactivated ? `Reactivate ${member.name}` : `Deactivate ${member.name}`}
-                              aria-label={deactivated ? `Reactivate ${member.name}` : `Deactivate ${member.name}`}
+                              title={member.you ? t("youCantDeactivateSelf") : deactivated ? t("reactivateUserAria", { name: member.name }) : t("deactivateUserAria", { name: member.name })}
+                              aria-label={deactivated ? t("reactivateUserAria", { name: member.name }) : t("deactivateUserAria", { name: member.name })}
                               className="rounded-pill p-2 text-muted transition-colors hover:bg-error-tint hover:text-error disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted"
                             >
                               {deactivated ? <ShieldCheck size={15} strokeWidth={2} aria-hidden="true" /> : <UserRoundX size={15} strokeWidth={2} aria-hidden="true" />}
@@ -385,21 +386,21 @@ export function TeamView({
 
           <p className="flex items-center gap-2 border-t border-divider px-4 py-3 text-[11px] font-medium leading-snug text-muted sm:px-5">
             <Lock size={12} strokeWidth={2.2} aria-hidden="true" className="shrink-0" />
-            Passwords are one-time; you never see them again after close. Accounts are provisioned here only — Supabase Auth issues the sessions.
+            {t("passwordsOneTimeNote")}
           </p>
         </div>
 
         <aside className="space-y-4">
           <div className="card p-5">
-            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">Access control</h2>
+            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">{t("accessControlHeading")}</h2>
             <ul className="mt-3 space-y-2.5 text-[12px] font-medium leading-snug text-obsidian-light">
-              <li className="flex gap-2"><ShieldCheck size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />Admins create, edit, deactivate users and see audit logs.</li>
-              <li className="flex gap-2"><ShieldCheck size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />Staff manage bookings, clients and formations — nothing else.</li>
-              <li className="flex gap-2"><Lock size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />Deactivating revokes all sessions and signs the user out everywhere.</li>
-              <li className="flex gap-2"><KeyRound size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />First login forces a password change — the one-time value is useless after.</li>
+              <li className="flex gap-2"><ShieldCheck size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />{t("accessAdmins")}</li>
+              <li className="flex gap-2"><ShieldCheck size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />{t("accessStaff")}</li>
+              <li className="flex gap-2"><Lock size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />{t("accessDeactivate")}</li>
+              <li className="flex gap-2"><KeyRound size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />{t("accessFirstLogin")}</li>
             </ul>
             <Link href="/settings/audit" className="mt-4 inline-flex items-center gap-1 text-[11px] font-bold text-electric hover:text-electric-hover">
-              View audit log
+              {t("viewAuditLog")}
               <ArrowRight size={12} strokeWidth={2.4} aria-hidden="true" />
             </Link>
           </div>
@@ -410,22 +411,22 @@ export function TeamView({
       <Modal
         open={editing !== null}
         onClose={() => setEditing(null)}
-        title="Edit user"
-        description="Email is the login identifier and can't be changed here."
+        title={t("editUser")}
+        description={t("editUserDesc")}
         footer={
           <>
-            <button type="button" onClick={() => setEditing(null)} className="btn btn-ghost h-10 px-4 text-[13px]">Cancel</button>
-            <button type="submit" form="edit-user-form" className="btn btn-primary h-10 px-5 text-[13px]">Save changes</button>
+            <button type="button" onClick={() => setEditing(null)} className="btn btn-ghost h-10 px-4 text-[13px]">{t("cancel")}</button>
+            <button type="submit" form="edit-user-form" className="btn btn-primary h-10 px-5 text-[13px]">{t("saveChanges")}</button>
           </>
         }
       >
         <form id="edit-user-form" onSubmit={submitEdit} className="space-y-4">
           <div>
-            <label htmlFor="edit-user-name" className="label">Full name</label>
+            <label htmlFor="edit-user-name" className="label">{t("fullNameLabel")}</label>
             <input id="edit-user-name" className="input h-11" value={editName} onChange={(e) => { setEditName(e.target.value); setEditError(null); }} autoComplete="name" />
           </div>
           <div>
-            <span className="label">Email</span>
+            <span className="label">{t("emailLabel")}</span>
             <p className="flex h-11 items-center gap-2 rounded-[14px] border border-border bg-canvas px-4 font-mono text-[12px] font-semibold text-muted">
               <Lock size={12} strokeWidth={2.2} aria-hidden="true" />
               {editing?.email}
@@ -433,14 +434,14 @@ export function TeamView({
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label htmlFor="edit-user-role" className="label">Role</label>
+              <label htmlFor="edit-user-role" className="label">{t("roleLabel")}</label>
               <select id="edit-user-role" className="input h-11" value={editRole} onChange={(e) => setEditRole(e.target.value as Role)}>
-                <option value="admin">Admin</option>
-                <option value="staff">Staff</option>
+                <option value="admin">{t("roleAdmin")}</option>
+                <option value="staff">{t("roleStaff")}</option>
               </select>
             </div>
             <div>
-              <label htmlFor="edit-user-phone" className="label">Phone</label>
+              <label htmlFor="edit-user-phone" className="label">{t("phoneLabel")}</label>
               <input id="edit-user-phone" type="tel" className="input h-11 font-mono text-[13px]" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="+212 6 …" />
             </div>
           </div>
@@ -452,34 +453,34 @@ export function TeamView({
       <Modal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        title={createStage === "form" ? "Create user" : "One-time password"}
-        description={createStage === "form" ? "The user gets a temporary password valid for first login only." : "Copy it now — it will never be shown again."}
+        title={createStage === "form" ? t("createUser") : t("oneTimePasswordTitle")}
+        description={createStage === "form" ? t("createUserDesc") : t("copyPasswordDesc")}
         footer={
           createStage === "form" ? (
             <>
-              <button type="button" onClick={() => setCreateOpen(false)} className="btn btn-ghost h-10 px-4 text-[13px]">Cancel</button>
-              <button type="submit" form="create-user-form" className="btn btn-primary h-10 px-5 text-[13px]">Create user</button>
+              <button type="button" onClick={() => setCreateOpen(false)} className="btn btn-ghost h-10 px-4 text-[13px]">{t("cancel")}</button>
+              <button type="submit" form="create-user-form" className="btn btn-primary h-10 px-5 text-[13px]">{t("createUser")}</button>
             </>
           ) : (
-            <button type="button" onClick={finishCreate} className="btn btn-primary h-10 px-6 text-[13px]">Done</button>
+            <button type="button" onClick={finishCreate} className="btn btn-primary h-10 px-6 text-[13px]">{t("doneButton")}</button>
           )
         }
       >
         {createStage === "form" ? (
           <form id="create-user-form" onSubmit={submitCreate} className="space-y-4" noValidate>
             <div>
-              <label htmlFor="create-user-name" className="label">Full name</label>
+              <label htmlFor="create-user-name" className="label">{t("fullNameLabel")}</label>
               <input id="create-user-name" className="input h-11" value={name} onChange={(e) => { setName(e.target.value); setFormError(null); }} placeholder="e.g. Omar Tazi" autoComplete="name" />
             </div>
             <div>
-              <label htmlFor="create-user-email" className="label">Email</label>
+              <label htmlFor="create-user-email" className="label">{t("emailLabel")}</label>
               <input id="create-user-email" type="email" className="input h-11 font-mono text-[13px]" value={email} onChange={(e) => { setEmail(e.target.value); setFormError(null); }} placeholder="name@eiden-group.com" autoComplete="email" />
             </div>
             <div>
-              <label htmlFor="create-user-role" className="label">Role</label>
+              <label htmlFor="create-user-role" className="label">{t("roleLabel")}</label>
               <select id="create-user-role" className="input h-11" value={role} onChange={(e) => setRole(e.target.value as Role)}>
-                <option value="admin">Admin — full access</option>
-                <option value="staff">Staff — bookings, clients, formations</option>
+                <option value="admin">{t("roleAdminFull")}</option>
+                <option value="staff">{t("roleStaffScope")}</option>
               </select>
             </div>
             {formError ? <p role="alert" className="text-[12px] font-semibold text-error">{formError}</p> : null}
@@ -487,8 +488,8 @@ export function TeamView({
         ) : (
           <div className="space-y-4">
             <div className="rounded-md border border-border bg-obsidian px-4 py-5 text-center shadow-md">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">Temporary password</p>
-              <p className="mt-2 select-all font-mono text-[26px] font-bold leading-tight tracking-[0.08em] text-white" aria-label={`Temporary password: ${tempPassword}`}>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">{t("temporaryPasswordLabel")}</p>
+              <p className="mt-2 select-all font-mono text-[26px] font-bold leading-tight tracking-[0.08em] text-white" aria-label={t("temporaryPasswordAria", { password: tempPassword })}>
                 {tempPassword}
               </p>
               <p className="mt-2 text-[11px] font-medium text-white/50">{pendingMember?.email}</p>
@@ -500,11 +501,11 @@ export function TeamView({
               aria-live="polite"
             >
               {copied ? <Check size={15} strokeWidth={2.6} aria-hidden="true" className="text-success" /> : <Copy size={15} strokeWidth={2.2} aria-hidden="true" />}
-              {copied ? "Copied to clipboard" : "Copy password"}
+              {copied ? t("copiedToClipboard") : t("copyPasswordButton")}
             </button>
             <div role="alert" className="flex items-start gap-2 rounded-sm border border-warning/40 bg-warning-tint p-3 text-[12px] font-semibold leading-snug text-tint-fg-amber">
               <TriangleExclamationPoint size={15} strokeWidth={2.2} aria-hidden="true" className="mt-0.5 shrink-0" />
-              Shown once — store it now. The user must change it at first login.
+              {t("tempPasswordShownOnce")}
             </div>
           </div>
         )}

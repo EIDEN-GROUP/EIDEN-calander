@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { connection } from "next/server";
 import { WorkingHoursView, type WorkingHoursInitial } from "@/components/settings/views/WorkingHoursView";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Working Hours · Settings" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("settings");
+  return { title: t("metaWorkingHours") };
+}
 export const instant = false;
 
 const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;

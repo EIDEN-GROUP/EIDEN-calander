@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import { appLocaleTag } from "@/lib/intl-locale";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -13,8 +14,12 @@ import {
 import { listNotificationsAction } from "@/app/actions/notifications";
 import { NowBarMark } from "@/components/brand/NowBar";
 import { MarkReadIsland } from "@/components/notifications/MarkReadIsland";
+import { getTranslations } from "next-intl/server";
 
-export const metadata: Metadata = { title: "Notifications" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("notifications");
+  return { title: t("title") };
+}
 // Reads live data at request time — block prerender.
 export const instant = false;
 
@@ -35,25 +40,26 @@ function iconFor(type: string) {
   return ICONS[type] ?? ((type.startsWith("mail") ? Mail : Bell) as typeof Bell);
 }
 
-function dayLabel(iso: string) {
+function dayLabel(iso: string, translate: (key: string) => string) {
   const d = new Date(iso);
   const today = new Date();
   const y = new Date(today);
   y.setDate(today.getDate() - 1);
-  if (d.toDateString() === today.toDateString()) return "Today";
-  if (d.toDateString() === y.toDateString()) return "Yesterday";
-  return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  if (d.toDateString() === today.toDateString()) return translate("today");
+  if (d.toDateString() === y.toDateString()) return translate("yesterday");
+  return d.toLocaleDateString(appLocaleTag(), { weekday: "long", day: "numeric", month: "long" });
 }
 
 export default async function NotificationsPage() {
   await connection();
+  const t = await getTranslations("notifications");
   const result = await listNotificationsAction(50);
   const notifications = result.ok ? result.data.notifications : [];
   const unread = result.ok ? result.data.unread : 0;
 
   const groups: Array<{ label: string; items: typeof notifications }> = [];
   for (const n of notifications) {
-    const label = dayLabel(n.created_at);
+    const label = dayLabel(n.created_at, (key) => t(key));
     const last = groups[groups.length - 1];
     if (last?.label === label) last.items.push(n);
     else groups.push({ label, items: [n] });
@@ -65,10 +71,10 @@ export default async function NotificationsPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-[28px] font-extrabold tracking-[-0.04em] text-obsidian">
-            Notifications
+            {t("title")}
           </h1>
           <p className="mt-1 text-[14px] font-medium text-obsidian-light">
-            {unread > 0 ? `${unread} unread — mentions, confirmations and change requests` : "You're all caught up"}
+            {unread > 0 ? t("unreadSummary", { count: unread }) : t("allCaughtUp")}
           </p>
         </div>
         {unread > 0 && <MarkReadIsland />}
@@ -79,10 +85,10 @@ export default async function NotificationsPage() {
         <div className="card mt-6 flex flex-col items-center px-6 py-20 text-center">
           <NowBarMark size={56} className="opacity-90" />
           <h2 className="mt-5 text-[19px] font-extrabold tracking-[-0.03em] text-obsidian">
-            No notifications yet
+            {t("emptyTitle")}
           </h2>
           <p className="mt-1.5 max-w-sm text-[14px] leading-snug text-obsidian-light">
-            Booking updates, change requests and formation reminders will show up here in real time.
+            {t("emptyBody")}
           </p>
         </div>
       ) : (
@@ -103,7 +109,7 @@ export default async function NotificationsPage() {
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2">
                           <span className="text-[14px] font-bold leading-snug text-obsidian">{n.title}</span>
-                          {!n.read_at && <span className="h-2 w-2 shrink-0 rounded-pill bg-electric" aria-label="Unread" />}
+                          {!n.read_at && <span className="h-2 w-2 shrink-0 rounded-pill bg-electric" aria-label={t("unread")} />}
                         </span>
                         {n.body && (
                           <span className="mt-0.5 block text-[13px] font-medium leading-snug text-obsidian-light">
@@ -111,7 +117,7 @@ export default async function NotificationsPage() {
                           </span>
                         )}
                         <span className="mt-1 block font-mono text-[11px] tabular-nums text-muted">
-                          {new Date(n.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                          {new Date(n.created_at).toLocaleTimeString(appLocaleTag(), { hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </span>
                     </div>
@@ -142,7 +148,7 @@ export default async function NotificationsPage() {
       {/* Footer note for the empty-data case */}
       {result.ok && notifications.length > 0 && (
         <p className="mt-6 flex items-center gap-2 text-[11px] font-medium text-muted">
-          <CheckCheck size={13} aria-hidden="true" /> Showing the latest 50 — retention is 90 days.
+          <CheckCheck size={13} aria-hidden="true" /> {t("footerNote")}
         </p>
       )}
     </div>

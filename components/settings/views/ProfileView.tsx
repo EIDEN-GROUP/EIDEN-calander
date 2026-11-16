@@ -18,6 +18,7 @@ import { PageHeader } from "@/components/settings/PageHeader";
 import { updateProfileAction, changePasswordAction } from "@/app/actions/profile";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { ToastViewport, useToast } from "@/components/settings/Toast";
 
 type Locale = "en" | "fr";
@@ -32,12 +33,12 @@ function passwordScore(pw: string): number {
   return score;
 }
 
-const STRENGTH: Array<{ label: string; bar: string; text: string }> = [
-  { label: "Too short", bar: "bg-error", text: "text-error" },
-  { label: "Weak", bar: "bg-error", text: "text-error" },
-  { label: "Fair", bar: "bg-warning", text: "text-tint-fg-amber" },
-  { label: "Strong", bar: "bg-warning", text: "text-tint-fg-amber" },
-  { label: "Excellent", bar: "bg-success", text: "text-tint-fg-green" },
+const STRENGTH: Array<{ labelKey: string; bar: string; text: string }> = [
+  { labelKey: "strengthTooShort", bar: "bg-error", text: "text-error" },
+  { labelKey: "strengthWeak", bar: "bg-error", text: "text-error" },
+  { labelKey: "strengthFair", bar: "bg-warning", text: "text-tint-fg-amber" },
+  { labelKey: "strengthStrong", bar: "bg-warning", text: "text-tint-fg-amber" },
+  { labelKey: "strengthExcellent", bar: "bg-success", text: "text-tint-fg-green" },
 ];
 
 export interface LiveProfile {
@@ -51,6 +52,8 @@ export interface LiveProfile {
 
 export function ProfileView({ firstLogin = false, profile = null }: { firstLogin?: boolean; profile?: LiveProfile | null }) {
   const router = useRouter();
+  const t = useTranslations("profile");
+  const appLocale = useLocale();
   const { toasts, push } = useToast();
   const initials = (profile?.fullName ?? "MA")
     .split(/\s+/)
@@ -76,35 +79,35 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
   const submitPassword = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!currentPw) {
-      setPwError("Enter your current password.");
+      setPwError(t("currentPasswordRequired"));
       return;
     }
     if (newPw.length < 10) {
-      setPwError("New password must be at least 10 characters.");
+      setPwError(t("newPasswordTooShort"));
       return;
     }
     if (newPw !== confirmPw) {
-      setPwError("New password and confirmation don't match.");
+      setPwError(t("passwordsDontMatch"));
       return;
     }
     setPwError(null);
     const res = await changePasswordAction({ currentPassword: currentPw, newPassword: newPw });
     if (!res.ok) {
-      setPwError(res.error.code === "current_password" ? "Your current password is incorrect." : res.error.message);
+      setPwError(res.error.code === "current_password" ? t("currentPasswordIncorrect") : res.error.message);
       return;
     }
     setCurrentPw("");
     setNewPw("");
     setConfirmPw("");
-    push("✓ Password updated — other sessions were revoked.");
+    push(t("passwordUpdated"));
   };
 
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
-        title="Profile"
-        sub="Your account, contact details and password — separate from business settings."
-        parent="Settings"
+        title={t("title")}
+        sub={t("subtitle")}
+        parent={t("parentSettings")}
         parentHref="/settings"
       />
 
@@ -114,10 +117,7 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
           className="mt-4 flex items-start gap-3 rounded-sm border border-warning/50 bg-warning-tint px-4 py-3 text-[13px] font-semibold leading-snug text-[#a34d00]"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          <span>
-            Welcome to CALENDAR. — your account was created with a temporary password.
-            Set your own password below to finish setting up your workspace.
-          </span>
+          <span>{t("firstLoginNotice")}</span>
         </div>
       )}
 
@@ -132,25 +132,25 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
           </span>
           <button
             type="button"
-            onClick={() => push("Avatar upload is coming soon — your initials work great for now")}
-            aria-label="Edit avatar"
+            onClick={() => push(t("avatarComingSoon"))}
+            aria-label={t("editAvatar")}
             className="absolute -bottom-1.5 -right-1.5 flex h-9 w-9 items-center justify-center rounded-pill border border-border bg-white text-obsidian-light shadow-sm transition-all hover:scale-105 hover:text-obsidian"
           >
             <Pencil size={15} strokeWidth={2.1} aria-hidden="true" />
           </button>
         </div>
         <div className="min-w-0 flex-1">
-          <label htmlFor="profile-name" className="sr-only">Full name</label>
+          <label htmlFor="profile-name" className="sr-only">{t("fullName")}</label>
           <input
             id="profile-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            aria-label="Full name"
+            aria-label={t("fullName")}
             className="-ml-2 w-full max-w-xs rounded-sm border border-transparent bg-transparent px-2 py-1 text-[22px] font-extrabold leading-tight tracking-[-0.03em] text-obsidian outline-none transition-colors hover:border-border focus:border-electric focus:bg-white"
             autoComplete="name"
           />
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <span className="chip bg-obsidian text-[10px] uppercase tracking-[0.12em] text-white">{profile?.role === "admin" ? "Admin" : "Staff"}</span>
+            <span className="chip bg-obsidian text-[10px] uppercase tracking-[0.12em] text-white">{profile?.role === "admin" ? t("roleAdmin") : t("roleStaff")}</span>
             <span className="flex items-center gap-1 text-[11px] font-semibold text-muted">
               <Building2 size={11} strokeWidth={2.2} aria-hidden="true" />
               Eiden Group
@@ -158,7 +158,7 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
             {profile?.memberSince ? (
               <span className="flex items-center gap-1 text-[11px] font-semibold text-muted">
                 <CalendarDays size={11} strokeWidth={2.2} aria-hidden="true" />
-                {"Member since " + new Date(profile.memberSince).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}
+                {t("memberSince", { date: new Date(profile.memberSince).toLocaleDateString(appLocale === "fr" ? "fr-FR" : "en-GB", { month: "long", year: "numeric" }) })}
               </span>
             ) : null}
           </div>
@@ -166,15 +166,15 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
             <Lock size={12} strokeWidth={2.4} aria-hidden="true" className="text-muted" />
             {profile?.email ?? "—"}
             <span
-              title="Managed by your administrator — contact support to change"
-              aria-label="Managed by your administrator — contact support to change"
+              title={t("managedByAdminTitle")}
+              aria-label={t("managedByAdminTitle")}
               tabIndex={0}
               role="img"
               className="inline-flex cursor-help items-center text-muted"
             >
               <Info size={13} strokeWidth={2.2} aria-hidden="true" />
             </span>
-            <span className="font-sans text-[10px] font-bold uppercase tracking-[0.1em] text-muted">Managed by your administrator</span>
+            <span className="font-sans text-[10px] font-bold uppercase tracking-[0.1em] text-muted">{t("managedByAdmin")}</span>
           </p>
         </div>
       </div>
@@ -182,9 +182,9 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
       <div className="mt-4 grid items-start gap-4 lg:grid-cols-3">
         {/* Contact */}
         <section aria-labelledby="contact-heading" className="card space-y-4 p-5">
-          <h2 id="contact-heading" className="text-[15px] font-extrabold text-obsidian">Contact</h2>
+          <h2 id="contact-heading" className="text-[15px] font-extrabold text-obsidian">{t("contactHeading")}</h2>
           <div>
-            <label htmlFor="profile-phone" className="label">Phone</label>
+            <label htmlFor="profile-phone" className="label">{t("phone")}</label>
             <input
               id="profile-phone"
               type="tel"
@@ -195,34 +195,34 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
             />
             <p className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-muted">
               <Phone size={11} strokeWidth={2.2} aria-hidden="true" />
-              Used for urgent booking issues only
+              {t("phoneHint")}
             </p>
           </div>
           <div>
-            <label htmlFor="profile-company" className="label">Company</label>
+            <label htmlFor="profile-company" className="label">{t("company")}</label>
             <input id="profile-company" className="input cursor-not-allowed bg-canvas text-muted" value="Eiden Group" disabled />
-            <p className="mt-1.5 text-[11px] font-medium text-muted">Employer is managed by your administrator</p>
+            <p className="mt-1.5 text-[11px] font-medium text-muted">{t("companyHint")}</p>
           </div>
           <div className="border-t border-divider pt-3">
             <button
               type="button"
               onClick={async () => {
                 const res = await updateProfileAction({ fullName: name.trim(), phone: phone.trim() || null, locale });
-                push(res.ok ? "✓ Contact details saved" : res.error.message);
+                push(res.ok ? t("contactSaved") : res.error.message);
                 if (res.ok) router.refresh();
               }}
               className="btn btn-primary h-10 w-full text-[13px]"
             >
-              Save contact
+              {t("saveContact")}
             </button>
           </div>
         </section>
 
         {/* Preferences */}
         <section aria-labelledby="preferences-heading" className="card space-y-4 p-5">
-          <h2 id="preferences-heading" className="text-[15px] font-extrabold text-obsidian">Preferences</h2>
+          <h2 id="preferences-heading" className="text-[15px] font-extrabold text-obsidian">{t("preferencesHeading")}</h2>
           <div>
-            <span className="label" id="pref-lang-label">Language</span>
+            <span className="label" id="pref-lang-label">{t("language")}</span>
             <div role="group" aria-labelledby="pref-lang-label" className="segmented">
               {(["en", "fr"] as const).map((l) => (
                 <button key={l} type="button" aria-pressed={locale === l} onClick={() => setLocale(l)} className={`segment ${locale === l ? "segment-active" : ""}`}>
@@ -230,21 +230,21 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
                 </button>
               ))}
             </div>
-            <p className="mt-1.5 text-[11px] font-medium text-muted">Overrides the workspace default (/settings/localization)</p>
+            <p className="mt-1.5 text-[11px] font-medium text-muted">{t("languageHint")}</p>
           </div>
           <div>
-            <span className="label" id="pref-theme-label">Theme</span>
+            <span className="label" id="pref-theme-label">{t("theme")}</span>
             <div role="group" aria-labelledby="pref-theme-label" className="segmented">
-              <button type="button" aria-pressed="true" className="segment segment-active cursor-default">Light</button>
-              <button type="button" disabled className="segment cursor-not-allowed opacity-50" title="Dark mode is on the roadmap">
-                Dark
-                <span className="ml-1.5 rounded-pill bg-track px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-muted">Soon</span>
+              <button type="button" aria-pressed="true" className="segment segment-active cursor-default">{t("themeLight")}</button>
+              <button type="button" disabled className="segment cursor-not-allowed opacity-50" title={t("darkModeTitle")}>
+                {t("themeDark")}
+                <span className="ml-1.5 rounded-pill bg-track px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-muted">{t("themeSoon")}</span>
               </button>
             </div>
-            <p className="mt-1.5 text-[11px] font-medium text-muted">Dark mode ships with v1.1</p>
+            <p className="mt-1.5 text-[11px] font-medium text-muted">{t("themeHint")}</p>
           </div>
           <div>
-            <label htmlFor="pref-timezone" className="label">Timezone</label>
+            <label htmlFor="pref-timezone" className="label">{t("timezone")}</label>
             <div className="relative">
               <MapPin size={14} strokeWidth={2.2} aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
               <input id="pref-timezone" className="input cursor-not-allowed bg-canvas pl-10 font-mono text-[12px] text-muted" value="Africa/Casablanca" disabled />
@@ -255,12 +255,12 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
               type="button"
               onClick={async () => {
                 const res = await updateProfileAction({ fullName: name.trim(), phone: phone.trim() || null, locale });
-                push(res.ok ? "✓ Preferences saved" : res.error.message);
+                push(res.ok ? t("preferencesSaved") : res.error.message);
                 if (res.ok) router.refresh();
               }}
               className="btn btn-primary h-10 w-full text-[13px]"
             >
-              Save preferences
+              {t("savePreferences")}
             </button>
           </div>
         </section>
@@ -269,16 +269,16 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
         <section aria-labelledby="security-heading" className="card space-y-4 p-5 lg:row-span-1">
           <h2 id="security-heading" className="flex items-center gap-2 text-[15px] font-extrabold text-obsidian">
             <ShieldCheck size={17} strokeWidth={2} aria-hidden="true" className="text-electric" />
-            Security
+            {t("securityHeading")}
           </h2>
 
           <form onSubmit={submitPassword} className="space-y-3">
             <div>
-              <label htmlFor="current-pw" className="label">Current password</label>
+              <label htmlFor="current-pw" className="label">{t("currentPassword")}</label>
               <input id="current-pw" type="password" autoComplete="current-password" className="input h-10 text-[13px]" value={currentPw} onChange={(e) => { setCurrentPw(e.target.value); setPwError(null); }} />
             </div>
             <div>
-              <label htmlFor="new-pw" className="label">New password</label>
+              <label htmlFor="new-pw" className="label">{t("newPassword")}</label>
               <div className="relative">
                 <input
                   id="new-pw"
@@ -292,7 +292,7 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
                 <button
                   type="button"
                   onClick={() => setShowPw((v) => !v)}
-                  aria-label={showPw ? "Hide password" : "Show password"}
+                  aria-label={showPw ? t("hidePassword") : t("showPassword")}
                   className="absolute right-3 top-1/2 -translate-y-1/2 rounded-pill p-1 text-muted transition-colors hover:text-obsidian"
                 >
                   {showPw ? <EyeOff size={16} strokeWidth={2} aria-hidden="true" /> : <Eye size={16} strokeWidth={2} aria-hidden="true" />}
@@ -308,27 +308,27 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
                   ))}
                 </div>
                 <p className={`mt-1 text-[10px] font-bold uppercase tracking-[0.1em] ${newPw ? strength.text : "text-muted"}`}>
-                  {newPw ? strength.label : "Min. 10 characters"}
+                  {newPw ? t(strength.labelKey) : t("minTenChars")}
                 </p>
               </div>
             </div>
             <div>
-              <label htmlFor="confirm-pw" className="label">Confirm new password</label>
+              <label htmlFor="confirm-pw" className="label">{t("confirmNewPassword")}</label>
               <input id="confirm-pw" type="password" autoComplete="new-password" className="input h-10 text-[13px]" value={confirmPw} onChange={(e) => { setConfirmPw(e.target.value); setPwError(null); }} />
             </div>
             {pwError ? <p role="alert" className="text-[11px] font-semibold text-error">{pwError}</p> : null}
-            <button type="submit" className="btn btn-primary h-10 w-full text-[13px]">Update password</button>
+            <button type="submit" className="btn btn-primary h-10 w-full text-[13px]">{t("updatePassword")}</button>
           </form>
 
           <div className="border-t border-divider pt-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted">Sessions</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted">{t("sessions")}</p>
             <div className="mt-2 flex items-center gap-2 rounded-sm bg-canvas px-3 py-2.5 text-[11px] font-medium leading-snug text-obsidian-light">
               <span className="h-2 w-2 shrink-0 rounded-pill bg-success" aria-hidden="true" />
-              This device — MacBook Pro · Casablanca — current session
+              {t("currentSession")}
             </div>
             {confirmSignOut ? (
               <div className="mt-2 space-y-2 rounded-sm border border-error/30 bg-error-tint/60 p-3">
-                <p className="text-[11px] font-semibold leading-snug text-obsidian">Sign out everywhere except this device?</p>
+                <p className="text-[11px] font-semibold leading-snug text-obsidian">{t("signOutEverywhereQuestion")}</p>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
@@ -336,14 +336,14 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
                       const supabase = createClient();
                       if (supabase) await supabase.auth.signOut({ scope: "others" });
                       setConfirmSignOut(false);
-                      push("Signed out everywhere else ✓");
+                      push(t("signedOutElsewhere"));
                     }}
                     className="inline-flex h-9 items-center gap-1.5 rounded-pill bg-error px-3 text-[11px] font-bold text-white transition-opacity hover:opacity-90"
                   >
                     <LogOut size={12} strokeWidth={2.4} aria-hidden="true" />
-                    Sign out
+                    {t("signOut")}
                   </button>
-                  <button type="button" onClick={() => setConfirmSignOut(false)} className="btn btn-ghost h-9 px-3 text-[11px]">Cancel</button>
+                  <button type="button" onClick={() => setConfirmSignOut(false)} className="btn btn-ghost h-9 px-3 text-[11px]">{t("cancel")}</button>
                 </div>
               </div>
             ) : (
@@ -353,10 +353,10 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
                 className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-pill border border-error/50 bg-white px-4 text-[12px] font-semibold text-error transition-colors hover:bg-error-tint"
               >
                 <LogOut size={14} strokeWidth={2.2} aria-hidden="true" />
-                Sign out other sessions
+                {t("signOutOtherSessions")}
               </button>
             )}
-            <p className="mt-3 font-mono text-[10px] leading-relaxed text-muted">Passwords hashed with argon2id once live · sessions in Supabase Auth</p>
+            <p className="mt-3 font-mono text-[10px] leading-relaxed text-muted">{t("securityFooter")}</p>
           </div>
         </section>
       </div>

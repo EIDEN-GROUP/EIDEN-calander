@@ -14,6 +14,7 @@ import {
   Server,
   ShieldCheck,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { PageHeader } from "@/components/settings/PageHeader";
 import { ToastViewport, useToast } from "@/components/settings/Toast";
 
@@ -26,19 +27,18 @@ type LineState =
 
 const PROTOCOLS: Array<{
   key: Protocol;
-  label: string;
+  labelKey: string;
   host: string;
   port: number;
   icon: typeof Server;
-  idleNote: string;
+  idleNoteKey: string;
 }> = [
-  { key: "smtp", label: "SMTP — outgoing", host: "smtp.hostinger.com", port: 587, icon: Server, idleNote: "Not tested yet — click Test" },
-  { key: "imap", label: "IMAP — incoming", host: "imap.hostinger.com", port: 993, icon: Inbox, idleNote: "Not tested yet — click Test" },
+  { key: "smtp", labelKey: "protocolSmtpLabel", host: "smtp.hostinger.com", port: 587, icon: Server, idleNoteKey: "notTestedYet" },
+  { key: "imap", labelKey: "protocolImapLabel", host: "imap.hostinger.com", port: 993, icon: Inbox, idleNoteKey: "notTestedYet" },
 ];
 
-const UNAVAILABLE_MSG = "Mail test unavailable — set .env then redeploy (or ask your admin)";
-
 export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
+  const t = useTranslations("settings");
   const { toasts, push } = useToast();
   const [lines, setLines] = useState<Record<Protocol, LineState>>({
     smtp: { status: "idle" },
@@ -57,7 +57,7 @@ export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
         record = null;
       }
       if (record === null) {
-        setLines((prev) => ({ ...prev, [protocol]: { status: "error", message: UNAVAILABLE_MSG } }));
+        setLines((prev) => ({ ...prev, [protocol]: { status: "error", message: t("mailTestUnavailable") } }));
         return;
       }
       // Route returns { smtp: { ok, code? }, imap: { ok, code?, message? }, demo? }
@@ -65,25 +65,25 @@ export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
       const imapRec = (record.imap ?? {}) as Record<string, unknown>;
       const next = (pick: Record<string, unknown>, other: Record<string, unknown>): Record<Protocol, LineState> => ({
         smtp: pick === smtpRec
-          ? (smtpRec.ok ? { status: "ok" } : { status: "error", message: typeof smtpRec.code === "string" ? "SMTP check failed — " + smtpRec.code : "SMTP check failed" })
-          : (other.ok ? { status: "ok" } : { status: "error", message: typeof other.code === "string" ? "SMTP check failed — " + other.code : "SMTP check failed" }),
+          ? (smtpRec.ok ? { status: "ok" } : { status: "error", message: typeof smtpRec.code === "string" ? t("smtpCheckFailedCode", { code: smtpRec.code }) : t("smtpCheckFailed") })
+          : (other.ok ? { status: "ok" } : { status: "error", message: typeof other.code === "string" ? t("smtpCheckFailedCode", { code: other.code }) : t("smtpCheckFailed") }),
         imap: pick === imapRec
-          ? (imapRec.ok ? { status: "ok" } : { status: "error", message: typeof imapRec.message === "string" ? imapRec.message : (typeof imapRec.code === "string" ? "IMAP check failed — " + imapRec.code : "IMAP check failed") })
-          : (other.ok ? { status: "ok" } : { status: "error", message: typeof other.message === "string" ? other.message : (typeof other.code === "string" ? "IMAP check failed — " + other.code : "IMAP check failed") }),
+          ? (imapRec.ok ? { status: "ok" } : { status: "error", message: typeof imapRec.message === "string" ? imapRec.message : (typeof imapRec.code === "string" ? t("imapCheckFailedCode", { code: imapRec.code }) : t("imapCheckFailed")) })
+          : (other.ok ? { status: "ok" } : { status: "error", message: typeof other.message === "string" ? other.message : (typeof other.code === "string" ? t("imapCheckFailedCode", { code: other.code }) : t("imapCheckFailed")) }),
       });
       setLines(next(protocol === "smtp" ? smtpRec : imapRec, protocol === "smtp" ? imapRec : smtpRec));
       const focusRec = protocol === "smtp" ? smtpRec : imapRec;
-      if (focusRec.ok) push(`${protocol.toUpperCase()} connection verified`);
+      if (focusRec.ok) push(t("protocolVerified", { protocol: protocol.toUpperCase() }));
     } catch {
-      setLines((prev) => ({ ...prev, [protocol]: { status: "error", message: UNAVAILABLE_MSG } }));
+      setLines((prev) => ({ ...prev, [protocol]: { status: "error", message: t("mailTestUnavailable") } }));
     }
   };
 
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
-        title="Mail"
-        sub="How CALENDAR. talks to the connected mailbox — status and one-click connection tests."
+        title={t("tabMail")}
+        sub={t("mailSub")}
       />
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -95,10 +95,10 @@ export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
                 <MailCheck size={22} strokeWidth={1.8} aria-hidden="true" />
               </span>
               <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">Connected account</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{t("connectedAccountLabel")}</p>
                 <p className="mt-0.5 flex items-center gap-2 font-mono text-[13px] font-semibold text-obsidian">
                   {mailboxAddress}
-                  <span title="Mailbox address is visible to admins only" className="inline-flex items-center text-muted">
+                  <span title={t("mailboxVisibleTitle")} className="inline-flex items-center text-muted">
                     <EyeOff size={12} strokeWidth={2.2} aria-hidden="true" />
                   </span>
                 </p>
@@ -106,14 +106,14 @@ export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
               </div>
             </div>
             <Link href="/inbox" className="btn btn-secondary h-10 px-4 text-[13px]">
-              Open inbox
+              {t("openInbox")}
               <ArrowRight size={14} strokeWidth={2.4} aria-hidden="true" />
             </Link>
           </div>
 
           {/* Protocol rows */}
-          <section aria-label="Mail protocol status" className="card divide-y divide-divider">
-            {PROTOCOLS.map(({ key, label, host, port, icon: Icon, idleNote }) => {
+          <section aria-label={t("mailProtocolStatusAria")} className="card divide-y divide-divider">
+            {PROTOCOLS.map(({ key, labelKey, host, port, icon: Icon, idleNoteKey }) => {
               const line = lines[key];
               return (
                 <div key={key} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
@@ -122,25 +122,25 @@ export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
                       <Icon size={18} strokeWidth={1.9} aria-hidden="true" />
                     </span>
                     <div className="min-w-0">
-                      <h2 className="text-[13px] font-bold text-obsidian">{label}</h2>
+                      <h2 className="text-[13px] font-bold text-obsidian">{t(labelKey)}</h2>
                       <p className="mt-0.5 font-mono text-[11px] font-semibold text-muted">{host}:{port} · STARTTLS</p>
                       <div aria-live="polite" className="mt-1.5 min-h-[18px]">
                         {line.status === "idle" && (
                           <p className="flex items-center gap-1.5 text-[11px] font-semibold text-tint-fg-green">
                             <span className="h-2 w-2 rounded-pill bg-success" aria-hidden="true" />
-                            {idleNote}
+                            {t(idleNoteKey)}
                           </p>
                         )}
                         {line.status === "testing" && (
                           <p className="flex items-center gap-1.5 text-[11px] font-semibold text-muted">
                             <LoaderCircle size={12} strokeWidth={2.4} aria-hidden="true" className="animate-spin" />
-                            Testing {key.toUpperCase()} — handshake &amp; auth…
+                            {t("testingProtocol", { protocol: key.toUpperCase() })}
                           </p>
                         )}
                         {line.status === "ok" && (
                           <p className="flex items-center gap-1.5 text-[11px] font-semibold text-tint-fg-green">
                             <CircleCheck size={13} strokeWidth={2.4} aria-hidden="true" />
-                            {key.toUpperCase()} OK — authenticated &amp; handshake complete
+                            {t("protocolOk", { protocol: key.toUpperCase() })}
                           </p>
                         )}
                         {line.status === "error" && (
@@ -158,7 +158,7 @@ export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
                     disabled={line.status === "testing"}
                     className="btn btn-primary h-10 px-4 text-[13px] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {line.status === "testing" ? "Testing…" : `Test ${key.toUpperCase()}`}
+                    {line.status === "testing" ? t("testing") : t("testProtocol", { protocol: key.toUpperCase() })}
                   </button>
                 </div>
               );
@@ -169,13 +169,13 @@ export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
           <div className="flex items-start gap-2.5 rounded-sm border border-warning/30 bg-warning-tint px-4 py-3 text-[12px] font-semibold leading-snug text-tint-fg-amber">
             <Info size={15} strokeWidth={2.2} aria-hidden="true" className="mt-0.5 shrink-0" />
             <span>
-              Credentials live in Vercel environment variables — never in the database or the browser. See <code className="rounded-sm bg-white/60 px-1 font-mono text-[11px]">docs/RUNBOOK.md</code>, §5 Environment variables, then redeploy.
+              {t("credNoteBefore")} <code className="rounded-sm bg-white/60 px-1 font-mono text-[11px]">docs/RUNBOOK.md</code>{t("credNoteAfter")}
             </span>
           </div>
 
           {/* Security chips */}
           <div className="flex flex-wrap items-center gap-2">
-            {["STARTTLS 587", "SPF aligned", "DKIM signing", "DMARC quarantine", "From: eiden-group.com"].map((chip) => (
+            {["STARTTLS 587", t("chipSpfAligned"), t("chipDkim"), t("chipDmarc"), t("chipFrom")].map((chip) => (
               <span key={chip} className="chip border border-border bg-white text-obsidian-light">
                 <ShieldCheck size={11} strokeWidth={2.4} aria-hidden="true" className="text-tint-fg-green" />
                 {chip}
@@ -186,12 +186,12 @@ export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
 
         <aside className="space-y-4">
           <div className="card p-5">
-            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">How it works</h2>
+            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">{t("howItWorksHeading")}</h2>
             <ol className="mt-3 space-y-3 text-[12px] font-medium leading-snug text-obsidian-light">
               {[
-                "Keys live in Vercel env vars — SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD — scoped per environment.",
-                "A server-only route reads them on demand and opens a real connection to Hostinger.",
-                "The result — verified or the exact failure code — is rendered right here. No guessing.",
+                t("howItWorksStep1"),
+                t("howItWorksStep2"),
+                t("howItWorksStep3"),
               ].map((step, i) => (
                 <li key={i} className="flex gap-2.5">
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-pill bg-canvas font-mono text-[10px] font-bold text-obsidian">{i + 1}</span>
@@ -201,11 +201,11 @@ export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
             </ol>
           </div>
           <div className="card p-5">
-            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">If a test fails</h2>
+            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">{t("ifTestFailsHeading")}</h2>
             <ul className="mt-3 space-y-2.5 text-[12px] font-medium leading-snug text-obsidian-light">
-              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />Route missing → .env not set on this environment — set it and redeploy.</li>
-              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />Auth fails → rotate SMTP_PASSWORD in Vercel, then redeploy.</li>
-              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />Unreachable → Hostinger IP allow-list or port 587 blocked outbound.</li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />{t("testFailsRoute")}</li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />{t("testFailsAuth")}</li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />{t("testFailsUnreachable")}</li>
             </ul>
           </div>
         </aside>

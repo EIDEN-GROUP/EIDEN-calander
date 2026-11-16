@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef } from "react";
+import { useTranslations } from "next-intl";
 import { CloudOff, Inbox as InboxIcon, RefreshCw, SearchX, Sparkles } from "lucide-react";
 import { NowBarMark } from "@/components/brand/NowBar";
 import { MessageListRow } from "./MessageListRow";
@@ -25,6 +26,7 @@ export function MailboxList({
   selectedUid: number | null;
   onSelect: (uid: number) => void;
 }) {
+  const t = useTranslations("inbox");
   const listRef = useRef<HTMLUListElement>(null);
 
   const focusSibling = useCallback((from: HTMLElement, delta: number) => {
@@ -63,7 +65,7 @@ export function MailboxList({
 
   if (loading && messages.length === 0) {
     return (
-      <div className="flex h-full flex-col" role="status" aria-label="Loading messages" aria-busy="true">
+      <div className="flex h-full flex-col" role="status" aria-label={t("loadingMessages")} aria-busy="true">
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="flex animate-pulse gap-3 border-b border-divider px-4 py-4">
             <div className="mt-1 h-2.5 w-2.5 rounded-pill bg-track" />
@@ -86,19 +88,17 @@ export function MailboxList({
         {trimmed ? (
           <>
             <SearchX size={36} strokeWidth={1.5} className="text-muted" aria-hidden="true" />
-            <p className="mt-4 text-[15px] font-bold text-obsidian">No messages match “{trimmed}”</p>
-            <p className="mt-1 max-w-[26ch] text-[13px] text-muted">Try a different keyword, or clear the search to see the recent list.</p>
+            <p className="mt-4 text-[15px] font-bold text-obsidian">{t("noMessagesMatch", { query: trimmed })}</p>
+            <p className="mt-1 max-w-[26ch] text-[13px] text-muted">{t("noMessagesHint")}</p>
           </>
         ) : (
           <>
             <NowBarMark size={48} className="opacity-80" />
             <p className="mt-4 text-[15px] font-bold text-obsidian">
-              {folder === "INBOX" ? "Inbox zero — nothing unread" : "No sent mail yet"}
+              {folder === "INBOX" ? t("inboxZeroTitle") : t("noSentYetTitle")}
             </p>
             <p className="mt-1 max-w-[34ch] text-[13px] text-muted">
-              {folder === "INBOX"
-                ? "New messages to this mailbox will appear here automatically."
-                : "Replies you send from here are kept in the Sent folder of the mailbox."}
+              {folder === "INBOX" ? t("inboxZeroBody") : t("noSentYetBody")}
             </p>
           </>
         )}
@@ -110,7 +110,7 @@ export function MailboxList({
     <ul
       ref={listRef}
       onKeyDown={onKeyDown}
-      aria-label={folder === "INBOX" ? "Inbox messages" : "Sent messages"}
+      aria-label={folder === "INBOX" ? t("inboxMessages") : t("sentMessages")}
       className="h-full overflow-y-auto overscroll-contain"
     >
       {messages.map((message) => (
@@ -126,7 +126,7 @@ export function MailboxList({
       ))}
       {loading && (
         <li className="flex items-center justify-center gap-2 py-3 text-[11px] font-semibold text-muted">
-          <RefreshCw size={12} className="animate-spin" aria-hidden="true" /> Refreshing…
+          <RefreshCw size={12} className="animate-spin" aria-hidden="true" /> {t("refreshing")}
         </li>
       )}
     </ul>
@@ -134,23 +134,24 @@ export function MailboxList({
 }
 
 export function MailboxDemoChips({ demo, offline }: { demo: boolean; offline: boolean }) {
+  const t = useTranslations("inbox");
   if (offline) {
     return (
       <span className="chip border border-warning/40 bg-warning-tint text-[10px] font-bold uppercase tracking-[0.08em] text-[#A34D00]">
-        <CloudOff size={11} strokeWidth={2.5} aria-hidden="true" /> Offline preview
+        <CloudOff size={11} strokeWidth={2.5} aria-hidden="true" /> {t("offlinePreview")}
       </span>
     );
   }
   if (demo) {
     return (
       <span className="chip border border-electric/20 bg-electric-tint text-[10px] font-bold uppercase tracking-[0.08em] text-electric">
-        <Sparkles size={11} strokeWidth={2.5} aria-hidden="true" /> Demo data
+        <Sparkles size={11} strokeWidth={2.5} aria-hidden="true" /> {t("demoData")}
       </span>
     );
   }
   return (
     <span className="chip border border-success/25 bg-success-tint text-[10px] font-bold uppercase tracking-[0.08em] text-[#1E6B31]">
-      <InboxIcon size={11} strokeWidth={2.5} aria-hidden="true" /> Live mailbox
+      <InboxIcon size={11} strokeWidth={2.5} aria-hidden="true" /> {t("liveMailbox")}
     </span>
   );
 }

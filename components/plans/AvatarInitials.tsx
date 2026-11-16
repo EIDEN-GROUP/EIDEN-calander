@@ -9,16 +9,19 @@ export function AvatarInitials({
   name,
   size = 26,
   className = "",
+  unassignedLabel,
 }: {
   /** Staff id (resolves via demo directory) — or pass `name` directly. */
   id?: string | null;
   name?: string;
   size?: number;
   className?: string;
+  /** Label used when there is no id — defaults to English "Unassigned". */
+  unassignedLabel?: string;
 }) {
   const resolved = name
     ? { name, initials: name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("") || "?", tint: "bg-tint-blue text-tint-fg-blue" }
-    : getStaff(id);
+    : getStaff(id, unassignedLabel);
 
   return (
     <span

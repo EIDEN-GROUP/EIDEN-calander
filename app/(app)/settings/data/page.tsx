@@ -1,9 +1,13 @@
 import { connection } from "next/server";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { DataPrivacyView, type LedgerClient } from "@/components/settings/views/DataPrivacyView";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Data & Privacy" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("settings");
+  return { title: t("tabData") };
+}
 export const instant = false;
 
 export default async function Page() {

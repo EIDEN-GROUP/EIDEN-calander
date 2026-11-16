@@ -1,6 +1,7 @@
 "use client";
 
 import { CalendarDays, DoorOpen, GraduationCap, Users } from "lucide-react";
+import { useTranslations, useLocale } from "next-intl";
 import type { BookingRow } from "@/lib/types/db";
 import {
   addDays,
@@ -12,6 +13,7 @@ import {
   tintFor,
   type Lookup,
 } from "./calendar-utils";
+import { appLocaleTag } from "@/lib/intl-locale";
 
 /* ================= Day agenda (right rail, day view) ================= */
 
@@ -28,21 +30,23 @@ export function DayTimeline({
   onBookingClick: (b: BookingRow) => void;
   onBookingContextMenu?: (b: BookingRow, x: number, y: number) => void;
 }) {
+  const t = useTranslations("calendar");
+  const intlLocale = appLocaleTag(useLocale());
   const dayBookings = bookings
     .filter((b) => isSameDay(new Date(b.starts_at), day))
     .sort((a, b) => +new Date(a.starts_at) - +new Date(b.starts_at));
 
   return (
     <aside
-      aria-label="Day agenda"
+      aria-label={t("dayAgendaLabel")}
       className="card flex flex-col p-5"
     >
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-[14px] font-extrabold uppercase tracking-[0.1em] text-obsidian-light">
-          Agenda
+          {t("agendaTitle")}
         </h2>
         <span className="chip bg-electric-tint text-[11px] text-electric">
-          {dayBookings.length} {dayBookings.length === 1 ? "booking" : "bookings"}
+          {t("bookingsCount", { count: dayBookings.length })}
         </span>
       </div>
       <ol className="mt-4 flex-1">
@@ -50,9 +54,9 @@ export function DayTimeline({
           <li className="rounded-sm border border-dashed border-border bg-canvas/60 px-4 py-8 text-center">
             <CalendarDays size={22} className="mx-auto text-muted" aria-hidden="true" />
             <p className="mt-2 text-[13px] font-semibold text-obsidian-light">
-              Nothing scheduled
+              {t("nothingScheduled")}
             </p>
-            <p className="mt-0.5 text-[12px] text-muted">Enjoy the quiet.</p>
+            <p className="mt-0.5 text-[12px] text-muted">{t("enjoyQuiet")}</p>
           </li>
         )}
         {dayBookings.map((b, i) => (
@@ -83,6 +87,8 @@ function TimelineItem({
   onBookingClick: (b: BookingRow) => void;
   onBookingContextMenu?: (b: BookingRow, x: number, y: number) => void;
 }) {
+  const t = useTranslations("calendar");
+  const intlLocale = appLocaleTag(useLocale());
   const start = new Date(booking.starts_at);
   const room = booking.room_id ? lookup.roomById.get(booking.room_id) : null;
   const client = booking.client_id ? lookup.clientById.get(booking.client_id) : null;
@@ -93,7 +99,7 @@ function TimelineItem({
       {/* Time rail */}
       <div className="flex w-11 shrink-0 flex-col items-end pt-0.5">
         <span className="text-[12px] font-bold tabular-nums leading-tight text-obsidian">
-          {formatTime(start)}
+          {formatTime(start, intlLocale)}
         </span>
       </div>
       {/* Line + dot */}
@@ -117,10 +123,10 @@ function TimelineItem({
       >
         <span className={`chip ${tint.chip} !text-[10px] uppercase tracking-[0.05em]`}>
           {booking.status === "pending_conflict"
-            ? "Pending"
+            ? t("pending")
             : booking.type === "formation"
-              ? "Formation"
-              : "Booked"}
+              ? t("typeFormation")
+              : t("chipBooked")}
         </span>
         <span className="mt-1.5 block truncate text-[13px] font-bold leading-snug text-obsidian">
           {booking.title}
@@ -163,6 +169,8 @@ export function AgendaView({
   onBookingClick: (b: BookingRow) => void;
   onBookingContextMenu?: (b: BookingRow, x: number, y: number) => void;
 }) {
+  const t = useTranslations("calendar");
+  const intlLocale = appLocaleTag(useLocale());
   const days = Array.from({ length: 14 }, (_, i) => addDays(windowStart, i));
   const groups = days
     .map((day) => ({
@@ -178,37 +186,36 @@ export function AgendaView({
       <div className="card flex flex-col items-center justify-center px-6 py-16 text-center">
         <CalendarDays size={40} strokeWidth={1.5} className="text-muted" aria-hidden="true" />
         <h2 className="mt-4 text-[18px] font-extrabold tracking-[-0.02em] text-obsidian">
-          No bookings in the next 14 days
+          {t("noBookingsNext14")}
         </h2>
         <p className="mt-1 max-w-sm text-[13px] leading-snug text-obsidian-light">
-          When the team books rooms or formations, they’ll show up here — grouped by day,
-          soonest first.
+          {t("noBookingsNext14Body")}
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4" aria-label="Agenda, next 14 days">
+    <div className="space-y-4" aria-label={t("agendaNext14Label")}>
       {groups.map(({ day, items }) => (
         <section
           key={day.toISOString()}
-          aria-label={formatDayLong(day)}
+          aria-label={formatDayLong(day, intlLocale)}
           className="card flex flex-col gap-4 p-4 sm:flex-row sm:gap-6 sm:p-5"
         >
           {/* Date block */}
           <div className="flex shrink-0 items-center gap-3 sm:w-36 sm:flex-col sm:items-start sm:gap-0 sm:border-r sm:border-divider sm:pr-5">
             <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
-              {relativeDayLabel(day, today)}
+              {relativeDayLabel(day, today, { today: t("today"), tomorrow: t("tomorrow") }, intlLocale)}
             </span>
             <span className="text-[26px] font-extrabold leading-none tracking-[-0.03em] text-obsidian sm:mt-1.5">
               {day.getDate()}{" "}
               <span className="text-[13px] font-bold text-obsidian-light">
-                {day.toLocaleDateString("en-GB", { month: "short" })}
+                {day.toLocaleDateString(intlLocale, { month: "short" })}
               </span>
             </span>
             <span className="text-[11px] font-semibold text-muted sm:mt-1">
-              {items.length} {items.length === 1 ? "booking" : "bookings"}
+              {t("bookingsCount", { count: items.length })}
             </span>
           </div>
 
@@ -233,9 +240,9 @@ export function AgendaView({
                     className="group flex w-full items-center gap-3 py-2.5 text-left sm:gap-4"
                   >
                     <span className="w-[92px] shrink-0 text-[12px] font-bold tabular-nums text-obsidian">
-                      {formatTime(start)}
+                      {formatTime(start, intlLocale)}
                       <span className="block text-[10px] font-semibold text-muted">
-                        → {formatTime(end)}
+                        → {formatTime(end, intlLocale)}
                       </span>
                     </span>
                     <span
@@ -259,13 +266,13 @@ export function AgendaView({
                         {b.title}
                       </span>
                       <span className="mt-0.5 block truncate text-[11px] font-medium text-muted">
-                        {room ? room.name.replace(/\s*\(DEMO\)\s*$/, "") : "Off-site"}
+                        {room ? room.name.replace(/\s*\(DEMO\)\s*$/, "") : t("offSite")}
                         {client ? ` · ${client.full_name}` : ""}
-                        {b.status === "pending_conflict" ? " · Pending conflict" : ""}
+                        {b.status === "pending_conflict" ? ` · ${t("pendingConflict")}` : ""}
                       </span>
                     </span>
                     <span className={`chip shrink-0 ${tint.chip} hidden sm:inline-flex`}>
-                      {b.status === "pending_conflict" ? "Pending" : isFormation ? "Formation" : "Booked"}
+                      {b.status === "pending_conflict" ? t("pending") : isFormation ? t("typeFormation") : t("chipBooked")}
                     </span>
                   </button>
                 </li>

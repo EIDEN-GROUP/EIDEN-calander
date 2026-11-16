@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { Sparkles, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export function DemoBanner() {
+  const t = useTranslations("shell");
   const [hidden, setHidden] = useState(false);
   if (hidden) return null;
 
@@ -14,11 +16,13 @@ export function DemoBanner() {
     >
       <Sparkles size={13} strokeWidth={2} aria-hidden="true" className="shrink-0" />
       <span>
-        Preview mode — connect Supabase (see <code className="rounded bg-white/60 px-1 font-mono text-[11px]">.env.example</code>) to go live. Screens show demo data.
+        {t.rich("demoBanner", {
+          code: (chunks) => <code className="rounded bg-white/60 px-1 font-mono text-[11px]">{chunks}</code>,
+        })}
       </span>
       <button
         onClick={() => setHidden(true)}
-        aria-label="Dismiss preview notice"
+        aria-label={t("demoDismiss")}
         className="absolute right-3 top-1/2 -translate-y-1/2 rounded-pill p-1 text-electric-hover/70 transition-colors hover:text-electric-hover"
       >
         <X size={14} strokeWidth={2.4} aria-hidden="true" />

@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { ProfileView } from "@/components/settings/views/ProfileView";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Your profile" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("profile");
+  return { title: t("pageTitle") };
+}
 export const instant = false;
 
 export default async function Page({

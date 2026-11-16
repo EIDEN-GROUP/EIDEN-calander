@@ -33,6 +33,20 @@ const PREF_BY_CHANGE_EVENT: Record<ChangeRequestEvent, string> = {
   expired: "change_request_expired",
 };
 
+/** Business-wide default locale for emails to non-user recipients (clients). */
+async function businessLocale(supabase: SupabaseClient): Promise<"en" | "fr"> {
+  try {
+    const { data } = await supabase
+      .from("business_settings")
+      .select("default_locale")
+      .eq("id", true)
+      .maybeSingle();
+    return data?.default_locale === "fr" ? "fr" : "en";
+  } catch {
+    return "en";
+  }
+}
+
 /**
  * Is this transactional email type enabled in business_settings.notification_prefs?
  * Business-wide switch, admin-controlled in Settings → Notifications.
@@ -125,7 +139,7 @@ export async function notifyBookingEvent(
       return;
     }
 
-    const locale = "en" as const;
+    const locale = await businessLocale(supabase);
     const bookingLike: BookingLike = {
       title: booking.title as string,
       starts_at: booking.starts_at as string,
@@ -213,7 +227,6 @@ export async function notifyChangeRequestEvent(
     }
 
     const suggestedCount = Array.isArray(cr.suggested_slots) ? cr.suggested_slots.length : 0;
-    const locale = (requesterProfile.data?.locale === "fr" ? "fr" : "en") as "en" | "fr";
     const responseMessage = (cr.response_message as string | null) ?? undefined;
 
     if (event === "received") {
@@ -222,19 +235,22 @@ export async function notifyChangeRequestEvent(
         console.log(`[notify] change-request received — no email for incumbent ${cr.assigned_to}`);
         return;
       }
+      const incumbentLocale = incumbentProfile.data?.locale === "fr" ? "fr" : "en";
       const rendered = changeRequestReceived({
         incumbentName,
         requesterName,
         room: roomName,
         slot,
         suggested: suggestedCount,
-        locale,
+        locale: incumbentLocale,
       });
       const result = await sendMail({ to, subject: rendered.subject, text: rendered.text, html: rendered.html });
       if (!result.ok) console.error("[notify] change-request received failed:", result.error?.message);
       return;
     }
 
+    const requesterLocale = requesterProfile.data?.locale === "fr" ? "fr" : "en";
+    const locale = requesterLocale as "en" | "fr";
     const to = (requesterProfile.data?.email as string | null) ?? null;
     if (!to) {
       console.log(`[notify] change-request ${event} — no email for requester ${cr.requested_by}`);

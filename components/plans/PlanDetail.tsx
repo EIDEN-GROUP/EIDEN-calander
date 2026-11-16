@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { FormEvent, KeyboardEvent } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Activity,
   ArrowUpRight,
@@ -37,7 +38,7 @@ import { deriveProgress } from "./demo-store";
 import type { PlanRow, PlanStatus, PlanTaskRow, TaskStatus } from "@/lib/types/db";
 import { getStaff } from "./demo-staff";
 import { AvatarInitials } from "./AvatarInitials";
-import { PlanStatusSelect, PriorityChip } from "./chips";
+import { PLAN_PRIORITY_LABEL_KEY, PlanStatusSelect, PriorityChip } from "./chips";
 import { ProgressRing } from "./ProgressRing";
 import {
   formatFullDate,
@@ -45,12 +46,18 @@ import {
   isOverdueDate,
   relativeDayLabel,
 } from "@/components/charts/format";
+import { appLocaleTag } from "@/lib/intl-locale";
 
 const TASK_CYCLE: TaskStatus[] = ["todo", "in_progress", "done"];
-const TASK_PILL: Record<TaskStatus, { label: string; className: string }> = {
-  todo: { label: "To do", className: "bg-track text-obsidian-light" },
-  in_progress: { label: "In progress", className: "bg-electric-tint text-electric" },
-  done: { label: "Done", className: "bg-success-tint text-tint-fg-green" },
+const TASK_PILL_CLASS: Record<TaskStatus, string> = {
+  todo: "bg-track text-obsidian-light",
+  in_progress: "bg-electric-tint text-electric",
+  done: "bg-success-tint text-tint-fg-green",
+};
+const TASK_PILL_KEY: Record<TaskStatus, "taskToDo" | "taskInProgress" | "done"> = {
+  todo: "taskToDo",
+  in_progress: "taskInProgress",
+  done: "done",
 };
 
 type TaskSort = "manual" | "due";
@@ -64,6 +71,9 @@ const dueCompare = (a: PlanTaskRow, b: PlanTaskRow) => {
 
 export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }) {
   const router = useRouter();
+  const t = useTranslations("plans");
+  const locale = useLocale();
+  const dateLocale = locale === "fr" ? "fr" : appLocaleTag();
   const live = data?.live === true;
   const { toast, showToast, dismiss } = useDemoToast();
 
@@ -263,7 +273,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
 
   const toggleMarker = (next: boolean) => {
     updatePlan({ target_date_marker: next });
-    showToast(next ? "Marker shown on calendar" : "Calendar marker hidden", plan?.title, "success");
+    showToast(next ? t("markerShownToast") : t("markerHiddenToast"), plan?.title, "success");
   };
 
   const changeStatus = (next: PlanStatus) => {
@@ -290,31 +300,30 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
       <div className="mx-auto flex max-w-lg flex-col items-center rounded-md border border-border bg-white px-6 py-16 text-center shadow-sm">
         <CircleAlert size={28} strokeWidth={1.8} className="text-warning" aria-hidden="true" />
         <h1 className="mt-4 text-[22px] font-extrabold tracking-[-0.02em] text-obsidian">
-          Plan not found
+          {t("notFoundTitle")}
         </h1>
         <p className="mt-1.5 text-[13px] font-medium leading-relaxed text-obsidian-light">
-          “{id}” does not exist in the demo dataset — it may have been created in another tab’s
-          session.
+          {t("notFoundBody", { id })}
         </p>
         <Link href="/plans" className="btn btn-primary mt-6 h-11">
-          Back to plans
+          {t("backToPlans")}
         </Link>
       </div>
     );
   }
 
-  const owner = getStaff(plan.owner_id);
+  const owner = getStaff(plan.owner_id, t("unassigned"));
   const overdueTarget =
     plan.status !== "completed" && plan.status !== "cancelled" && isOverdueDate(plan.target_date);
-  const relTarget = plan.target_date ? relativeDayLabel(plan.target_date) : null;
+  const relTarget = plan.target_date ? relativeDayLabel(plan.target_date, locale) : null;
   const targetIsPast = relTarget === null && plan.target_date !== null;
 
   return (
     <div className="mx-auto max-w-[1440px]">
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[12px] font-semibold text-muted">
+      <nav aria-label={t("breadcrumbAria")} className="flex items-center gap-1.5 text-[12px] font-semibold text-muted">
         <Link href="/plans" className="rounded-sm transition-colors hover:text-electric">
-          Plans
+          {t("title")}
         </Link>
         <ChevronRight size={12} strokeWidth={2.4} aria-hidden="true" />
         <span aria-current="page" className="max-w-[60%] truncate text-obsidian">
@@ -339,33 +348,33 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                   <PlanStatusSelect status={plan.status} onChange={changeStatus} />
                   <PriorityChip priority={plan.priority} />
                   <span className="inline-flex items-center gap-1.5 rounded-pill border border-border bg-canvas py-1 pl-1 pr-2.5 text-[11px] font-semibold text-obsidian-light">
-                    <AvatarInitials id={plan.owner_id} size={18} />
+                    <AvatarInitials id={plan.owner_id} size={18} unassignedLabel={t("unassigned")} />
                     {owner.name}
                   </span>
                 </div>
                 <dl className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] font-medium text-obsidian-light">
                   <div className="inline-flex items-center gap-1.5">
                     <CalendarClock size={13} strokeWidth={2.2} className="text-muted" aria-hidden="true" />
-                    <dt className="sr-only">Started</dt>
+                    <dt className="sr-only">{t("startedSr")}</dt>
                     <dd className="font-mono tabular-nums">
-                      {plan.start_date ? `Started ${formatFullDate(plan.start_date)}` : "Not started"}
+                      {plan.start_date ? t("startedOn", { date: formatFullDate(plan.start_date, dateLocale) }) : t("notStarted")}
                     </dd>
                   </div>
                   <div className="inline-flex items-center gap-1.5">
                     <Flag size={13} strokeWidth={2.2} className="text-muted" aria-hidden="true" />
-                    <dt className="sr-only">Target</dt>
+                    <dt className="sr-only">{t("targetSr")}</dt>
                     <dd className="font-mono tabular-nums">
-                      {plan.target_date ? `Target ${formatFullDate(plan.target_date)}` : "No target date"}
+                      {plan.target_date ? t("targetOn", { date: formatFullDate(plan.target_date, dateLocale) }) : t("noTargetDate")}
                       {relTarget && (
                         <span className="ml-1.5 font-sans font-bold text-electric">({relTarget})</span>
                       )}
                       {overdueTarget && (
                         <span className="ml-1.5 inline-flex items-center gap-1 rounded-pill bg-error-tint px-2 py-0.5 align-middle font-sans text-[10px] font-bold uppercase tracking-wide text-error">
-                          Overdue
+                          {t("overdue")}
                         </span>
                       )}
                       {!overdueTarget && targetIsPast && plan.status === "completed" && (
-                        <span className="ml-1.5 font-sans font-bold text-success">· closed</span>
+                        <span className="ml-1.5 font-sans font-bold text-success">{t("closed")}</span>
                       )}
                     </dd>
                   </div>
@@ -378,23 +387,23 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                   value={progress}
                   size={124}
                   stroke={11}
-                  label={`Completion for ${plan.title}`}
+                  label={t("completionFor", { title: plan.title })}
                 />
                 <p className="text-[10px] font-bold uppercase tracking-[0.09em] text-muted">
-                  Derived from tasks
+                  {t("derivedFromTasks")}
                 </p>
                 <div className="mt-2 border-t border-divider pt-2.5">
                   <Switch
                     id="show-on-calendar"
                     checked={plan.target_date_marker}
                     onChange={toggleMarker}
-                    label="Show on calendar"
+                    label={t("showOnCalendar")}
                   />
                 </div>
               </div>
             </div>
             <p className="mt-4 border-t border-divider pt-4 text-[13.5px] font-medium leading-relaxed text-obsidian-light">
-              {plan.description ?? "No description yet — outline the objective, the milestones and what “done” looks like."}
+              {plan.description ?? t("noDescription")}
             </p>
           </section>
 
@@ -405,19 +414,19 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                 id="tasks-heading"
                 className="flex items-center gap-2.5 text-[16px] font-bold tracking-[-0.01em] text-obsidian"
               >
-                Tasks
+                {t("tasksHeading")}
                 <span className="rounded-pill bg-track px-2.5 py-0.5 font-mono text-[11px] font-bold text-obsidian-light tabular-nums">
                   {doneCount}/{totalCount}
                 </span>
               </h2>
-              <div className="segmented" role="group" aria-label="Sort tasks">
+              <div className="segmented" role="group" aria-label={t("sortTasksAria")}>
                 <button
                   type="button"
                   className={`segment ${sort === "due" ? "segment-active" : ""}`}
                   aria-pressed={sort === "due"}
                   onClick={() => setSort("due")}
                 >
-                  Due date
+                  {t("sortDueDate")}
                 </button>
                 <button
                   type="button"
@@ -425,7 +434,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                   aria-pressed={sort === "manual"}
                   onClick={() => setSort("manual")}
                 >
-                  Manual
+                  {t("sortManual")}
                 </button>
               </div>
             </div>
@@ -433,7 +442,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
             {/* Inline add */}
             <form onSubmit={addTask} className="mt-4 flex gap-2">
               <label htmlFor="new-task" className="sr-only">
-                Add a task
+                {t("addTaskLabel")}
               </label>
               <input
                 id="new-task"
@@ -446,7 +455,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                     addTask();
                   }
                 }}
-                placeholder="Add a task… (Enter to add)"
+                placeholder={t("addTaskPlaceholder")}
                 className="input h-10 flex-1 text-[13px]"
                 autoComplete="off"
               />
@@ -456,7 +465,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                 className="btn btn-primary h-10 px-4 text-[13px] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Plus size={15} strokeWidth={2.6} aria-hidden="true" />
-                Add
+                {t("add")}
               </button>
             </form>
 
@@ -464,8 +473,11 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
             <ul className="mt-2 divide-y divide-divider">
               {visibleTasks.map((task) => {
                 const taskOverdue = isOverdueDate(task.due_date) && task.status !== "done";
-                const assignee = getStaff(task.assignee_id);
-                const pill = TASK_PILL[task.status];
+                const assignee = getStaff(task.assignee_id, t("unassigned"));
+                const pillClass = TASK_PILL_CLASS[task.status];
+                const pillLabel = t(TASK_PILL_KEY[task.status]);
+                const nextTaskStatus = TASK_CYCLE[(TASK_CYCLE.indexOf(task.status) + 1) % TASK_CYCLE.length];
+                const nextTaskLabel = t(TASK_PILL_KEY[nextTaskStatus]);
                 const isDone = task.status === "done";
                 const confirming = confirmDeleteId === task.id;
                 const dropClass =
@@ -517,7 +529,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                         setDragTaskId(null);
                         setDropHint(null);
                       }}
-                      aria-label={`Reorder task: ${task.title}`}
+                      aria-label={t("reorderTask", { title: task.title })}
                       className="cursor-grab touch-none rounded-xs p-1 text-muted transition-colors hover:text-obsidian focus-visible:text-electric active:cursor-grabbing"
                     >
                       <GripVertical size={16} strokeWidth={2} aria-hidden="true" />
@@ -528,7 +540,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                       type="button"
                       role="checkbox"
                       aria-checked={isDone}
-                      aria-label={isDone ? `Mark “${task.title}” not done` : `Mark “${task.title}” done`}
+                      aria-label={isDone ? t("markTaskNotDone", { title: task.title }) : t("markTaskDone", { title: task.title })}
                       onClick={() => toggleTask(task)}
                       className={`grid h-5 w-5 shrink-0 place-items-center rounded-[6px] border transition-all duration-150 ${
                         isDone
@@ -544,14 +556,14 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                       className={`min-w-0 flex-1 text-[13.5px] font-medium leading-snug transition-colors duration-150 ${
                         isDone ? "text-muted line-through decoration-muted/70" : "text-obsidian"
                       }`}
-                      title={task.completed_at ? `Completed ${formatFullDate(task.completed_at)}` : undefined}
+                      title={task.completed_at ? t("completedOn", { date: formatFullDate(task.completed_at, dateLocale) }) : undefined}
                     >
                       {task.title}
                     </span>
 
                     {/* Assignee */}
-                    <span className="hidden shrink-0 items-center gap-1.5 md:inline-flex" title={`Assignee: ${assignee.name}`}>
-                      <AvatarInitials id={task.assignee_id} size={20} />
+                    <span className="hidden shrink-0 items-center gap-1.5 md:inline-flex" title={t("assigneeTitle", { name: assignee.name })}>
+                      <AvatarInitials id={task.assignee_id} size={20} unassignedLabel={t("unassigned")} />
                       <span className="max-w-[72px] truncate text-[11px] font-semibold text-obsidian-light">
                         {assignee.name}
                       </span>
@@ -565,8 +577,8 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                         }`}
                       >
                         {taskOverdue && <CircleAlert size={10} strokeWidth={2.6} aria-hidden="true" />}
-                        {formatShortDate(task.due_date)}
-                        {taskOverdue && <span className="font-sans font-bold uppercase">· Overdue</span>}
+                        {formatShortDate(task.due_date, dateLocale)}
+                        {taskOverdue && <span className="font-sans font-bold uppercase">· {t("overdue")}</span>}
                       </span>
                     )}
 
@@ -574,13 +586,11 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                     <button
                       type="button"
                       onClick={() => cycleStatus(task)}
-                      aria-label={`Status: ${pill.label}. Activate to advance to ${
-                        TASK_PILL[TASK_CYCLE[(TASK_CYCLE.indexOf(task.status) + 1) % TASK_CYCLE.length]].label
-                      }`}
-                      title="Click to cycle: To do → In progress → Done"
-                      className={`shrink-0 whitespace-nowrap rounded-pill px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-transform hover:scale-[1.04] ${pill.className}`}
+                      aria-label={t("statusCycleAria", { current: pillLabel, next: nextTaskLabel })}
+                      title={t("cycleTitle")}
+                      className={`shrink-0 whitespace-nowrap rounded-pill px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-transform hover:scale-[1.04] ${pillClass}`}
                     >
-                      {pill.label}
+                      {pillLabel}
                     </button>
 
                     {/* Delete with inline confirm */}
@@ -591,28 +601,28 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                           if (e.key === "Escape") setConfirmDeleteId(null);
                         }}
                       >
-                        <span className="text-[10.5px] font-bold text-error">Delete?</span>
+                        <span className="text-[10.5px] font-bold text-error">{t("deleteConfirm")}</span>
                         <button
                           type="button"
                           ref={(el) => el?.focus()}
                           onClick={() => deleteTask(task.id)}
                           className="rounded-pill bg-error px-2 py-0.5 text-[10.5px] font-bold text-white transition-opacity hover:opacity-90"
                         >
-                          Yes
+                          {t("yes")}
                         </button>
                         <button
                           type="button"
                           onClick={() => setConfirmDeleteId(null)}
                           className="rounded-pill px-2 py-0.5 text-[10.5px] font-bold text-obsidian-light transition-colors hover:bg-white"
                         >
-                          No
+                          {t("no")}
                         </button>
                       </span>
                     ) : (
                       <button
                         type="button"
                         onClick={() => setConfirmDeleteId(task.id)}
-                        aria-label={`Delete task: ${task.title}`}
+                        aria-label={t("deleteTask", { title: task.title })}
                         className="shrink-0 rounded-pill p-1.5 text-muted transition-colors hover:bg-error-tint hover:text-error"
                       >
                         <Trash2 size={14} strokeWidth={2} aria-hidden="true" />
@@ -624,7 +634,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
               {visibleTasks.length === 0 && (
                 <li className="flex flex-col items-center gap-2 py-8 text-center">
                   <CheckCircle2 size={22} strokeWidth={1.8} className="text-success" aria-hidden="true" />
-                  <p className="text-[13px] font-semibold text-obsidian-light">No tasks yet — add the first one above.</p>
+                  <p className="text-[13px] font-semibold text-obsidian-light">{t("noTasksYet")}</p>
                 </li>
               )}
             </ul>
@@ -640,7 +650,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
               className="flex items-center gap-2 text-[15px] font-bold tracking-[-0.01em] text-obsidian"
             >
               <Activity size={16} strokeWidth={2} className="text-muted" aria-hidden="true" />
-              Activity
+              {t("activityHeading")}
             </h2>
             <ol className="relative mt-4 space-y-4 border-l border-divider pl-5">
               {[
@@ -652,7 +662,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                       <span className="font-semibold text-obsidian">“Acoustic panels”</span>
                     </>
                   ),
-                  time: "Today · 09:12",
+                  time: `${t("today")} · 09:12`,
                 },
                 {
                   icon: <MessageSquare size={14} strokeWidth={2.2} className="text-electric" aria-hidden="true" />,
@@ -662,7 +672,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                       confirmed Friday delivery for the wifi mesh.”
                     </>
                   ),
-                  time: "Yesterday · 17:40",
+                  time: `${t("yesterday")} · 17:40`,
                 },
                 {
                   icon: <Flag size={14} strokeWidth={2.2} className="text-warning" aria-hidden="true" />,
@@ -672,7 +682,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                       weeks
                     </>
                   ),
-                  time: "Yesterday · 11:05",
+                  time: `${t("yesterday")} · 11:05`,
                 },
                 {
                   icon: <PlusCircle size={14} strokeWidth={2.2} className="text-muted" aria-hidden="true" />,
@@ -681,7 +691,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                       <b className="font-bold text-obsidian">Demo Admin</b> created this plan
                     </>
                   ),
-                  time: plan.start_date ? `${formatShortDate(plan.start_date)} · 10:00` : "Earlier · 10:00",
+                  time: plan.start_date ? `${formatShortDate(plan.start_date, dateLocale)} · 10:00` : `${t("earlier")} · 10:00`,
                 },
               ].map((entry, i) => (
                 <li key={i} className="relative">
@@ -699,7 +709,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
               ))}
             </ol>
             <p className="mt-4 border-t border-divider pt-3 text-[10.5px] font-medium text-muted">
-              Demo timeline — live activity lands with the backend (task events stream).
+              {t("demoTimelineNote")}
             </p>
           </section>
 
@@ -709,33 +719,33 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
               id="facts-heading"
               className="text-[11px] font-bold uppercase tracking-[0.09em] text-muted"
             >
-              Plan details
+              {t("planDetailsHeading")}
             </h2>
             <dl className="mt-3 grid grid-cols-[88px_1fr] gap-y-2.5 text-[12px]">
-              <dt className="font-semibold text-muted">Owner</dt>
+              <dt className="font-semibold text-muted">{t("ownerFact")}</dt>
               <dd className="font-semibold text-obsidian">{owner.name}</dd>
-              <dt className="font-semibold text-muted">Priority</dt>
+              <dt className="font-semibold text-muted">{t("priorityFact")}</dt>
               <dd className="font-semibold text-obsidian">
-                {plan.priority.charAt(0).toUpperCase() + plan.priority.slice(1)}
+                {t(PLAN_PRIORITY_LABEL_KEY[plan.priority])}
               </dd>
-              <dt className="font-semibold text-muted">Start</dt>
+              <dt className="font-semibold text-muted">{t("startFact")}</dt>
               <dd className="font-mono font-semibold text-obsidian tabular-nums">
-                {plan.start_date ? formatFullDate(plan.start_date) : "—"}
+                {plan.start_date ? formatFullDate(plan.start_date, dateLocale) : "—"}
               </dd>
-              <dt className="font-semibold text-muted">Target</dt>
+              <dt className="font-semibold text-muted">{t("targetFact")}</dt>
               <dd className="font-mono font-semibold text-obsidian tabular-nums">
-                {plan.target_date ? formatFullDate(plan.target_date) : "—"}
+                {plan.target_date ? formatFullDate(plan.target_date, dateLocale) : "—"}
               </dd>
-              <dt className="font-semibold text-muted">Calendar</dt>
+              <dt className="font-semibold text-muted">{t("calendarFact")}</dt>
               <dd className="font-semibold text-obsidian">
-                {plan.target_date_marker ? "Target-date marker shown" : "Hidden"}
+                {plan.target_date_marker ? t("markerShown") : t("markerHidden")}
               </dd>
             </dl>
             <Link
               href="/plans"
               className="mt-4 inline-flex items-center gap-1 border-t border-divider pt-3 text-[12px] font-bold text-electric transition-colors hover:text-electric-hover"
             >
-              View all plans
+              {t("viewAllPlans")}
               <ArrowUpRight size={13} strokeWidth={2.5} aria-hidden="true" />
             </Link>
           </section>

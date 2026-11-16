@@ -1,10 +1,14 @@
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { ClientDetailClient } from "@/components/clients/ClientDetailClient";
 import { loadClient } from "@/lib/clients-live";
 
-export const metadata: Metadata = { title: "Client" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("clients");
+  return { title: t("metaTitleDetail") };
+}
 // Dynamic by client id — block prerender.
 export const instant = false;
 

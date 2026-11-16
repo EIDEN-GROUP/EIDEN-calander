@@ -3,10 +3,12 @@
 import { useActionState, useState } from "react";
 import { Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 import { login, type LoginState } from "./actions";
+import { useTranslations } from "next-intl";
 
 const initialState: LoginState = { ok: false, configured: true };
 
 export function LoginForm({ nextPath }: { nextPath: string }) {
+  const t = useTranslations("login");
   const [state, formAction, pending] = useActionState(login, initialState);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -16,7 +18,7 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
 
       {/* Email */}
       <label htmlFor="email" className="label">
-        Email
+        {t("email")}
       </label>
       <input
         id="email"
@@ -27,12 +29,12 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
         required
         placeholder="you@eiden-group.com"
         className="input-pill"
-        aria-describedby={state.error ? "login-error" : undefined}
+        aria-describedby={state.errorKey ? "login-error" : undefined}
       />
 
       {/* Password */}
       <label htmlFor="password" className="label mt-5">
-        Password
+        {t("password")}
       </label>
       <div className="relative">
         <input
@@ -43,12 +45,12 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
           required
           placeholder="••••••••••"
           className="input-pill pr-14"
-          aria-describedby={state.error ? "login-error" : undefined}
+          aria-describedby={state.errorKey ? "login-error" : undefined}
         />
         <button
           type="button"
           onClick={() => setShowPassword((v) => !v)}
-          aria-label={showPassword ? "Hide password" : "Show password"}
+          aria-label={showPassword ? t("hidePassword") : t("showPassword")}
           aria-pressed={showPassword}
           className="absolute right-5 top-1/2 -translate-y-1/2 text-obsidian-light transition-colors hover:text-obsidian"
         >
@@ -62,12 +64,12 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
           href="/forgot-password"
           className="text-[13px] font-semibold text-obsidian-light underline decoration-black/20 underline-offset-2 transition-colors hover:text-electric"
         >
-          Forgot password?
+          {t("forgot")}
         </a>
       </div>
 
       {/* Error */}
-      {state.error && (
+      {state.errorKey && (
         <div
           id="login-error"
           role="alert"
@@ -75,7 +77,7 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
           className="mt-4 flex items-start gap-2.5 rounded-sm border border-error/20 bg-error-tint px-4 py-3 text-[13px] font-medium leading-snug text-[#c22a22]"
         >
           <AlertCircle size={17} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
-          <span>{state.error}</span>
+          <span>{state.errorKey ? t(state.errorKey) : null}</span>
         </div>
       )}
 
@@ -88,10 +90,10 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
         {pending ? (
           <>
             <Loader2 size={19} className="animate-spin" aria-hidden="true" />
-            Signing in…
+            {t("signingIn")}
           </>
         ) : (
-          "Log in"
+          t("signIn")
         )}
       </button>
     </form>

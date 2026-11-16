@@ -3,6 +3,7 @@
 import { Download } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 
 /**
  * ChartCard — white panel shell for one chart/table panel in reports.
@@ -25,6 +26,7 @@ export function ChartCard({
   caption?: string;
   children: ReactNode;
 }) {
+  const t = useTranslations("reports");
   return (
     <section aria-label={title} className="card flex min-w-0 flex-col p-4 sm:p-5">
       <div className="flex items-center justify-between gap-3">
@@ -42,11 +44,11 @@ export function ChartCard({
             type="button"
             onClick={onExport}
             disabled={exportDisabled}
-            aria-label={`Export ${title} as CSV`}
+            aria-label={t("exportChartAria", { title })}
             className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-pill border border-border bg-canvas px-3 text-[11px] font-bold text-obsidian-light transition-colors hover:bg-hover-fill hover:text-obsidian disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Download size={12} strokeWidth={2.4} aria-hidden="true" />
-            Export CSV
+            {t("exportCsv")}
           </button>
         )}
       </div>

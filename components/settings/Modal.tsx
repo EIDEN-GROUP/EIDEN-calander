@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
 
 /**
@@ -24,6 +25,7 @@ export function Modal({
   footer?: ReactNode;
   maxWidth?: string;
 }) {
+  const t = useTranslations("settings");
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
 
@@ -74,7 +76,7 @@ export function Modal({
     <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-6">
       <button
         type="button"
-        aria-label="Close dialog"
+        aria-label={t("closeDialog")}
         tabIndex={-1}
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-obsidian/45 backdrop-blur-[2px]"
@@ -96,7 +98,7 @@ export function Modal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close dialog"
+            aria-label={t("closeDialog")}
             className="shrink-0 rounded-pill p-1.5 text-muted transition-colors hover:bg-canvas hover:text-obsidian"
           >
             <X size={16} strokeWidth={2.2} aria-hidden="true" />

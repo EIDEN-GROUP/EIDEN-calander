@@ -3,7 +3,9 @@
  * Everything the overview needs in one shot; falls back to null on error/unconfigured.
  */
 import "server-only";
+import { getLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
+import { appLocaleTag } from "@/lib/intl-locale";
 
 export interface DashboardData {
   live: true;
@@ -27,6 +29,8 @@ export interface DashboardData {
 }
 
 export async function loadDashboard(): Promise<DashboardData | null> {
+  const locale = await getLocale();
+  const tag = appLocaleTag(locale);
   const supabase = await createClient();
   if (!supabase) return null;
   try {
@@ -93,7 +97,7 @@ export async function loadDashboard(): Promise<DashboardData | null> {
         return {
           day: dayIdx,
           roomId: (b.room_id as string | null) ?? null,
-          time: d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+          time: d.toLocaleTimeString(tag, { hour: "2-digit", minute: "2-digit" }),
           title: (b.title as string) ?? "Booking",
           tone,
         };
@@ -148,10 +152,10 @@ export async function loadDashboard(): Promise<DashboardData | null> {
     const futureEvents = upcoming.map((b) => {
       const d = new Date(b.starts_at as string);
       const isToday = d.toDateString() === now.toDateString();
-      const label = isToday ? "Today" : d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+      const label = isToday ? "Today" : d.toLocaleDateString(tag, { weekday: "short", day: "numeric", month: "short" });
       return {
         day: label,
-        time: `${d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} – ${new Date(b.ends_at as string).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`,
+        time: `${d.toLocaleTimeString(tag, { hour: "2-digit", minute: "2-digit" })} – ${new Date(b.ends_at as string).toLocaleTimeString(tag, { hour: "2-digit", minute: "2-digit" })}`,
         title: (b.title as string) ?? "Booking",
         meta: b.type === "formation" ? "Formation" : "Booking",
         chip: isToday ? "Today" : label,
@@ -178,7 +182,7 @@ export async function loadDashboard(): Promise<DashboardData | null> {
 
     return {
       live: true,
-      todayLong: now.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
+      todayLong: now.toLocaleDateString(tag, { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
       kpis: {
         todayBookings: (bookings ?? []).filter((b) => b.status !== "cancelled" && b.status !== "paused" && new Date(b.starts_at as string).toDateString() === now.toDateString()).length,
         weekUtilization,
@@ -188,7 +192,7 @@ export async function loadDashboard(): Promise<DashboardData | null> {
       grid: {
         rooms: (rooms ?? []).map((r) => ({ id: r.id as string, name: (r.name as string).replace(/\s*\(DEMO\)\s*$/, ""), location: (r.location as string) ?? "Casablanca" })),
         days: days.map((d) => ({
-          label: d.toLocaleDateString("en-GB", { weekday: "short" }),
+          label: d.toLocaleDateString(tag, { weekday: "short" }),
           date: d.getDate(),
           isToday: d.toDateString() === now.toDateString(),
           weekend: d.getDay() === 0 || d.getDay() === 6,

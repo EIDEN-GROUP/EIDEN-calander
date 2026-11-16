@@ -1,10 +1,14 @@
 import { connection } from "next/server";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { RoomsView } from "@/components/settings/views/RoomsView";
 import { createClient } from "@/lib/supabase/server";
 import type { ComponentProps } from "react";
 
-export const metadata: Metadata = { title: "Rooms & Resources · Settings" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("settings");
+  return { title: t("metaRooms") };
+}
 export const instant = false;
 
 type RoomVM = ComponentProps<typeof RoomsView> extends { initialRooms?: infer R } ? (R extends Array<infer V> ? V : never) : never;

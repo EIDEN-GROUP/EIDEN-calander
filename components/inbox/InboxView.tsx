@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 import { Inbox as InboxIcon, Mail, RefreshCw, Search } from "lucide-react";
 import { NowBarMark } from "@/components/brand/NowBar";
 import { fetchMessageList, setSeenRemote } from "./client";
@@ -10,6 +11,7 @@ import { ReadingPane } from "./ReadingPane";
 import { MailApiError, type MailFolder, type MailMessageSummary } from "./types";
 
 export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initialFolder?: MailFolder; mailboxAddress: string }) {
+  const t = useTranslations("inbox");
   const [folder, setFolder] = useState<MailFolder>(initialFolder);
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<MailMessageSummary[]>([]);
@@ -43,11 +45,11 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
     } catch (err) {
       if (id !== requestId.current) return;
       setMessages([]);
-      setError(err instanceof MailApiError ? err : new MailApiError(0, "UNKNOWN", "Something went wrong."));
+      setError(err instanceof MailApiError ? err : new MailApiError(0, "UNKNOWN", t("somethingWentWrong")));
     } finally {
       if (id === requestId.current) setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   // Initial + folder/query changes (300 ms debounce for search)
   useEffect(() => {
@@ -110,7 +112,7 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
         setError(
           err instanceof MailApiError
             ? err
-            : new MailApiError(0, "UNKNOWN", "Could not update the read state — try again."),
+            : new MailApiError(0, "UNKNOWN", t("updateSeenFailed")),
         );
       } finally {
         setSeenPending((prev) => {
@@ -120,7 +122,7 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
         });
       }
     },
-    [folder, applySeen],
+    [folder, applySeen, t],
   );
 
   // The inline (xl) reading pane toggled seen — mirror it in the list.
@@ -130,8 +132,8 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
   );
 
   const tabs: Array<{ id: MailFolder; label: string }> = [
-    { id: "INBOX", label: counts.INBOX != null ? `Inbox (${counts.INBOX})` : "Inbox" },
-    { id: "Sent", label: counts.Sent != null ? `Sent (${counts.Sent})` : "Sent" },
+    { id: "INBOX", label: counts.INBOX != null ? t("folderInboxCount", { count: counts.INBOX }) : t("folderInbox") },
+    { id: "Sent", label: counts.Sent != null ? t("folderSentCount", { count: counts.Sent }) : t("folderSent") },
   ];
 
   return (
@@ -139,17 +141,17 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
       {/* H1 row */}
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-[28px] font-extrabold leading-none tracking-[-0.04em] text-obsidian">
-          Inbox
+          {t("folderInbox")}
         </h1>
         <span
           className="inline-flex items-center gap-2 rounded-pill border border-border bg-white px-3 py-1.5 text-[11px] text-obsidian-light"
-          title="The only mailbox connected to CALENDAR."
+          title={t("mailboxChipTitle")}
         >
           <span className="h-1.5 w-1.5 rounded-pill bg-success" aria-hidden="true" />
           <code className="font-mono">{mailboxAddress}</code>
           <span
             className="ml-1 inline-flex min-w-[1.5rem] items-center justify-center rounded-pill bg-electric-tint px-1.5 py-0.5 font-sans text-[10px] font-bold tabular-nums text-electric"
-            aria-label={`${totalUnread} unread messages across both folders`}
+            aria-label={t("unreadAcrossFolders", { count: totalUnread })}
           >
             {totalUnread}
           </span>
@@ -166,26 +168,26 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search mail…"
-              aria-label="Search mail by sender or subject"
+              placeholder={t("searchMailPlaceholder")}
+              aria-label={t("searchMailAria")}
               className="h-10 w-48 rounded-pill border border-border bg-white pl-10 pr-4 text-[13px] text-obsidian outline-none transition-shadow placeholder:text-black/30 focus:border-electric/50 focus:shadow-[0_0_0_4px_var(--color-electric-tint)] sm:w-56"
             />
           </label>
           <button
             type="button"
             onClick={() => void load(folder, query)}
-            aria-label="Refresh messages"
+            aria-label={t("refreshMessages")}
             className="btn btn-secondary h-10 px-4 text-[13px]"
           >
             <RefreshCw size={15} strokeWidth={2} aria-hidden="true" className={loading ? "animate-spin" : ""} />
-            Refresh
+            {t("refresh")}
           </button>
         </div>
       </div>
 
       {/* Tabs + meta row */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="segmented" role="tablist" aria-label="Mailbox folders">
+        <div className="segmented" role="tablist" aria-label={t("mailboxFolders")}>
           {tabs.map((tab) => {
             const active = folder === tab.id;
             return (
@@ -209,16 +211,16 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
         {query.trim() && searchSource && (
           <span className="text-[11px] font-medium text-muted">
             {searchSource === "imap"
-              ? "Server search (IMAP)"
+              ? t("searchSourceImap")
               : searchSource === "demo"
-                ? "Demo filter — fixtures"
-                : "Filtered locally — server search unavailable"}
+                ? t("searchSourceDemo")
+                : t("searchSourceLocal")}
           </span>
         )}
         <p className="ms-auto hidden text-[11px] text-muted lg:block">
           <kbd className="rounded border border-border bg-white px-1.5 py-0.5 font-mono text-[10px]">↑</kbd>{" "}
-          <kbd className="rounded border border-border bg-white px-1.5 py-0.5 font-mono text-[10px]">↓</kbd> navigate ·{" "}
-          <kbd className="rounded border border-border bg-white px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd> open
+          <kbd className="rounded border border-border bg-white px-1.5 py-0.5 font-mono text-[10px]">↓</kbd> {t("keyboardNavigate")} ·{" "}
+          <kbd className="rounded border border-border bg-white px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd> {t("keyboardOpen")}
         </p>
       </div>
 
@@ -227,7 +229,7 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
         <section
           id="inbox-list-panel"
           role="tabpanel"
-          aria-label={folder === "INBOX" ? "Inbox messages" : "Sent messages"}
+          aria-label={folder === "INBOX" ? t("inboxMessages") : t("sentMessages")}
           className="card flex max-h-[62vh] flex-col overflow-hidden xl:max-h-none"
         >
           {error && <MailErrorBanner error={error} onRetry={() => void load(folder, query)} />}
@@ -245,7 +247,7 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
 
         {/* Two-pane on xl: inline reading pane (or branded empty state) */}
         <section
-          aria-label="Message reading pane"
+          aria-label={t("readingPaneAria")}
           className="hidden min-h-0 xl:block"
         >
           {selectedUid != null ? (
@@ -261,16 +263,15 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
             <div className="card flex h-full flex-col items-center justify-center px-8 py-16 text-center">
               <NowBarMark size={72} className="opacity-90" />
               <p className="mt-6 text-[17px] font-extrabold tracking-[-0.02em] text-obsidian">
-                Select a message to read
+                {t("selectMessageTitle")}
               </p>
               <p className="mt-1.5 max-w-sm text-[13px] leading-snug text-muted">
-                Open any conversation on the left — attachments download via the server, remote images
-                stay blocked until you allow them, and replies are sent as{" "}
+                {t("selectMessageBody")}{" "}
                 <code className="font-mono text-[12px] text-obsidian-light">{mailboxAddress}</code>.
               </p>
               <div className="mt-6 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">
                 <InboxIcon size={13} strokeWidth={2} aria-hidden="true" />
-                Read-only mailbox · no delete · no forward
+                {t("readOnlyNoForward")}
               </div>
             </div>
           )}
@@ -279,7 +280,7 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
 
       <p className="flex items-center gap-1.5 text-[11px] text-muted">
         <Mail size={12} strokeWidth={2} aria-hidden="true" />
-        Hosted mail, one mailbox only — replies keep the thread in this mailbox. Credentials never leave the server.
+        {t("mailboxFooter")}
       </p>
     </div>
   );

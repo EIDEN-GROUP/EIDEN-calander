@@ -18,6 +18,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { PageHeader } from "@/components/settings/PageHeader";
 import { ToastViewport, useToast } from "@/components/settings/Toast";
 import { Modal } from "@/components/settings/Modal";
@@ -43,13 +44,13 @@ interface CategoryVM {
 
 const TINT_ORDER: TintColor[] = ["blue", "green", "purple", "amber", "teal", "rose"];
 
-const TINTS: Record<TintColor, { label: string; swatch: string; dot: string; chip: string }> = {
-  blue: { label: "Blue", swatch: "bg-tint-blue", dot: "bg-tint-fg-blue", chip: "text-tint-fg-blue" },
-  green: { label: "Green", swatch: "bg-tint-green", dot: "bg-tint-fg-green", chip: "text-tint-fg-green" },
-  purple: { label: "Purple", swatch: "bg-tint-purple", dot: "bg-tint-fg-purple", chip: "text-tint-fg-purple" },
-  amber: { label: "Amber", swatch: "bg-tint-amber", dot: "bg-tint-fg-amber", chip: "text-tint-fg-amber" },
-  teal: { label: "Teal", swatch: "bg-tint-teal", dot: "bg-tint-fg-teal", chip: "text-tint-fg-teal" },
-  rose: { label: "Rose", swatch: "bg-tint-rose", dot: "bg-tint-fg-rose", chip: "text-tint-fg-rose" },
+const TINTS: Record<TintColor, { labelKey: string; swatch: string; dot: string; chip: string }> = {
+  blue: { labelKey: "tintBlue", swatch: "bg-tint-blue", dot: "bg-tint-fg-blue", chip: "text-tint-fg-blue" },
+  green: { labelKey: "tintGreen", swatch: "bg-tint-green", dot: "bg-tint-fg-green", chip: "text-tint-fg-green" },
+  purple: { labelKey: "tintPurple", swatch: "bg-tint-purple", dot: "bg-tint-fg-purple", chip: "text-tint-fg-purple" },
+  amber: { labelKey: "tintAmber", swatch: "bg-tint-amber", dot: "bg-tint-fg-amber", chip: "text-tint-fg-amber" },
+  teal: { labelKey: "tintTeal", swatch: "bg-tint-teal", dot: "bg-tint-fg-teal", chip: "text-tint-fg-teal" },
+  rose: { labelKey: "tintRose", swatch: "bg-tint-rose", dot: "bg-tint-fg-rose", chip: "text-tint-fg-rose" },
 };
 
 const ICONS: Record<IconKey, LucideIcon> = {
@@ -62,12 +63,12 @@ const ICONS: Record<IconKey, LucideIcon> = {
 };
 
 const ICON_LABELS: Record<IconKey, string> = {
-  calendar: "Calendar",
-  "door-open": "Door open",
-  "graduation-cap": "Graduation cap",
-  sparkles: "Sparkles",
-  users: "Users",
-  wrench: "Wrench",
+  calendar: "iconCalendar",
+  "door-open": "iconDoorOpen",
+  "graduation-cap": "iconGraduationCap",
+  sparkles: "iconSparkles",
+  users: "iconUsers",
+  wrench: "iconWrench",
 };
 
 const INITIAL_CATEGORIES: CategoryVM[] = [
@@ -96,6 +97,7 @@ export function CategoriesView({
   initialCategories?: LiveCategory[];
   live?: boolean;
 }) {
+  const t = useTranslations("settings");
   const { toasts, push } = useToast();
   const router = useRouter();
   const isLive = live === true && !!initialCategories;
@@ -132,7 +134,7 @@ export function CategoriesView({
       })();
       return;
     }
-    push(`Color updated to ${TINTS[next].label}`);
+    push(t("colorUpdated", { color: t(TINTS[next].labelKey) }));
   };
 
   const toggleActive = (id: string) => {
@@ -148,12 +150,12 @@ export function CategoriesView({
           setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, is_active: !next } : c)));
           return;
         }
-        push(`${current.name_en} ${next ? "activated" : "deactivated"}`);
+        push(next ? t("categoryActivated", { name: current.name_en }) : t("categoryDeactivated", { name: current.name_en }));
         router.refresh();
       })();
       return;
     }
-    push(`${current.name_en} ${next ? "activated" : "deactivated"}`);
+    push(next ? t("categoryActivated", { name: current.name_en }) : t("categoryDeactivated", { name: current.name_en }));
   };
 
   const move = (id: string, direction: -1 | 1) => {
@@ -178,7 +180,7 @@ export function CategoriesView({
       })();
       return;
     }
-    push("Category order updated");
+    push(t("categoryOrderUpdated"));
   };
 
   const startRename = (c: CategoryVM) => {
@@ -202,13 +204,13 @@ export function CategoriesView({
           push(res.error.message);
           return;
         }
-        push("Category renamed");
+        push(t("categoryRenamed"));
         setEditing(null);
         router.refresh();
       })();
       return;
     }
-    push("Category renamed");
+    push(t("categoryRenamed"));
     setEditing(null);
   };
 
@@ -223,13 +225,13 @@ export function CategoriesView({
           return;
         }
         setCategories((prev) => prev.filter((c) => c.id !== id));
-        if (target) push(`${target.name_en} deleted`);
+        if (target) push(t("categoryDeleted", { name: target.name_en }));
         router.refresh();
       })();
       return;
     }
     setCategories((prev) => prev.filter((c) => c.id !== id));
-    if (target) push(`${target.name_en} deleted`);
+    if (target) push(t("categoryDeleted", { name: target.name_en }));
   };
 
   const openAdd = () => {
@@ -246,7 +248,7 @@ export function CategoriesView({
     event.preventDefault();
     const nameEn = draftNameEn.trim();
     if (!nameEn) {
-      setDraftError("Give the category an English name first.");
+      setDraftError(t("categoryNameRequired"));
       return;
     }
     const nameFr = draftNameFr.trim() || nameEn;
@@ -258,7 +260,7 @@ export function CategoriesView({
           return;
         }
         setAddOpen(false);
-        push("Category added");
+        push(t("categoryAdded"));
         router.refresh();
       })();
       return;
@@ -277,18 +279,18 @@ export function CategoriesView({
       },
     ]);
     setAddOpen(false);
-    push("Category added");
+    push(t("categoryAdded"));
   };
 
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
-        title="Categories"
-        sub="Booking categories shown across calendar, reports and filters. System entries can be renamed, never removed."
+        title={t("tabCategories")}
+        sub={t("categoriesSub")}
       >
         <button type="button" onClick={openAdd} className="btn btn-primary h-10 px-4 text-[13px]">
           <Plus size={15} strokeWidth={2.4} aria-hidden="true" />
-          Add category
+          {t("addCategory")}
         </button>
       </PageHeader>
 
@@ -296,20 +298,19 @@ export function CategoriesView({
         <div className="card overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider px-4 py-3 sm:px-5">
             <p className="text-[12px] font-semibold text-obsidian-light">
-              <span className="font-mono text-obsidian">{categories.length}</span> categories ·{" "}
-              <span className="font-mono text-obsidian">{activeCount}</span> active
+              <span className="font-mono text-obsidian">{categories.length}</span> {t("categoriesCountBefore")} <span className="font-mono text-obsidian">{activeCount}</span> {t("categoriesActiveSuffix")}
             </p>
-            <p className="text-[11px] font-medium text-muted">Display order = order in booking pickers</p>
+            <p className="text-[11px] font-medium text-muted">{t("displayOrderNote")}</p>
           </div>
 
           {categories.length === 0 ? (
             <div className="flex flex-col items-center px-6 py-12 text-center">
               <Calendar size={28} strokeWidth={1.6} aria-hidden="true" className="text-muted" />
-              <p className="mt-3 text-[14px] font-bold text-obsidian">No categories yet</p>
-              <p className="mt-1 max-w-sm text-[12px] font-medium text-muted">Add your first category — bookings, filters and reports will pick it up immediately.</p>
+              <p className="mt-3 text-[14px] font-bold text-obsidian">{t("noCategoriesTitle")}</p>
+              <p className="mt-1 max-w-sm text-[12px] font-medium text-muted">{t("noCategoriesBody")}</p>
               <button type="button" onClick={openAdd} className="btn btn-primary mt-4 h-10 px-4 text-[13px]">
                 <Plus size={15} strokeWidth={2.4} aria-hidden="true" />
-                Add category
+                {t("addCategory")}
               </button>
             </div>
           ) : (
@@ -317,14 +318,14 @@ export function CategoriesView({
               <table className="w-full min-w-[860px] text-left text-[13px]">
                 <thead>
                   <tr className="border-b border-border text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
-                    <th scope="col" className="px-4 py-2.5">Color</th>
-                    <th scope="col" className="px-3 py-2.5">Name (EN)</th>
-                    <th scope="col" className="px-3 py-2.5">Name (FR)</th>
-                    <th scope="col" className="px-3 py-2.5">Type</th>
-                    <th scope="col" className="px-3 py-2.5">Icon</th>
-                    <th scope="col" className="px-3 py-2.5">Active</th>
-                    <th scope="col" className="px-3 py-2.5">Sort</th>
-                    <th scope="col" className="px-4 py-2.5 text-right">Actions</th>
+                    <th scope="col" className="px-4 py-2.5">{t("colColor")}</th>
+                    <th scope="col" className="px-3 py-2.5">{t("colNameEn")}</th>
+                    <th scope="col" className="px-3 py-2.5">{t("colNameFr")}</th>
+                    <th scope="col" className="px-3 py-2.5">{t("colType")}</th>
+                    <th scope="col" className="px-3 py-2.5">{t("colIcon")}</th>
+                    <th scope="col" className="px-3 py-2.5">{t("colActive")}</th>
+                    <th scope="col" className="px-3 py-2.5">{t("colSort")}</th>
+                    <th scope="col" className="px-4 py-2.5 text-right">{t("colActions")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-divider">
@@ -338,8 +339,8 @@ export function CategoriesView({
                           <button
                             type="button"
                             onClick={() => cycleColor(category.id)}
-                            title={`Change color — currently ${tint.label}`}
-                            aria-label={`Change color for ${category.name_en} — currently ${tint.label}`}
+                            title={t("changeColorTitle", { color: t(tint.labelKey) })}
+                            aria-label={t("changeColorAria", { name: category.name_en, color: t(tint.labelKey) })}
                             className={`flex h-8 w-8 items-center justify-center rounded-sm border border-border ${tint.swatch} transition-transform hover:scale-110`}
                           >
                             <span className={`h-3.5 w-3.5 rounded-pill ${tint.dot}`} aria-hidden="true" />
@@ -351,7 +352,7 @@ export function CategoriesView({
                               className="input h-9 w-40 px-3 text-[13px]"
                               value={editing.name_en}
                               autoFocus
-                              aria-label="Name in English"
+                              aria-label={t("nameInEnglish")}
                               onChange={(e) => setEditing({ ...editing, name_en: e.target.value })}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") commitRename();
@@ -367,7 +368,7 @@ export function CategoriesView({
                             <input
                               className="input h-9 w-40 px-3 text-[13px]"
                               value={editing.name_fr}
-                              aria-label="Nom en français"
+                              aria-label={t("nameInFrench")}
                               onChange={(e) => setEditing({ ...editing, name_fr: e.target.value })}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") commitRename();
@@ -392,16 +393,16 @@ export function CategoriesView({
                         <td className="px-3 py-2.5">
                           <span
                             className="flex h-8 w-8 items-center justify-center rounded-sm bg-canvas text-obsidian-light"
-                            title={ICON_LABELS[category.icon]}
+                            title={t(ICON_LABELS[category.icon])}
                           >
-                            <Icon size={16} strokeWidth={1.9} aria-label={ICON_LABELS[category.icon]} />
+                            <Icon size={16} strokeWidth={1.9} aria-label={t(ICON_LABELS[category.icon])} />
                           </span>
                         </td>
                         <td className="px-3 py-2.5">
                           <Switch
                             checked={category.is_active}
                             onChange={() => toggleActive(category.id)}
-                            label={`${category.is_active ? "Deactivate" : "Activate"} ${category.name_en}`}
+                            label={category.is_active ? t("deactivateCategory", { name: category.name_en }) : t("activateCategory", { name: category.name_en })}
                           />
                         </td>
                         <td className="px-3 py-2.5">
@@ -410,7 +411,7 @@ export function CategoriesView({
                               type="button"
                               onClick={() => move(category.id, -1)}
                               disabled={index === 0}
-                              aria-label={`Move ${category.name_en} up`}
+                              aria-label={t("moveUpAria", { name: category.name_en })}
                               className="rounded-pill p-1.5 text-muted transition-colors hover:bg-canvas hover:text-obsidian disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               <ArrowUp size={14} strokeWidth={2.2} aria-hidden="true" />
@@ -419,7 +420,7 @@ export function CategoriesView({
                               type="button"
                               onClick={() => move(category.id, 1)}
                               disabled={index === categories.length - 1}
-                              aria-label={`Move ${category.name_en} down`}
+                              aria-label={t("moveDownAria", { name: category.name_en })}
                               className="rounded-pill p-1.5 text-muted transition-colors hover:bg-canvas hover:text-obsidian disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               <ArrowDown size={14} strokeWidth={2.2} aria-hidden="true" />
@@ -429,20 +430,20 @@ export function CategoriesView({
                         <td className="px-4 py-2.5">
                           {confirmDeleteId === category.id ? (
                             <div className="flex items-center justify-end gap-1.5">
-                              <span className="text-[11px] font-bold text-obsidian">Delete?</span>
+                              <span className="text-[11px] font-bold text-obsidian">{t("deleteConfirmQuestion")}</span>
                               <button
                                 type="button"
                                 onClick={() => deleteCategory(category.id)}
                                 className="rounded-pill bg-error px-2.5 py-1.5 text-[11px] font-bold text-white transition-opacity hover:opacity-85"
                               >
-                                Delete
+                                {t("deleteConfirm")}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setConfirmDeleteId(null)}
                                 className="rounded-pill border border-border bg-white px-2.5 py-1.5 text-[11px] font-bold text-obsidian-light transition-colors hover:bg-canvas"
                               >
-                                Cancel
+                                {t("cancel")}
                               </button>
                             </div>
                           ) : isEditing ? (
@@ -450,7 +451,7 @@ export function CategoriesView({
                               <button
                                 type="button"
                                 onClick={commitRename}
-                                aria-label="Save name"
+                                aria-label={t("saveNameAria")}
                                 className="rounded-pill bg-success-tint p-2 text-tint-fg-green transition-colors hover:bg-success-tint"
                               >
                                 <Check size={14} strokeWidth={2.6} aria-hidden="true" />
@@ -458,7 +459,7 @@ export function CategoriesView({
                               <button
                                 type="button"
                                 onClick={() => setEditing(null)}
-                                aria-label="Cancel rename"
+                                aria-label={t("cancelRenameAria")}
                                 className="rounded-pill border border-border p-2 text-muted transition-colors hover:bg-canvas hover:text-obsidian"
                               >
                                 <X size={14} strokeWidth={2.4} aria-hidden="true" />
@@ -467,15 +468,15 @@ export function CategoriesView({
                           ) : (
                             <div className="flex items-center justify-end gap-1.5">
                               {category.is_system ? (
-                                <span className="chip border border-border bg-canvas text-muted" title="System category — rename only">
+                                <span className="chip border border-border bg-canvas text-muted" title={t("systemCategoryTitle")}>
                                   <Lock size={11} strokeWidth={2.4} aria-hidden="true" />
-                                  System — rename only
+                                  {t("systemRenameOnly")}
                                 </span>
                               ) : null}
                               <button
                                 type="button"
                                 onClick={() => startRename(category)}
-                                aria-label={`Rename ${category.name_en}`}
+                                aria-label={t("renameAria", { name: category.name_en })}
                                 className="rounded-pill p-2 text-muted transition-colors hover:bg-canvas hover:text-obsidian"
                               >
                                 <Pencil size={14} strokeWidth={2} aria-hidden="true" />
@@ -487,7 +488,7 @@ export function CategoriesView({
                                     setEditing(null);
                                     setConfirmDeleteId(category.id);
                                   }}
-                                  aria-label={`Delete ${category.name_en}`}
+                                  aria-label={t("deleteAria", { name: category.name_en })}
                                   className="rounded-pill p-2 text-muted transition-colors hover:bg-error-tint hover:text-error"
                                 >
                                   <Trash size={14} strokeWidth={2} aria-hidden="true" />
@@ -507,28 +508,28 @@ export function CategoriesView({
 
         <aside className="space-y-4">
           <div className="card p-5">
-            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">How categories work</h2>
+            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">{t("howCategoriesWork")}</h2>
             <ul className="mt-3 space-y-2.5 text-[12px] font-medium leading-snug text-obsidian-light">
-              <li className="flex gap-2"><Lock size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" /> System categories (Meeting Room Rental, Formation) can be renamed, never removed.</li>
-              <li className="flex gap-2"><GraduationCap size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" /> Type Formation unlocks capacity, waitlist and price label on bookings.</li>
-              <li className="flex gap-2"><Check size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" /> Order set with the arrows is the order shown in booking pickers and filters.</li>
-              <li className="flex gap-2"><X size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" /> Deactivating hides a category from new bookings — history keeps its label.</li>
+              <li className="flex gap-2"><Lock size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" /> {t("howSystemCategories")}</li>
+              <li className="flex gap-2"><GraduationCap size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" /> {t("howFormationType")}</li>
+              <li className="flex gap-2"><Check size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" /> {t("howOrder")}</li>
+              <li className="flex gap-2"><X size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" /> {t("howDeactivate")}</li>
             </ul>
           </div>
           <div className="card p-5">
-            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">Brand tints</h2>
+            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">{t("brandTints")}</h2>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {TINT_ORDER.map((tintKey) => {
                 const tint = TINTS[tintKey];
                 return (
                   <div key={tintKey} className={`flex items-center gap-1.5 rounded-sm ${tint.swatch} px-2 py-1.5`}>
                     <span className={`h-3 w-3 rounded-pill ${tint.dot}`} aria-hidden="true" />
-                    <span className={`text-[10px] font-bold ${tint.chip}`}>{tint.label}</span>
+                    <span className={`text-[10px] font-bold ${tint.chip}`}>{t(tint.labelKey)}</span>
                   </div>
                 );
               })}
             </div>
-            <p className="mt-2 text-[10px] font-medium leading-snug text-muted">Muted pastels from the brand book — WCAG-friendly at small sizes.</p>
+            <p className="mt-2 text-[10px] font-medium leading-snug text-muted">{t("brandTintsNote")}</p>
           </div>
         </aside>
       </div>
@@ -536,36 +537,36 @@ export function CategoriesView({
       <Modal
         open={addOpen}
         onClose={() => setAddOpen(false)}
-        title="Add category"
-        description="Appears instantly in booking pickers once saved."
+        title={t("addCategory")}
+        description={t("addCategoryDesc")}
         footer={
           <>
-            <button type="button" onClick={() => setAddOpen(false)} className="btn btn-ghost h-10 px-4 text-[13px]">Cancel</button>
-            <button type="submit" form="add-category-form" className="btn btn-primary h-10 px-5 text-[13px]">Add category</button>
+            <button type="button" onClick={() => setAddOpen(false)} className="btn btn-ghost h-10 px-4 text-[13px]">{t("cancel")}</button>
+            <button type="submit" form="add-category-form" className="btn btn-primary h-10 px-5 text-[13px]">{t("addCategory")}</button>
           </>
         }
       >
         <form id="add-category-form" onSubmit={submitAdd} className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label htmlFor="cat-name-en" className="label">Name (EN)</label>
-              <input id="cat-name-en" className="input h-11" value={draftNameEn} onChange={(e) => { setDraftNameEn(e.target.value); setDraftError(null); }} autoComplete="off" placeholder="e.g. Board meeting" />
+              <label htmlFor="cat-name-en" className="label">{t("colNameEn")}</label>
+              <input id="cat-name-en" className="input h-11" value={draftNameEn} onChange={(e) => { setDraftNameEn(e.target.value); setDraftError(null); }} autoComplete="off" placeholder={t("nameEnPlaceholder")} />
             </div>
             <div>
-              <label htmlFor="cat-name-fr" className="label">Nom (FR)</label>
-              <input id="cat-name-fr" className="input h-11" value={draftNameFr} onChange={(e) => setDraftNameFr(e.target.value)} autoComplete="off" placeholder="ex. Conseil d'administration" />
+              <label htmlFor="cat-name-fr" className="label">{t("colNameFr")}</label>
+              <input id="cat-name-fr" className="input h-11" value={draftNameFr} onChange={(e) => setDraftNameFr(e.target.value)} autoComplete="off" placeholder={t("nameFrPlaceholder")} />
             </div>
           </div>
           {draftError ? <p role="alert" className="text-[12px] font-semibold text-error">{draftError}</p> : null}
           <div>
-            <label htmlFor="cat-type" className="label">Type</label>
+            <label htmlFor="cat-type" className="label">{t("colType")}</label>
             <select id="cat-type" className="input h-11" value={draftType} onChange={(e) => setDraftType(e.target.value as CategoryType)}>
               <option value="standard">Standard</option>
               <option value="formation">Formation</option>
             </select>
           </div>
           <div>
-            <span className="label" id="cat-tint-label">Tint</span>
+            <span className="label" id="cat-tint-label">{t("tintLabel")}</span>
             <div role="radiogroup" aria-labelledby="cat-tint-label" className="flex flex-wrap gap-2">
               {TINT_ORDER.map((tintKey) => {
                 const tint = TINTS[tintKey];
@@ -576,7 +577,7 @@ export function CategoriesView({
                     type="button"
                     role="radio"
                     aria-checked={selected}
-                    aria-label={tint.label}
+                    aria-label={t(tint.labelKey)}
                     onClick={() => setDraftTint(tintKey)}
                     className={`flex h-10 w-10 items-center justify-center rounded-sm border ${tint.swatch} transition-all ${
                       selected ? "border-electric ring-2 ring-electric/60 ring-offset-2" : "border-border"
@@ -589,10 +590,10 @@ export function CategoriesView({
             </div>
           </div>
           <div>
-            <label htmlFor="cat-icon" className="label">Icon</label>
+            <label htmlFor="cat-icon" className="label">{t("iconLabel")}</label>
             <select id="cat-icon" className="input h-11" value={draftIcon} onChange={(e) => setDraftIcon(e.target.value as IconKey)}>
-              {Object.entries(ICON_LABELS).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
+              {Object.entries(ICON_LABELS).map(([key, labelKey]) => (
+                <option key={key} value={key}>{t(labelKey)}</option>
               ))}
             </select>
           </div>

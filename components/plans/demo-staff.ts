@@ -54,9 +54,9 @@ export function setLiveStaff(members: Array<{ id: string; full_name: string; rol
 }
 
 /** Resolve an id from demo bookings/plans to a display identity. Unknown ids degrade to their raw value, never crash. */
-export function getStaff(id: string | null | undefined): ResolvedStaff {
+export function getStaff(id: string | null | undefined, unassignedLabel: string = "Unassigned"): ResolvedStaff {
   if (!id) {
-    return { id: null, name: "Unassigned", initials: "–", tint: "bg-track text-muted" };
+    return { id: null, name: unassignedLabel, initials: "–", tint: "bg-track text-muted" };
   }
   const live = LIVE_STAFF.find((m) => m.id === id);
   if (live) {

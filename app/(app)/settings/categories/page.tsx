@@ -1,9 +1,13 @@
 import { connection } from "next/server";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { CategoriesView } from "@/components/settings/views/CategoriesView";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Categories · Settings" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("settings");
+  return { title: t("metaCategories") };
+}
 export const instant = false;
 
 export default async function CategoriesPage() {

@@ -9,6 +9,7 @@
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const SIZE_CLASS: Record<"md" | "lg" | "xl", string> = {
   md: "sm:max-w-lg",
@@ -29,6 +30,7 @@ export function Modal({
   children: ReactNode;
   size?: "md" | "lg" | "xl";
 }) {
+  const t = useTranslations("common");
   const titleId = useId();
   const descriptionId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -82,7 +84,7 @@ export function Modal({
       <button
         type="button"
         tabIndex={-1}
-        aria-label="Close dialog"
+        aria-label={t("closeDialog")}
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-black/40 backdrop-blur-[2px]"
       />
@@ -108,7 +110,7 @@ export function Modal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("close")}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill text-muted transition-colors hover:bg-hover-fill hover:text-obsidian"
           >
             <X size={18} aria-hidden="true" />

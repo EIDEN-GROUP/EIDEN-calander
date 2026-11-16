@@ -2,6 +2,7 @@
 
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Spark } from "./Spark";
 
 /**
@@ -35,6 +36,7 @@ export function StatTile({
   tint: string;
   sparkLabel: string;
 }) {
+  const t = useTranslations("reports");
   const DeltaIcon = trend === "up" ? ArrowUpRight : ArrowDownRight;
   const deltaTone = trend === "up" ? "text-success" : "text-error";
 
@@ -68,17 +70,17 @@ export function StatTile({
         </p>
         <div className="mt-1.5 flex h-[18px] items-center">
           {delta === "" ? (
-            <p className="text-[11px] font-medium text-muted">No prior period in data yet</p>
+            <p className="text-[11px] font-medium text-muted">{t("noPriorPeriod")}</p>
           ) : comparison ? (
             <p
               className={`inline-flex items-center gap-0.5 text-[11px] font-semibold ${deltaTone}`}
             >
               <DeltaIcon size={12} strokeWidth={2.6} aria-hidden="true" />
               <span className="font-mono tabular-nums">{delta}</span>
-              <span className="ml-1 font-medium text-muted">vs prev. period</span>
+              <span className="ml-1 font-medium text-muted">{t("vsPrevPeriodShort")}</span>
             </p>
           ) : (
-            <p className="text-[11px] font-medium text-muted">Comparison off</p>
+            <p className="text-[11px] font-medium text-muted">{t("comparisonOff")}</p>
           )}
         </div>
       </div>

@@ -13,35 +13,37 @@ import {
   ArrowLeftRight,
   Settings,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { NowBarMark } from "@/components/brand/NowBar";
 
 const ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/formations", label: "Formations", icon: GraduationCap },
-  { href: "/clients", label: "Clients", icon: Users },
-  { href: "/plans", label: "Plans", icon: KanbanSquare },
-  { href: "/reports", label: "Reports", icon: BarChart3 },
-  { href: "/inbox", label: "Inbox", icon: Mail },
-  { href: "/requests", label: "Requests", icon: ArrowLeftRight },
-];
+  { href: "/dashboard", labelKey: "navDashboard", icon: LayoutDashboard },
+  { href: "/calendar", labelKey: "navCalendar", icon: CalendarDays },
+  { href: "/formations", labelKey: "navFormations", icon: GraduationCap },
+  { href: "/clients", labelKey: "navClients", icon: Users },
+  { href: "/plans", labelKey: "navPlans", icon: KanbanSquare },
+  { href: "/reports", labelKey: "navReports", icon: BarChart3 },
+  { href: "/inbox", labelKey: "navInbox", icon: Mail },
+  { href: "/requests", labelKey: "navRequests", icon: ArrowLeftRight },
+] as const;
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function NavRail() {
+  const t = useTranslations("shell");
   const pathname = usePathname();
 
   return (
     <nav
-      aria-label="Primary"
+      aria-label={t("navPrimary")}
       className="fixed inset-y-0 left-0 z-40 hidden w-[76px] flex-col items-center border-r border-divider bg-canvas/60 py-4 backdrop-blur-sm lg:flex"
     >
       {/* Brand mark */}
       <Link
         href="/dashboard"
-        aria-label="CALENDAR. — home"
+        aria-label={t("brandHome")}
         className="flex h-14 w-14 items-center justify-center rounded-md transition-transform duration-200 hover:scale-105"
       >
         <NowBarMark size={44} title="CALENDAR." />
@@ -49,8 +51,9 @@ export function NavRail() {
 
       {/* Main nav */}
       <div className="mt-6 flex flex-col gap-2">
-        {ITEMS.map(({ href, label, icon: Icon }) => {
+        {ITEMS.map(({ href, labelKey, icon: Icon }) => {
           const active = isActive(pathname, href);
+          const label = t(labelKey);
           return (
             <Link
               key={href}
@@ -72,8 +75,8 @@ export function NavRail() {
       <div className="mt-auto flex flex-col gap-2">
         <Link
           href="/settings"
-          aria-label="Settings"
-          title="Settings"
+          aria-label={t("navSettings")}
+          title={t("navSettings")}
           data-active={isActive(pathname, "/settings")}
           className="rail-btn"
         >

@@ -4,6 +4,8 @@
  * so every range/location toggle stays interactive.
  */
 import "server-only";
+import { getLocale } from "next-intl/server";
+import { categoryName } from "@/lib/intl-locale";
 import { createClient } from "@/lib/supabase/server";
 
 export interface ReportDay {
@@ -31,6 +33,7 @@ function localDay(d: Date): string {
 }
 
 export async function loadReports(): Promise<ReportsLive | null> {
+  const locale = await getLocale();
   const supabase = await createClient();
   if (!supabase) return null;
   try {
@@ -55,7 +58,7 @@ export async function loadReports(): Promise<ReportsLive | null> {
         .limit(10000),
       supabase.from("rooms").select("id,name,location,is_active,capacity,hourly_rate"),
       supabase.from("working_hours").select("weekday,is_open,open_time,close_time"),
-      supabase.from("categories").select("id,name_en,color,sort").order("sort"),
+      supabase.from("categories").select("id,name_en,name_fr,color,sort").order("sort"),
       supabase.from("clients").select("id,created_at,city").gte("created_at", since.toISOString()),
       supabase.from("formations").select("booking_id,capacity"),
       supabase.from("formation_participants").select("booking_id,status,waitlist"),
@@ -128,7 +131,7 @@ export async function loadReports(): Promise<ReportsLive | null> {
     };
     const byCategory = [...categoryRevenue.entries()]
       .map(([id, revenue]) => ({
-        name: categoryById.get(id)?.name_en ?? "Other",
+        name: categoryName(categoryById.get(id), locale) || "Other",
         color: TINT[categoryById.get(id)?.color ?? "blue"] ?? "var(--color-electric)",
         revenue: Math.round(revenue),
       }))

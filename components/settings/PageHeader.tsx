@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { useTranslations } from "next-intl";
 import { ChevronRight } from "lucide-react";
 import { DemoNote } from "./DemoNote";
 
@@ -10,7 +11,7 @@ import { DemoNote } from "./DemoNote";
 export function PageHeader({
   title,
   sub,
-  parent = "Settings",
+  parent,
   parentHref = "/settings",
   children,
 }: {
@@ -20,11 +21,13 @@ export function PageHeader({
   parentHref?: string;
   children?: ReactNode;
 }) {
+  const t = useTranslations("settings");
+  const parentLabel = parent ?? t("hubTitle");
   return (
     <div>
-      <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[12px] font-semibold text-muted">
+      <nav aria-label={t("breadcrumbLabel")} className="flex items-center gap-1.5 text-[12px] font-semibold text-muted">
         <Link href={parentHref} className="rounded-xs transition-colors hover:text-obsidian">
-          {parent}
+          {parentLabel}
         </Link>
         <ChevronRight size={12} strokeWidth={2.4} aria-hidden="true" />
         <span aria-current="page" className="text-obsidian-light">

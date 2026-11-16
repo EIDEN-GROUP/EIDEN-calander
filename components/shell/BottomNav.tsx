@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -11,25 +12,27 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-const ITEMS: Array<{ href: string; label: string; icon: LucideIcon }> = [
-  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/calendar", label: "Calendar", icon: CalendarDays },
-  { href: "/formations", label: "Formations", icon: GraduationCap },
-  { href: "/clients", label: "Clients", icon: Users },
-  { href: "/settings", label: "More", icon: MoreHorizontal },
+const ITEMS: Array<{ href: string; labelKey: string; icon: LucideIcon }> = [
+  { href: "/dashboard", labelKey: "navHome", icon: LayoutDashboard },
+  { href: "/calendar", labelKey: "navCalendar", icon: CalendarDays },
+  { href: "/formations", labelKey: "navFormations", icon: GraduationCap },
+  { href: "/clients", labelKey: "navClients", icon: Users },
+  { href: "/settings", labelKey: "navMore", icon: MoreHorizontal },
 ];
 
 export function BottomNav() {
+  const t = useTranslations("shell");
   const pathname = usePathname();
 
   return (
     <nav
-      aria-label="Primary mobile"
+      aria-label={t("navPrimaryMobile")}
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface-elevated backdrop-blur-xl lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="mx-auto grid h-16 max-w-lg grid-cols-5">
-        {ITEMS.map(({ href, label, icon: Icon }) => {
+        {ITEMS.map(({ href, labelKey, icon: Icon }) => {
+          const label = t(labelKey as "navHome");
           const active = pathname === href || pathname.startsWith(`${href}/`);
           return (
             <Link

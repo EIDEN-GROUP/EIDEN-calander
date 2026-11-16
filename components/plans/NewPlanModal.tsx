@@ -5,20 +5,21 @@ import type { FormEvent } from "react";
 import { X } from "lucide-react";
 import { useModalA11y } from "@/components/bookings/focus-trap";
 import { Switch } from "@/components/charts/Switch";
+import { useTranslations } from "next-intl";
 import { DEMO_STAFF } from "./demo-staff";
 import type { PlanPriority, PlanStatus } from "@/lib/types/db";
 
-const STATUS_OPTIONS: Array<{ value: PlanStatus; label: string }> = [
-  { value: "planning", label: "Planning" },
-  { value: "active", label: "Active" },
-  { value: "on_hold", label: "On hold" },
-  { value: "completed", label: "Completed" },
+const STATUS_OPTIONS: Array<{ value: PlanStatus; labelKey: "statusPlanning" | "statusActive" | "statusOnHold" | "statusCompleted" }> = [
+  { value: "planning", labelKey: "statusPlanning" },
+  { value: "active", labelKey: "statusActive" },
+  { value: "on_hold", labelKey: "statusOnHold" },
+  { value: "completed", labelKey: "statusCompleted" },
 ];
 
-const PRIORITY_OPTIONS: Array<{ value: PlanPriority; label: string }> = [
-  { value: "high", label: "High" },
-  { value: "medium", label: "Medium" },
-  { value: "low", label: "Low" },
+const PRIORITY_OPTIONS: Array<{ value: PlanPriority; labelKey: "priorityHigh" | "priorityMedium" | "priorityLow" }> = [
+  { value: "high", labelKey: "priorityHigh" },
+  { value: "medium", labelKey: "priorityMedium" },
+  { value: "low", labelKey: "priorityLow" },
 ];
 
 export interface NewPlanDraft {
@@ -47,6 +48,7 @@ export function NewPlanModal({
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   useModalA11y(panelRef, onClose);
+  const t = useTranslations("plans");
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -60,9 +62,9 @@ export function NewPlanModal({
 
   const dateRangeError =
     startDate && targetDate && targetDate < startDate
-      ? "Target date is before the start date."
+      ? t("dateRangeError")
       : null;
-  const titleError = touched && !title.trim() ? "Give the plan a title." : null;
+  const titleError = touched && !title.trim() ? t("titleRequired") : null;
   const canSubmit = title.trim().length > 0 && !dateRangeError;
 
   const submit = (e: FormEvent) => {
@@ -88,7 +90,7 @@ export function NewPlanModal({
       {/* Overlay */}
       <button
         type="button"
-        aria-label="Close dialog"
+        aria-label={t("closeDialog")}
         tabIndex={-1}
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-obsidian/35 backdrop-blur-[2px]"
@@ -106,16 +108,16 @@ export function NewPlanModal({
               id="new-plan-heading"
               className="text-[18px] font-extrabold tracking-[-0.02em] text-obsidian"
             >
-              New plan
+              {t("newPlan")}
             </h2>
             <p className="mt-0.5 text-[12px] font-medium text-muted">
-              A strategic objective with an owner and a date — no meeting required.
+              {t("newPlanSubtitle")}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("close")}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill text-muted transition-colors hover:bg-canvas hover:text-obsidian"
           >
             <X size={17} strokeWidth={2.2} aria-hidden="true" />
@@ -126,7 +128,7 @@ export function NewPlanModal({
           {/* Title */}
           <div>
             <label htmlFor="plan-title" className="label">
-              Plan title
+              {t("planTitleLabel")}
             </label>
             <input
               id="plan-title"
@@ -135,7 +137,7 @@ export function NewPlanModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               onBlur={() => setTouched(true)}
-              placeholder="e.g. Open Agadir second location"
+              placeholder={t("planTitlePlaceholder")}
               className="input"
               aria-invalid={Boolean(titleError) || undefined}
               aria-describedby={titleError ? "plan-title-error" : undefined}
@@ -150,14 +152,14 @@ export function NewPlanModal({
           {/* Description */}
           <div>
             <label htmlFor="plan-description" className="label">
-              Description <span className="font-semibold normal-case text-muted">(optional)</span>
+              {t("descriptionLabel")} <span className="font-semibold normal-case text-muted">{t("optional")}</span>
             </label>
             <textarea
               id="plan-description"
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="What does done look like?"
+              placeholder={t("descriptionPlaceholder")}
               className="input h-auto min-h-[64px] resize-y py-3"
             />
           </div>
@@ -166,7 +168,7 @@ export function NewPlanModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="plan-owner" className="label">
-                Owner
+                {t("ownerLabel")}
               </label>
               <select
                 id="plan-owner"
@@ -183,7 +185,7 @@ export function NewPlanModal({
             </div>
             <div>
               <label htmlFor="plan-status" className="label">
-                Status
+                {t("statusLabel")}
               </label>
               <select
                 id="plan-status"
@@ -193,7 +195,7 @@ export function NewPlanModal({
               >
                 {STATUS_OPTIONS.map((s) => (
                   <option key={s.value} value={s.value}>
-                    {s.label}
+                    {t(s.labelKey)}
                   </option>
                 ))}
               </select>
@@ -204,7 +206,7 @@ export function NewPlanModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="plan-priority" className="label">
-                Priority
+                {t("priorityLabel")}
               </label>
               <select
                 id="plan-priority"
@@ -214,7 +216,7 @@ export function NewPlanModal({
               >
                 {PRIORITY_OPTIONS.map((p) => (
                   <option key={p.value} value={p.value}>
-                    {p.label}
+                    {t(p.labelKey)}
                   </option>
                 ))}
               </select>
@@ -222,7 +224,7 @@ export function NewPlanModal({
             <div aria-hidden="true" />
             <div>
               <label htmlFor="plan-start" className="label">
-                Start date
+                {t("startDate")}
               </label>
               <input
                 id="plan-start"
@@ -234,7 +236,7 @@ export function NewPlanModal({
             </div>
             <div>
               <label htmlFor="plan-target" className="label">
-                Target date
+                {t("targetDate")}
               </label>
               <input
                 id="plan-target"
@@ -259,18 +261,18 @@ export function NewPlanModal({
               id="plan-marker"
               checked={showOnCalendar}
               onChange={setShowOnCalendar}
-              label="Show on calendar"
-              caption="Diamond marker on the calendar at target date"
+              label={t("showOnCalendar")}
+              caption={t("showOnCalendarCaption")}
             />
           </div>
 
           {/* Footer actions */}
           <div className="flex items-center justify-end gap-2 border-t border-divider pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary h-10 px-5 text-[13px]">
-              Cancel
+              {t("cancel")}
             </button>
             <button type="submit" disabled={!canSubmit} className="btn btn-primary h-10 px-5 text-[13px] disabled:cursor-not-allowed disabled:opacity-50">
-              Create plan
+              {t("createPlan")}
             </button>
           </div>
         </form>

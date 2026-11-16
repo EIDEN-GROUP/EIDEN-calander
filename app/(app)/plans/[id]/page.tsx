@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { PlanDetail } from "@/components/plans/PlanDetail";
 import { loadPlan } from "@/lib/plans-live";
 
-export const metadata: Metadata = { title: "Plan" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("plans");
+  return { title: t("planTitle") };
+}
 // Dynamic by plan id + today-relative dates — block prerender.
 export const instant = false;
 

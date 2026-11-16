@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { PageHeader } from "@/components/settings/PageHeader";
 import { ToastViewport, useToast } from "@/components/settings/Toast";
 import { Modal } from "@/components/settings/Modal";
@@ -45,6 +46,7 @@ export function DataPrivacyView({
   initialClients: LedgerClient[];
   live?: boolean;
 }) {
+  const t = useTranslations("settings");
   const router = useRouter();
   const { toasts, push } = useToast();
   const [anonymizeOpen, setAnonymizeOpen] = useState(false);
@@ -79,7 +81,7 @@ export function DataPrivacyView({
 
   const exportWorkspace = async () => {
     if (!live) {
-      push("Export is disabled until Supabase is connected — no dump, no theatre.");
+      push(t("exportDisabledNote"));
       return;
     }
     setExporting(true);
@@ -96,7 +98,7 @@ export function DataPrivacyView({
       anchor.download = res.data.filename;
       anchor.click();
       URL.revokeObjectURL(url);
-      push(`Snapshot downloaded — ${(res.data.byteLength / 1024).toFixed(0)} KB`);
+      push(t("snapshotDownloaded", { size: (res.data.byteLength / 1024).toFixed(0) }));
     } finally {
       setExporting(false);
     }
@@ -106,7 +108,7 @@ export function DataPrivacyView({
     event.preventDefault();
     if (!selected || !confirmValid) return;
     if (!live) {
-      push("Anonymization is disabled until Supabase is connected — no fake deletes.");
+      push(t("anonymizeDisabledNote"));
       return;
     }
     const res = await anonymizeClientAction({ clientId: selected.id, confirmName: confirmText.trim() });
@@ -117,15 +119,15 @@ export function DataPrivacyView({
     setAnonymizedIds((prev) => (prev.includes(selected.id) ? prev : [...prev, selected.id]));
     setBanner(selected.full_name);
     setAnonymizeOpen(false);
-    push("Client anonymized — logged to the audit trail");
+    push(t("clientAnonymizedToast"));
     router.refresh();
   };
 
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
-        title="Data & Privacy"
-        sub="Export a full workspace snapshot, or anonymize a client on request. Every action here is logged."
+        title={t("tabData")}
+        sub={t("dataPrivacySub")}
       />
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -135,9 +137,9 @@ export function DataPrivacyView({
             <div role="status" aria-live="polite" className="flex items-start justify-between gap-3 rounded-sm border border-success/40 bg-success-tint px-4 py-3">
               <p className="flex items-start gap-2 text-[12px] font-semibold leading-snug text-tint-fg-green">
                 <CircleCheck size={15} strokeWidth={2.4} aria-hidden="true" className="mt-0.5 shrink-0" />
-                <span><strong>{banner}</strong> was anonymized. Personal data is replaced with redaction markers — bookings and aggregates are unchanged.</span>
+                <span><strong>{banner}</strong> {t("anonymizedBannerBody")}</span>
               </p>
-              <button type="button" onClick={() => setBanner(null)} aria-label="Dismiss confirmation" className="rounded-pill p-1 text-tint-fg-green transition-colors hover:bg-success/10">
+              <button type="button" onClick={() => setBanner(null)} aria-label={t("dismissConfirmationAria")} className="rounded-pill p-1 text-tint-fg-green transition-colors hover:bg-success/10">
                 <X size={15} strokeWidth={2.4} aria-hidden="true" />
               </button>
             </div>
@@ -150,8 +152,8 @@ export function DataPrivacyView({
                 <TriangleExclamationPoint size={18} strokeWidth={2} aria-hidden="true" />
               </span>
               <div>
-                <h2 id="danger-heading" className="text-[15px] font-extrabold text-obsidian">Danger zone</h2>
-                <p className="text-[11px] font-medium text-muted">Irreversible actions. Both actions write to the audit log — export included. There is no un-anonymize.</p>
+                <h2 id="danger-heading" className="text-[15px] font-extrabold text-obsidian">{t("dangerZone")}</h2>
+                <p className="text-[11px] font-medium text-muted">{t("dangerZoneDesc")}</p>
               </div>
             </div>
 
@@ -159,20 +161,20 @@ export function DataPrivacyView({
               {/* Export */}
               <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
                 <div className="max-w-md">
-                  <h3 className="text-[13px] font-bold text-obsidian">Export workspace</h3>
-                  <p className="mt-0.5 text-[11px] font-medium leading-snug text-muted">Full JSON snapshot — every workspace table except credentials, notifications and the audit log.</p>
+                  <h3 className="text-[13px] font-bold text-obsidian">{t("exportWorkspaceTitle")}</h3>
+                  <p className="mt-0.5 text-[11px] font-medium leading-snug text-muted">{t("exportWorkspaceDesc")}</p>
                 </div>
                 <button type="button" onClick={() => void exportWorkspace()} disabled={exporting} className="btn btn-secondary h-10 px-4 text-[13px] disabled:opacity-60">
                   <Download size={15} strokeWidth={2.1} aria-hidden="true" />
-                  {exporting ? "Snapshotting…" : "Export workspace (.json)"}
+                  {exporting ? t("snapshotting") : t("exportWorkspaceButton")}
                 </button>
               </div>
 
               {/* Anonymize */}
               <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
                 <div className="max-w-md">
-                  <h3 className="text-[13px] font-bold text-obsidian">Anonymize a client</h3>
-                  <p className="mt-0.5 text-[11px] font-medium leading-snug text-muted">GDPR-style erasure on request — name, contacts and notes are replaced with redaction markers. Bookings stay for reporting.</p>
+                  <h3 className="text-[13px] font-bold text-obsidian">{t("anonymizeClientTitle")}</h3>
+                  <p className="mt-0.5 text-[11px] font-medium leading-snug text-muted">{t("anonymizeClientDesc")}</p>
                 </div>
                 <button
                   type="button"
@@ -180,36 +182,36 @@ export function DataPrivacyView({
                   className="inline-flex h-10 items-center gap-2 rounded-pill border border-error/50 bg-white px-4 text-[13px] font-semibold text-error transition-colors hover:bg-error-tint"
                 >
                   <UserRoundX size={15} strokeWidth={2.1} aria-hidden="true" />
-                  Anonymize a client…
+                  {t("anonymizeClientButton")}
                 </button>
               </div>
 
               {/* Retention */}
               <div className="px-5 py-4">
-                <h3 className="text-[13px] font-bold text-obsidian">Retention</h3>
+                <h3 className="text-[13px] font-bold text-obsidian">{t("retentionHeading")}</h3>
                 <ul className="mt-2 divide-y divide-divider">
                   {[
-                    { icon: Archive, label: "Bookings & invoices", value: "Retained forever (hard-delete only)" },
-                    { icon: ScrollText, label: "Audit log", value: "Append-only — never deleted" },
-                    { icon: Bell, label: "Notifications", value: "Kept until cleared — purge job at launch" },
-                  ].map(({ icon: Icon, label, value }) => (
-                    <li key={label} className="flex items-center justify-between gap-3 py-2.5">
+                    { icon: Archive, labelKey: "retentionBookings", valueKey: "retentionBookingsValue" },
+                    { icon: ScrollText, labelKey: "retentionAudit", valueKey: "retentionAuditValue" },
+                    { icon: Bell, labelKey: "retentionNotifications", valueKey: "retentionNotificationsValue" },
+                  ].map(({ icon: Icon, labelKey, valueKey }) => (
+                    <li key={labelKey} className="flex items-center justify-between gap-3 py-2.5">
                       <span className="flex items-center gap-2 text-[12px] font-semibold text-obsidian-light">
                         <Icon size={14} strokeWidth={2} aria-hidden="true" className="text-muted" />
-                        {label}
+                        {t(labelKey)}
                       </span>
-                      <span className="font-mono text-[11px] font-semibold text-obsidian">{value}</span>
+                      <span className="font-mono text-[11px] font-semibold text-obsidian">{t(valueKey)}</span>
                     </li>
                   ))}
                 </ul>
-                <p className="mt-2 text-[10px] font-medium leading-snug text-muted">Retention runs as a nightly job once live — see docs/RUNBOOK.md, backups &amp; restore.</p>
+                <p className="mt-2 text-[10px] font-medium leading-snug text-muted">{t("retentionNote")}</p>
               </div>
 
               {/* Privacy contact */}
               <div className="flex flex-wrap items-center justify-between gap-2 px-5 py-4">
                 <p className="flex items-center gap-2 text-[12px] font-semibold text-obsidian-light">
                   <Mail size={14} strokeWidth={2} aria-hidden="true" className="text-muted" />
-                  Privacy &amp; GDPR requests
+                  {t("privacyContact")}
                 </p>
                 <a href="mailto:makrich@eiden-group.com" className="font-mono text-[12px] font-semibold text-electric hover:text-electric-hover">
                   makrich@eiden-group.com
@@ -221,17 +223,17 @@ export function DataPrivacyView({
           {/* Client ledger (redacted view) */}
           <section aria-labelledby="ledger-heading" className="card overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider px-4 py-3 sm:px-5">
-              <h2 id="ledger-heading" className="text-[13px] font-extrabold text-obsidian">Client ledger</h2>
-              <p className="text-[11px] font-medium text-muted">Anonymized rows show redaction markers</p>
+              <h2 id="ledger-heading" className="text-[13px] font-extrabold text-obsidian">{t("clientLedgerHeading")}</h2>
+              <p className="text-[11px] font-medium text-muted">{t("ledgerNote")}</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-left text-[13px]">
                 <thead>
                   <tr className="border-b border-border text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
-                    <th scope="col" className="px-4 py-2.5 sm:px-5">Client</th>
-                    <th scope="col" className="px-3 py-2.5">Contact</th>
-                    <th scope="col" className="px-3 py-2.5">City</th>
-                    <th scope="col" className="px-4 py-2.5 text-right">Status</th>
+                    <th scope="col" className="px-4 py-2.5 sm:px-5">{t("colClient")}</th>
+                    <th scope="col" className="px-3 py-2.5">{t("colContact")}</th>
+                    <th scope="col" className="px-3 py-2.5">{t("colCity")}</th>
+                    <th scope="col" className="px-4 py-2.5 text-right">{t("colStatus")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-divider">
@@ -255,7 +257,7 @@ export function DataPrivacyView({
                         <td className="px-3 py-2.5 text-[12px] font-medium text-obsidian-light">{redacted ? "•••" : client.city ?? "—"}</td>
                         <td className="px-4 py-2.5 text-right">
                           {redacted ? (
-                            <span className="chip bg-error-tint text-error">Anonymized</span>
+                            <span className="chip bg-error-tint text-error">{t("anonymizedChip")}</span>
                           ) : (
                             <span className="chip bg-canvas text-muted">{client.status}</span>
                           )}
@@ -267,7 +269,7 @@ export function DataPrivacyView({
               </table>
             </div>
             <p className="border-t border-divider px-4 py-3 text-[11px] font-medium leading-snug text-muted sm:px-5">
-              Anonymization is written to the audit log. Bookings and aggregates stay for reporting — contacts are redacted on every future render.
+              {t("ledgerFooterNote")}
             </p>
           </section>
         </div>
@@ -276,28 +278,28 @@ export function DataPrivacyView({
           <div className="card p-5">
             <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">
               <FileBraces size={14} strokeWidth={2.2} aria-hidden="true" />
-              Before you export
+              {t("beforeYouExportHeading")}
             </h2>
             <ul className="mt-3 space-y-2.5 text-[12px] font-medium leading-snug text-obsidian-light">
-              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />The snapshot covers every workspace table except credentials, notifications and the audit log.</li>
-              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />It never contains credentials, tokens or SMTP keys.</li>
-              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />Stored client-side in your download folder — we don’t keep a copy.</li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />{t("beforeExportSnapshot")}</li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />{t("beforeExportCredentials")}</li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />{t("beforeExportClientSide")}</li>
             </ul>
           </div>
           <div className="card p-5">
             <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">
               <ShieldCheck size={14} strokeWidth={2.2} aria-hidden="true" />
-              What anonymization does
+              {t("whatAnonymizationDoesHeading")}
             </h2>
             <ul className="mt-3 space-y-2.5 text-[12px] font-medium leading-snug text-obsidian-light">
-              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-error" aria-hidden="true" />Replaces name, email, phone, address and notes with redaction markers.</li>
-              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />Keeps bookings, invoices and aggregates — reporting stays intact.</li>
-              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-warning" aria-hidden="true" />Irreversible — there is no “un-anonymize”, by design.</li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-error" aria-hidden="true" />{t("anonymizeReplaces")}</li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />{t("anonymizeKeeps")}</li>
+              <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-warning" aria-hidden="true" />{t("anonymizeIrreversible")}</li>
             </ul>
           </div>
           <div className="flex items-start gap-2 rounded-sm bg-tint-blue p-3 text-[11px] font-medium leading-snug text-tint-fg-blue">
             <Info size={13} strokeWidth={2.2} aria-hidden="true" className="mt-0.5 shrink-0" />
-            A signed erasure request must arrive at makrich@eiden-group.com before any real anonymization happens.
+            {t("erasureRequestNote")}
           </div>
         </aside>
       </div>
@@ -306,12 +308,12 @@ export function DataPrivacyView({
       <Modal
         open={anonymizeOpen}
         onClose={() => setAnonymizeOpen(false)}
-        title="Anonymize a client"
-        description="Type the client's exact name to confirm — this cannot be undone."
+        title={t("anonymizeClientTitle")}
+        description={t("anonymizeConfirmDesc")}
         maxWidth="max-w-lg"
         footer={
           <>
-            <button type="button" onClick={() => setAnonymizeOpen(false)} className="btn btn-ghost h-10 px-4 text-[13px]">Cancel</button>
+            <button type="button" onClick={() => setAnonymizeOpen(false)} className="btn btn-ghost h-10 px-4 text-[13px]">{t("cancel")}</button>
             <button
               type="submit"
               form="anonymize-form"
@@ -319,7 +321,7 @@ export function DataPrivacyView({
               className="inline-flex h-10 items-center gap-2 rounded-pill bg-error px-5 text-[13px] font-semibold text-white transition-opacity enabled:hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-30"
             >
               <UserRoundX size={15} strokeWidth={2.1} aria-hidden="true" />
-              Anonymize forever
+              {t("anonymizeForeverButton")}
             </button>
           </>
         }
@@ -329,17 +331,17 @@ export function DataPrivacyView({
             <Search size={14} strokeWidth={2.2} aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
             <input
               className="input h-11 pl-10 text-[13px]"
-              placeholder="Search clients by name, company, email…"
+              placeholder={t("searchClientsPlaceholder")}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              aria-label="Search clients"
+              aria-label={t("searchClientsAria")}
               autoComplete="off"
             />
           </div>
 
-          <ul role="listbox" aria-label="Clients" className="max-h-48 space-y-1.5 overflow-y-auto pr-1">
+          <ul role="listbox" aria-label={t("clientsListboxAria")} className="max-h-48 space-y-1.5 overflow-y-auto pr-1">
             {filteredClients.length === 0 ? (
-              <li className="rounded-sm border border-dashed border-border px-4 py-6 text-center text-[12px] font-medium text-muted">No client matches “{query}”.</li>
+              <li className="rounded-sm border border-dashed border-border px-4 py-6 text-center text-[12px] font-medium text-muted">{t("noClientMatches", { query })}</li>
             ) : (
               filteredClients.map((client) => {
                 const isSelected = selectedId === client.id;
@@ -363,7 +365,7 @@ export function DataPrivacyView({
                         <span className="block truncate text-[12px] font-bold text-obsidian">{redacted ? "▓▓▓▓▓▓ ▓▓▓▓▓▓" : client.full_name}</span>
                         <span className="block truncate font-mono text-[10px] text-muted">{redacted ? "redacted@redacted.invalid" : client.email ?? "—"}</span>
                       </span>
-                      {redacted ? <span className="chip ml-auto shrink-0 bg-error-tint text-error">Anonymized</span> : null}
+                      {redacted ? <span className="chip ml-auto shrink-0 bg-error-tint text-error">{t("anonymizedChip")}</span> : null}
                     </button>
                   </li>
                 );
@@ -374,7 +376,7 @@ export function DataPrivacyView({
           {selected ? (
             <div className="space-y-3 border-t border-divider pt-3">
               <div>
-                <label htmlFor="confirm-name" className="label">Type “{selected.full_name}” to confirm</label>
+                <label htmlFor="confirm-name" className="label">{t("typeToConfirm", { name: selected.full_name })}</label>
                 <input
                   id="confirm-name"
                   className="input h-11 font-mono text-[13px]"
@@ -392,7 +394,7 @@ export function DataPrivacyView({
                   onChange={(e) => setUnderstood(e.target.checked)}
                   className="mt-0.5 h-4 w-4 accent-[var(--color-error)]"
                 />
-                I understand this is irreversible and the data cannot be recovered.
+                {t("irreversibleUnderstood")}
               </label>
             </div>
           ) : null}

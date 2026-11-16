@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { RequestThread, type LiveChangeRequest } from "@/components/bookings/RequestThread";
 import { createClient } from "@/lib/supabase/server";
 import type { BookingRow } from "@/lib/types/db";
 
-export const metadata: Metadata = { title: "Change request" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("requests");
+  return { title: t("detailTitle") };
+}
 // Reads live data at request time — block prerender.
 export const instant = false;
 
-async function loadLiveRequest(id: string): Promise<LiveChangeRequest | null> {
+async function loadLiveRequest(
+  id: string,
+  translate: (key: string) => string,
+): Promise<LiveChangeRequest | null> {
   const supabase = await createClient();
   if (!supabase) return null;
 
@@ -61,8 +68,8 @@ async function loadLiveRequest(id: string): Promise<LiveChangeRequest | null> {
       : [],
     newBooking: newB.data as BookingRow,
     conflictingBooking: oldB.data as BookingRow,
-    requesterName: (reqProfile.data?.full_name as string) ?? "Requester",
-    incumbentName: (assProfile.data?.full_name as string) ?? "Incumbent",
+    requesterName: (reqProfile.data?.full_name as string) ?? translate("requesterFallback"),
+    incumbentName: (assProfile.data?.full_name as string) ?? translate("incumbentFallback"),
     clientName,
     roomName,
     roomLocation,
@@ -73,12 +80,13 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   await connection();
   const { id } = await params;
   const serverNow = new Date().toISOString();
+  const t = await getTranslations("requests");
 
   if (id === "demo") {
     return <RequestThread changeRequestId="demo" serverNow={serverNow} live={null} />;
   }
 
-  const live = await loadLiveRequest(id);
+  const live = await loadLiveRequest(id, (key) => t(key));
   if (!live) notFound();
   return <RequestThread changeRequestId={id} serverNow={serverNow} live={live} />;
 }

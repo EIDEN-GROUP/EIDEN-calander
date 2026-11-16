@@ -14,6 +14,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { PageHeader } from "@/components/settings/PageHeader";
 import { ToastViewport, useToast } from "@/components/settings/Toast";
 import { updateLocalizationAction } from "@/app/actions/settings";
@@ -38,6 +39,7 @@ export function LocalizationView({
   initial?: { defaultLocale: Locale; hourCycle: HourCycle; dateFormat: DateFormat } | null;
   live?: boolean;
 }) {
+  const t = useTranslations("settings");
   const router = useRouter();
   const { toasts, push } = useToast();
   const [locale, setLocale] = useState<Locale>(initial?.defaultLocale ?? "en");
@@ -47,7 +49,7 @@ export function LocalizationView({
 
   const save = async () => {
     if (!live) {
-      push("Localization saved (demo)");
+      push(t("localizationSavedDemo"));
       return;
     }
     setSaving(true);
@@ -57,7 +59,7 @@ export function LocalizationView({
       push(res.error.message);
       return;
     }
-    push("Localization saved");
+    push(t("localizationSaved"));
     router.refresh();
   };
 
@@ -80,8 +82,8 @@ export function LocalizationView({
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
-        title="Localization"
-        sub="Language, hour and date formats, and how amounts render — for interfaces, emails and exports."
+        title={t("tabLocalization")}
+        sub={t("localizationSub")}
       />
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -89,11 +91,11 @@ export function LocalizationView({
           {/* Locale */}
           <div className="grid gap-3 py-4 first:pt-0 sm:grid-cols-[210px_1fr] sm:gap-6">
             <div>
-              <h2 className="text-[13px] font-extrabold text-obsidian">Default locale</h2>
-              <p className="mt-1 text-[11px] font-medium leading-snug text-muted">UI language, email copy and date wording. Users can override per-profile.</p>
+              <h2 className="text-[13px] font-extrabold text-obsidian">{t("defaultLocaleHeading")}</h2>
+              <p className="mt-1 text-[11px] font-medium leading-snug text-muted">{t("defaultLocaleDesc")}</p>
             </div>
             <div>
-              <div role="group" aria-label="Default locale" className="segmented">
+              <div role="group" aria-label={t("defaultLocaleHeading")} className="segmented">
                 {(["en", "fr"] as const).map((l) => (
                   <button key={l} type="button" aria-pressed={locale === l} onClick={() => setLocale(l)} className={`segment ${locale === l ? "segment-active" : ""}`}>
                     {l === "en" ? "EN" : "FR"}
@@ -102,7 +104,7 @@ export function LocalizationView({
               </div>
               <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-muted">
                 <Info size={12} strokeWidth={2.2} aria-hidden="true" />
-                Users can override per-profile — change it on /profile.
+                {t("profileOverrideNote")}
               </p>
             </div>
           </div>
@@ -110,16 +112,16 @@ export function LocalizationView({
           {/* Hour cycle */}
           <div className="grid gap-3 py-4 sm:grid-cols-[210px_1fr] sm:gap-6">
             <div>
-              <h2 className="text-[13px] font-extrabold text-obsidian">Hour cycle</h2>
-              <p className="mt-1 text-[11px] font-medium leading-snug text-muted">Calendar slots and email timestamps.</p>
+              <h2 className="text-[13px] font-extrabold text-obsidian">{t("hourCycleHeading")}</h2>
+              <p className="mt-1 text-[11px] font-medium leading-snug text-muted">{t("hourCycleDesc")}</p>
             </div>
             <div>
-              <div role="group" aria-label="Hour cycle" className="segmented">
+              <div role="group" aria-label={t("hourCycleHeading")} className="segmented">
                 <button type="button" aria-pressed={hourCycle === "24"} onClick={() => setHourCycle("24")} className={`segment ${hourCycle === "24" ? "segment-active" : ""}`}>24 h</button>
                 <button type="button" aria-pressed={hourCycle === "12"} onClick={() => setHourCycle("12")} className={`segment ${hourCycle === "12" ? "segment-active" : ""}`}>12 h</button>
               </div>
               <p className="mt-2 font-mono text-[12px] font-semibold text-obsidian">
-                Sample:{" "}
+                {t("samplePrefix")}{" "}
                 <span className="rounded-sm bg-canvas px-1.5 py-0.5">{timeSample}</span>
               </p>
             </div>
@@ -128,11 +130,11 @@ export function LocalizationView({
           {/* Date format */}
           <div className="grid gap-3 py-4 sm:grid-cols-[210px_1fr] sm:gap-6">
             <div>
-              <h2 className="text-[13px] font-extrabold text-obsidian">Date format</h2>
-              <p className="mt-1 text-[11px] font-medium leading-snug text-muted">Exports, invoices and printed agendas.</p>
+              <h2 className="text-[13px] font-extrabold text-obsidian">{t("dateFormatHeading")}</h2>
+              <p className="mt-1 text-[11px] font-medium leading-snug text-muted">{t("dateFormatDesc")}</p>
             </div>
             <div>
-              <div role="group" aria-label="Date format" className="segmented">
+              <div role="group" aria-label={t("dateFormatHeading")} className="segmented">
                 <button type="button" aria-pressed={dateFormat === "eu"} onClick={() => setDateFormat("eu")} className={`segment ${dateFormat === "eu" ? "segment-active" : ""}`}>JJ/MM/AAAA</button>
                 <button type="button" aria-pressed={dateFormat === "us"} onClick={() => setDateFormat("us")} className={`segment ${dateFormat === "us" ? "segment-active" : ""}`}>MM/DD/YYYY</button>
               </div>
@@ -157,14 +159,14 @@ export function LocalizationView({
           {/* Week start */}
           <div className="grid gap-3 py-4 sm:grid-cols-[210px_1fr] sm:gap-6">
             <div>
-              <h2 className="text-[13px] font-extrabold text-obsidian">Week starts on</h2>
-              <p className="mt-1 text-[11px] font-medium leading-snug text-muted">Calendar grid, week pickers and digest grouping.</p>
+              <h2 className="text-[13px] font-extrabold text-obsidian">{t("weekStartLabel")}</h2>
+              <p className="mt-1 text-[11px] font-medium leading-snug text-muted">{t("weekStartDesc")}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <input className="input h-11 w-36 cursor-not-allowed bg-canvas text-muted" value="Monday" disabled aria-label="Week starts on Monday — fixed" />
+              <input className="input h-11 w-36 cursor-not-allowed bg-canvas text-muted" value={t("dayMonday")} disabled aria-label={t("weekStartFixedAria")} />
               <span className="chip border border-border bg-canvas text-muted">
                 <Lock size={11} strokeWidth={2.4} aria-hidden="true" />
-                Business standard
+                {t("businessStandard")}
               </span>
             </div>
           </div>
@@ -172,13 +174,13 @@ export function LocalizationView({
           {/* Currency rendering */}
           <div className="grid gap-3 py-4 last:pb-0 sm:grid-cols-[210px_1fr] sm:gap-6">
             <div>
-              <h2 className="text-[13px] font-extrabold text-obsidian">Amounts in MAD</h2>
-              <p className="mt-1 text-[11px] font-medium leading-snug text-muted">Rendered live with Intl.NumberFormat — both locales side by side.</p>
+              <h2 className="text-[13px] font-extrabold text-obsidian">{t("amountsMadHeading")}</h2>
+              <p className="mt-1 text-[11px] font-medium leading-snug text-muted">{t("amountsMadDesc")}</p>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               {[
-                { key: "en", tag: "en-MA", label: "English", value: madEn },
-                { key: "fr", tag: "fr-MA", label: "Français", value: madFr },
+                { key: "en", tag: "en-MA", label: t("localeEnName"), value: madEn },
+                { key: "fr", tag: "fr-MA", label: t("localeFrName"), value: madFr },
               ].map(({ key, tag, label, value }) => {
                 const selected = locale === key;
                 return (
@@ -194,7 +196,7 @@ export function LocalizationView({
                       {selected ? <Check size={12} strokeWidth={2.6} aria-hidden="true" className="text-electric" /> : null}
                     </p>
                     <p className="mt-1.5 truncate font-mono text-[15px] font-bold text-obsidian" title={value}>{value}</p>
-                    <p className="mt-0.5 text-[10px] font-medium text-muted">Live sample · stored ledger is always MAD</p>
+                    <p className="mt-0.5 text-[10px] font-medium text-muted">{t("liveSampleNote")}</p>
                   </div>
                 );
               })}
@@ -203,7 +205,7 @@ export function LocalizationView({
 
           <div className="flex items-center justify-end pt-4">
             <button type="button" onClick={() => void save()} disabled={saving} className="btn btn-primary h-11 disabled:opacity-60">
-              {saving ? "Saving…" : "Save changes"}
+              {saving ? t("saving") : t("saveChanges")}
             </button>
           </div>
         </div>
@@ -212,27 +214,27 @@ export function LocalizationView({
           <div className="card p-5">
             <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">
               <Globe size={14} strokeWidth={2.2} aria-hidden="true" />
-              Localized surfaces
+              {t("localizedSurfacesHeading")}
             </h2>
             <ul className="mt-3 space-y-2.5 text-[12px] font-medium leading-snug text-obsidian-light">
-              <li className="flex gap-2"><FileText size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />Invoice PDFs — MAD amounts, 20% VAT, number format per locale.</li>
-              <li className="flex gap-2"><Mail size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />Booking emails — recipient’s profile locale wins over the default.</li>
-              <li className="flex gap-2"><FileSpreadsheet size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />CSV exports — dates in the format selected above.</li>
-              <li className="flex gap-2"><Monitor size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />Public site — <code className="rounded-sm bg-canvas px-1 font-mono text-[10px]">lang</code> attribute and copy follow this setting.</li>
+              <li className="flex gap-2"><FileText size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />{t("surfaceInvoices")}</li>
+              <li className="flex gap-2"><Mail size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />{t("surfaceEmails")}</li>
+              <li className="flex gap-2"><FileSpreadsheet size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />{t("surfaceCsv")}</li>
+              <li className="flex gap-2"><Monitor size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />{t("surfacePublicSiteBefore")} <code className="rounded-sm bg-canvas px-1 font-mono text-[10px]">lang</code> {t("surfacePublicSiteAfter")}</li>
             </ul>
           </div>
           <div className="card p-5">
             <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">
               <CalendarDays size={14} strokeWidth={2.2} aria-hidden="true" />
-              Morocco by default
+              {t("moroccoDefaultHeading")}
             </h2>
             <p className="mt-2 text-[12px] font-medium leading-snug text-obsidian-light">
-              Africa/Casablanca timezone and Monday week start are brand &amp; payroll standards — set on /settings/general and locked here.
+              {t("moroccoDefaultNote")}
             </p>
           </div>
           <div className="flex items-start gap-2 rounded-sm bg-tint-blue p-3 text-[11px] font-medium leading-snug text-tint-fg-blue">
             <Coins size={13} strokeWidth={2.2} aria-hidden="true" className="mt-0.5 shrink-0" />
-            Switching currency for display does not change stored amounts — MAD is the ledger currency.
+            {t("currencyDisplayNote")}
           </div>
         </aside>
       </div>

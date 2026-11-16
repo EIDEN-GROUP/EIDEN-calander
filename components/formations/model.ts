@@ -5,6 +5,7 @@
 
 import { DEMO_FORMATIONS, DEMO_ROOMS, getDemoBookings, getDemoParticipants } from "@/lib/demo-data";
 import type { BookingRow, FormationParticipantRow, FormationRow, RoomRow } from "@/lib/types/db";
+import { appLocaleTag } from "@/lib/intl-locale";
 
 export type EffectiveFormationStatus = "open" | "full" | "ongoing" | "completed" | "cancelled" | "paused";
 
@@ -54,34 +55,37 @@ export function effectiveStatus(vm: FormationVM, now: Date = new Date()): Effect
 
 /* ---------- formatting ---------- */
 
-const dayFmt = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" });
-const fullDayFmt = new Intl.DateTimeFormat("en-GB", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-});
-const timeFmt = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
-const shortDateFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" });
+const dayFmt = (tag?: string) => new Intl.DateTimeFormat(tag ?? appLocaleTag(), { weekday: "short", day: "numeric", month: "short" });
+const fullDayFmt = (tag?: string) =>
+  new Intl.DateTimeFormat(tag ?? appLocaleTag(), {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+const timeFmt = (tag?: string) =>
+  new Intl.DateTimeFormat(tag ?? appLocaleTag(), { hour: "2-digit", minute: "2-digit", hour12: false });
+const shortDateFmt = (tag?: string) =>
+  new Intl.DateTimeFormat(tag ?? appLocaleTag(), { day: "numeric", month: "short" });
 
-export function formatDay(iso: string): string {
-  return dayFmt.format(new Date(iso));
+export function formatDay(iso: string, localeTag?: string): string {
+  return dayFmt(localeTag).format(new Date(iso));
 }
 
-export function formatFullDay(iso: string): string {
-  return fullDayFmt.format(new Date(iso));
+export function formatFullDay(iso: string, localeTag?: string): string {
+  return fullDayFmt(localeTag).format(new Date(iso));
 }
 
-export function formatShortDate(d: Date): string {
-  return shortDateFmt.format(d);
+export function formatShortDate(d: Date, localeTag?: string): string {
+  return shortDateFmt(localeTag).format(d);
 }
 
-export function formatTime(iso: string): string {
-  return timeFmt.format(new Date(iso));
+export function formatTime(iso: string, localeTag?: string): string {
+  return timeFmt(localeTag).format(new Date(iso));
 }
 
-export function formatTimeRange(startIso: string, endIso: string): string {
-  return `${formatTime(startIso)} – ${formatTime(endIso)}`;
+export function formatTimeRange(startIso: string, endIso: string, localeTag?: string): string {
+  return `${formatTime(startIso, localeTag)} – ${formatTime(endIso, localeTag)}`;
 }
 
 /** Compact duration like "3h" or "1h 30m". */

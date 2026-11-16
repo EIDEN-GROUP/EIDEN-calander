@@ -4,18 +4,19 @@
  */
 
 import type { BookingRow, CategoryRow, RoomRow, ClientRow } from "@/lib/types/db";
+import { appLocaleTag } from "@/lib/intl-locale";
 
 export type CalendarView = "day" | "week" | "month" | "agenda";
 
-export const WEEKDAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
-export const WEEKDAY_LONG = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
+/** Monday-first weekday keys — labels live in messages/*.json (namespace "calendar"). */
+export const WEEKDAY_SHORT_KEYS = [
+  "weekdayShortMon",
+  "weekdayShortTue",
+  "weekdayShortWed",
+  "weekdayShortThu",
+  "weekdayShortFri",
+  "weekdayShortSat",
+  "weekdayShortSun",
 ] as const;
 
 /** Inline hatch for weekend columns/cells (globals.css intentionally has no .hatch). */
@@ -72,16 +73,16 @@ export function minutesOf(d: Date): number {
   return d.getHours() * 60 + d.getMinutes();
 }
 
-export function formatTime(d: Date): string {
-  return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+export function formatTime(d: Date, localeTag: string = appLocaleTag()): string {
+  return d.toLocaleTimeString(localeTag, { hour: "2-digit", minute: "2-digit" });
 }
 
-export function formatTimeRange(start: Date, end: Date): string {
-  return `${formatTime(start)} – ${formatTime(end)}`;
+export function formatTimeRange(start: Date, end: Date, localeTag: string = appLocaleTag()): string {
+  return `${formatTime(start, localeTag)} – ${formatTime(end, localeTag)}`;
 }
 
-export function formatDayLong(d: Date): string {
-  return d.toLocaleDateString("en-GB", {
+export function formatDayLong(d: Date, localeTag: string = appLocaleTag()): string {
+  return d.toLocaleDateString(localeTag, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -89,8 +90,8 @@ export function formatDayLong(d: Date): string {
   });
 }
 
-export function formatDayShort(d: Date): string {
-  return d.toLocaleDateString("en-GB", {
+export function formatDayShort(d: Date, localeTag: string = appLocaleTag()): string {
+  return d.toLocaleDateString(localeTag, {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -98,13 +99,18 @@ export function formatDayShort(d: Date): string {
 }
 
 /** Relative label used by suggestion chips: Today / Tomorrow / "Tue 17 Nov". */
-export function relativeDayLabel(d: Date, today: Date): string {
+export function relativeDayLabel(
+  d: Date,
+  today: Date,
+  labels: { today: string; tomorrow: string } = { today: "Today", tomorrow: "Tomorrow" },
+  localeTag: string = appLocaleTag(),
+): string {
   const start = startOfDay(today).getTime();
   const target = startOfDay(d).getTime();
   const diffDays = Math.round((target - start) / 86400000);
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Tomorrow";
-  return d.toLocaleDateString("en-GB", {
+  if (diffDays === 0) return labels.today;
+  if (diffDays === 1) return labels.tomorrow;
+  return d.toLocaleDateString(localeTag, {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -112,16 +118,16 @@ export function relativeDayLabel(d: Date, today: Date): string {
 }
 
 /** Range label for the navigation row, per active view. */
-export function rangeLabel(view: CalendarView, anchor: Date): string {
+export function rangeLabel(view: CalendarView, anchor: Date, localeTag: string = appLocaleTag()): string {
   if (view === "day") return formatDayLong(anchor);
   if (view === "month")
-    return anchor.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+    return anchor.toLocaleDateString(localeTag, { month: "long", year: "numeric" });
   if (view === "week") {
     const start = startOfWeekMonday(anchor);
     const end = addDays(start, 6);
     const sameMonth = start.getMonth() === end.getMonth();
-    const startStr = start.toLocaleDateString("en-GB", sameMonth ? { day: "numeric" } : { day: "numeric", month: "long" });
-    const endStr = end.toLocaleDateString("en-GB", {
+    const startStr = start.toLocaleDateString(localeTag, sameMonth ? { day: "numeric" } : { day: "numeric", month: "long" });
+    const endStr = end.toLocaleDateString(localeTag, {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -132,10 +138,10 @@ export function rangeLabel(view: CalendarView, anchor: Date): string {
     const end = addDays(anchor, 13);
     const sameMonth = anchor.getMonth() === end.getMonth();
     const startStr = anchor.toLocaleDateString(
-      "en-GB",
+      localeTag,
       sameMonth ? { day: "numeric" } : { day: "numeric", month: "short" },
     );
-    const endStr = end.toLocaleDateString("en-GB", {
+    const endStr = end.toLocaleDateString(localeTag, {
       day: "numeric",
       month: "long",
       year: "numeric",
@@ -250,14 +256,17 @@ export function bookingTint(
 }
 
 /** Demo user ids → display names. */
-export function creatorName(id: string | null | undefined): string {
+export function creatorName(
+  id: string | null | undefined,
+  unknownLabel = "Unknown",
+): string {
   switch (id) {
     case "demo-admin":
       return "Marouane A.";
     case "demo-staff":
       return "Yasmine B.";
     default:
-      return id ?? "Unknown";
+      return id ?? unknownLabel;
   }
 }
 

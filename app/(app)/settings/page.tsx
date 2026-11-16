@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import {
   Building2,
   SwatchBook,
@@ -16,38 +17,43 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export const metadata: Metadata = { title: "Settings" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("settings");
+  return { title: t("hubTitle") };
+}
+export const instant = false;
 
-type Tab = { slug: string; name: string; desc: string; icon: LucideIcon; admin?: boolean };
+type Tab = { slug: string; nameKey: string; descKey: string; icon: LucideIcon; admin?: boolean };
 
 const TABS: Tab[] = [
-  { slug: "general", name: "General", desc: "Business profile, logo, timezone (Casablanca), currency MAD", icon: Building2, admin: true },
-  { slug: "categories", name: "Categories", desc: "Booking categories — name EN/FR, color tint, icon", icon: SwatchBook, admin: true },
-  { slug: "rooms", name: "Rooms & Resources", desc: "Name, location (Casa / Agadir), capacity, rate, amenities", icon: DoorOpen, admin: true },
-  { slug: "team", name: "Team & Users", desc: "Create accounts, roles, deactivate — the only place staff is managed", icon: UsersRound, admin: true },
-  { slug: "working-hours", name: "Working Hours", desc: "Per-weekday open/close, closed days, slot increment, buffer", icon: Clock3, admin: true },
-  { slug: "notifications", name: "Notifications", desc: "Per-event email toggles, digest, test send", icon: BellRing, admin: true },
-  { slug: "localization", name: "Localization", desc: "Default locale (EN/FR), 12/24h, date & currency display", icon: Languages, admin: true },
-  { slug: "audit", name: "Audit Log", desc: "Every change, who & when — search, filter, export CSV", icon: ScrollText, admin: true },
-  { slug: "security", name: "Security", desc: "Password, sessions, MFA, active device list", icon: ShieldCheck },
-  { slug: "data", name: "Data & Privacy", desc: "Export workspace JSON, anonymize a client (GDPR)", icon: Database, admin: true },
-  { slug: "mail", name: "Mail", desc: "SMTP/IMAP connection test for the connected mailbox", icon: Inbox, admin: true },
+  { slug: "general", nameKey: "tabGeneral", descKey: "tabGeneralDesc", icon: Building2, admin: true },
+  { slug: "categories", nameKey: "tabCategories", descKey: "tabCategoriesDesc", icon: SwatchBook, admin: true },
+  { slug: "rooms", nameKey: "tabRooms", descKey: "tabRoomsDesc", icon: DoorOpen, admin: true },
+  { slug: "team", nameKey: "tabTeam", descKey: "tabTeamDesc", icon: UsersRound, admin: true },
+  { slug: "working-hours", nameKey: "tabWorkingHours", descKey: "tabWorkingHoursDesc", icon: Clock3, admin: true },
+  { slug: "notifications", nameKey: "tabNotifications", descKey: "tabNotificationsDesc", icon: BellRing, admin: true },
+  { slug: "localization", nameKey: "tabLocalization", descKey: "tabLocalizationDesc", icon: Languages, admin: true },
+  { slug: "audit", nameKey: "tabAudit", descKey: "tabAuditDesc", icon: ScrollText, admin: true },
+  { slug: "security", nameKey: "tabSecurity", descKey: "tabSecurityDesc", icon: ShieldCheck },
+  { slug: "data", nameKey: "tabData", descKey: "tabDataDesc", icon: Database, admin: true },
+  { slug: "mail", nameKey: "tabMail", descKey: "tabMailDesc", icon: Inbox, admin: true },
 ];
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const t = await getTranslations("settings");
   return (
     <div className="mx-auto max-w-5xl">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[28px] font-extrabold tracking-[-0.04em] text-obsidian">Settings</h1>
+          <h1 className="text-[28px] font-extrabold tracking-[-0.04em] text-obsidian">{t("hubTitle")}</h1>
           <p className="mt-1 text-[14px] font-medium text-obsidian-light">
-            Admin-only areas are marked. Every change is written to the audit log.
+            {t("hubSub")}
           </p>
         </div>
       </div>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        {TABS.map(({ slug, name, desc, icon: Icon, admin }) => (
+        {TABS.map(({ slug, nameKey, descKey, icon: Icon, admin }) => (
           <Link
             key={slug}
             href={`/settings/${slug}`}
@@ -58,14 +64,14 @@ export default function SettingsPage() {
             </span>
             <span className="min-w-0">
               <span className="flex items-center gap-2">
-                <span className="text-[15px] font-bold text-obsidian">{name}</span>
+                <span className="text-[15px] font-bold text-obsidian">{t(nameKey)}</span>
                 {admin && (
                   <span className="rounded-pill bg-canvas px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-muted">
-                    Admin
+                    {t("adminBadge")}
                   </span>
                 )}
               </span>
-              <span className="mt-1 block text-[12px] font-medium leading-snug text-obsidian-light">{desc}</span>
+              <span className="mt-1 block text-[12px] font-medium leading-snug text-obsidian-light">{t(descKey)}</span>
             </span>
             <ChevronRight
               size={17}

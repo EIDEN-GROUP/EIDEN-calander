@@ -337,12 +337,19 @@ export async function createTeamUserAction(raw: unknown): Promise<ActionResult<{
     const userId = created.user?.id;
     if (!userId) return fail("unexpected", "User creation returned no id.");
 
+    // New staff start on the business default locale (welcome email + profile).
+    const authedClient = await createClient();
+    const { data: biz } = authedClient
+      ? await authedClient.from("business_settings").select("default_locale").eq("id", true).maybeSingle()
+      : { data: null };
+    const defaultLocale = biz?.default_locale === "fr" ? "fr" : "en";
+
     const { error: profileErr } = await service.from("profiles").upsert({
-      id: userId, email, full_name: fullName, role, is_active: true, must_change_password: true, locale: "en",
+      id: userId, email, full_name: fullName, role, is_active: true, must_change_password: true, locale: defaultLocale,
     });
     if (profileErr) throw profileErr;
 
-    const supabase = await createClient();
+    const supabase = authedClient ?? (await createClient());
     await logAudit(supabase, {action: "user.create", entityType: "user", entityId: userId, meta: { email, role }});
     // Best-effort welcome email with the one-time credentials (bilingual EN).
     try {
@@ -352,7 +359,7 @@ export async function createTeamUserAction(raw: unknown): Promise<ActionResult<{
       if (!supabase || !(await isTransactionalEnabled(supabase, "welcome"))) {
         console.log("[settings] welcome email — disabled in Settings → Notifications, skipping");
       } else {
-        const tpl = welcomeTempPassword({ name: fullName, email, tempPassword, loginUrl: "https://calendar.eiden-group.com/login", locale: "en" });
+        const tpl = welcomeTempPassword({ name: fullName, email, tempPassword, loginUrl: "https://calendar.eiden-group.com/login", locale: defaultLocale });
         await sendMail({ to: email, subject: tpl.subject, html: tpl.html, text: tpl.text });
       }
     } catch (e) {

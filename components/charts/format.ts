@@ -1,17 +1,18 @@
+import { appLocaleTag } from "@/lib/intl-locale";
 /**
  * Shared formatting helpers — CALENDAR. (charts + plans).
  * All dates use the local timezone; date-only strings ("2026-05-01") are
  * parsed as local midnight to avoid UTC-shift surprises.
  */
 
-export function formatMoney(n: number): string {
-  return new Intl.NumberFormat("en-GB", { maximumFractionDigits: 0 }).format(
+export function formatMoney(n: number, locale: string = appLocaleTag()): string {
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(
     Math.round(n),
   );
 }
 
-export function formatMAD(n: number): string {
-  return `MAD ${formatMoney(n)}`;
+export function formatMAD(n: number, locale: string = appLocaleTag()): string {
+  return `MAD ${formatMoney(n, locale)}`;
 }
 
 /** Parse "YYYY-MM-DD" (or any ISO string) as a *local* Date. */
@@ -35,16 +36,16 @@ export function isOverdueDate(iso: string | null): boolean {
 }
 
 /** "5 May" — compact, for chips and table cells. */
-export function formatShortDate(iso: string): string {
-  return parseLocalDate(iso).toLocaleDateString("en-GB", {
+export function formatShortDate(iso: string, locale: string = appLocaleTag()): string {
+  return parseLocalDate(iso).toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
   });
 }
 
 /** "5 May 2026" */
-export function formatFullDate(iso: string): string {
-  return parseLocalDate(iso).toLocaleDateString("en-GB", {
+export function formatFullDate(iso: string, locale: string = appLocaleTag()): string {
+  return parseLocalDate(iso).toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -52,8 +53,8 @@ export function formatFullDate(iso: string): string {
 }
 
 /** "Tue 5 May" — for chart tooltips. */
-export function formatDayLong(d: Date): string {
-  return d.toLocaleDateString("en-GB", {
+export function formatDayLong(d: Date, locale: string = appLocaleTag()): string {
+  return d.toLocaleDateString(locale, {
     weekday: "short",
     day: "numeric",
     month: "short",
@@ -61,13 +62,13 @@ export function formatDayLong(d: Date): string {
 }
 
 /** Days ago / in N days for the "Target" column when close to today. */
-export function relativeDayLabel(iso: string): string | null {
+export function relativeDayLabel(iso: string, locale: string = "en"): string | null {
   const target = parseLocalDate(iso);
   const diff = Math.round((target.getTime() - startOfToday().getTime()) / 86400000);
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Tomorrow";
-  if (diff === -1) return "Yesterday";
-  return null;
+  if (diff !== 0 && diff !== 1 && diff !== -1) return null;
+  const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  const label = rtf.format(diff, "day");
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 /** Deterministic 0-100 share, guards div-by-zero. */

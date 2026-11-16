@@ -33,6 +33,7 @@ import {
   type WorkingHoursEntry,
 } from "@/lib/slots";
 import type { BookingRow, BookingStatus, BookingType } from "@/lib/types/db";
+import { useTranslations, useLocale } from "next-intl";
 import {
   creatorName,
   formatTime,
@@ -43,6 +44,7 @@ import {
 } from "@/components/calendar/calendar-utils";
 import { useModalA11y } from "./focus-trap";
 import { ConflictModal } from "./ConflictModal";
+import { appLocaleTag, categoryName } from "@/lib/intl-locale";
 
 /** Default working hours — Mon–Sat 08:00–20:00, Sunday closed. */
 const DEFAULT_WH: WorkingHoursEntry[] = [
@@ -112,12 +114,26 @@ function defaultStart(): Date {
 /** Strip the “(DEMO)” suffix for presentation. */
 const roomLabel = (name: string) => name.replace(/\s*\(DEMO\)\s*$/, "");
 
-const STATUS_META: Record<BookingStatus, { label: string; dot: string }> = {
-  confirmed: { label: "Confirmed", dot: "bg-success" },
-  pending_conflict: { label: "Pending conflict", dot: "bg-warning" },
-  cancelled: { label: "Cancelled", dot: "bg-black/30" },
-  paused: { label: "Paused", dot: "bg-warning" },
-  completed: { label: "Completed", dot: "bg-obsidian-light" },
+const STATUS_DOT: Record<BookingStatus, string> = {
+  confirmed: "bg-success",
+  pending_conflict: "bg-warning",
+  cancelled: "bg-black/30",
+  paused: "bg-warning",
+  completed: "bg-obsidian-light",
+};
+const STATUS_LABEL_KEYS: Record<
+  BookingStatus,
+  | "statusConfirmed"
+  | "statusPendingConflict"
+  | "statusCancelled"
+  | "statusPaused"
+  | "statusCompleted"
+> = {
+  confirmed: "statusConfirmed",
+  pending_conflict: "statusPendingConflict",
+  cancelled: "statusCancelled",
+  paused: "statusPaused",
+  completed: "statusCompleted",
 };
 
 export function BookingDrawer({
@@ -134,6 +150,10 @@ export function BookingDrawer({
   workingHours = DEFAULT_WH,
   live = false,
 }: BookingDrawerProps) {
+  const t = useTranslations("calendar");
+  const locale = useLocale();
+  const intlLocale = appLocaleTag(locale);
+  const tCommon = useTranslations("common");
   const existing = bookings ?? [];
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -223,19 +243,19 @@ export function BookingDrawer({
     return {
       startsAt: s.startsAt,
       endsAt: s.endsAt,
-      label: `${relativeDayLabel(sStart, today)} · ${formatTime(sStart)}`,
+      label: `${relativeDayLabel(sStart, today, { today: t("today"), tomorrow: t("tomorrow") })} · ${formatTime(sStart, intlLocale)}`,
     };
   });
   const clashItems = conflicts.map((c) => ({
     id: c.id,
-    title: c.title ?? "Existing booking",
+    title: c.title ?? t("existingBooking"),
     startsAt: c.starts_at,
     endsAt: c.ends_at,
-    requestedBy: creatorName(c.created_by),
+    requestedBy: creatorName(c.created_by, t("unknown")),
   }));
 
   const selectedRoom = roomId ? rooms.find((r) => r.id === roomId) : null;
-  const selectedRoomName = selectedRoom ? roomLabel(selectedRoom.name) : "No room / off-site";
+  const selectedRoomName = selectedRoom ? roomLabel(selectedRoom.name) : t("noRoomOffSite");
   const selectedClient = clientId
     ? clients.find((c) => c.id === clientId)
     : null;
@@ -244,8 +264,8 @@ export function BookingDrawer({
     : null;
 
   const canSubmit = title.trim().length >= 2 && timesValid;
-  const submitLabel = hasConflicts ? "Send change request" : "Save booking";
-  const incumbentName = clashItems[0]?.requestedBy ?? "the incumbent";
+  const submitLabel = hasConflicts ? t("sendChangeRequest") : t("saveBooking");
+  const incumbentName = clashItems[0]?.requestedBy ?? t("theIncumbent");
 
   const applySuggestion = (s: { startsAt: string; endsAt: string }) => {
     const sStart = new Date(s.startsAt);
@@ -298,30 +318,31 @@ export function BookingDrawer({
       if (!res.ok) { setError(res.error.message); return; }
       if ("conflict" in res.data) {
         // Race lost between preview and submit — server wins; show its conflicts.
-        setError("That slot was just taken — pick a suggested time.");
+        setError(t("slotTakenError"));
         return;
       }
       onSaved?.({ ...payload, id: res.data.bookingId, status: booking?.status === "completed" ? "completed" : "confirmed" }, { conflict: false });
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong — try again.");
+      setError(err instanceof Error ? err.message : t("genericError"));
     } finally {
       setSaving(false);
     }
   };
 
-  const statusMeta = STATUS_META[booking?.status ?? "confirmed"];
+  const statusKey = STATUS_LABEL_KEYS[booking?.status ?? "confirmed"];
+  const statusMeta = { label: t(statusKey), dot: STATUS_DOT[booking?.status ?? "confirmed"] };
   const heading =
-    view === "view" ? "Booking details" : view === "edit" ? "Edit booking" : "New booking";
+    view === "view" ? t("headingBookingDetails") : view === "edit" ? t("headingEditBooking") : t("newBooking");
   const kicker =
-    view === "view" ? (live ? "Live" : "Offline preview") : view === "edit" ? (live ? "Live · edit" : "Offline preview · edit") : live ? "Create · live" : "Create · offline preview";
+    view === "view" ? (live ? t("kickerLive") : t("offlinePreview")) : view === "edit" ? (live ? t("kickerLiveEdit") : t("kickerOfflineEdit")) : live ? t("kickerCreateLive") : t("kickerCreateOffline");
 
   return (
     <div className="fixed inset-0 z-50">
       {/* Overlay — click closes */}
       <button
         type="button"
-        aria-label="Close panel"
+        aria-label={t("closePanel")}
         tabIndex={-1}
         onClick={onClose}
         className={`absolute inset-0 cursor-default bg-obsidian/30 backdrop-blur-[2px] transition-opacity duration-300 ${
@@ -352,7 +373,7 @@ export function BookingDrawer({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={tCommon("close")}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-pill text-muted transition-colors hover:bg-black/[0.04] hover:text-obsidian"
           >
             <X size={19} strokeWidth={2} aria-hidden="true" />
@@ -367,7 +388,7 @@ export function BookingDrawer({
             selectedRoomName={selectedRoomName}
             roomLocation={selectedRoom?.location}
             clientName={selectedClient?.full_name ?? null}
-            categoryName={selectedCategory?.name_en ?? "—"}
+            categoryName={categoryName(selectedCategory, locale) || "—"}
           />
         ) : (
           <form
@@ -380,13 +401,13 @@ export function BookingDrawer({
               {/* Title */}
               <div>
                 <label htmlFor="bk-title" className="label">
-                  Title
+                  {t("titleLabel")}
                 </label>
                 <input
                   id="bk-title"
                   autoFocus
                   className="input"
-                  placeholder="e.g. ONCF — Steering committee"
+                  placeholder={t("titlePlaceholder")}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   aria-invalid={submitted && title.trim().length < 2}
@@ -397,7 +418,7 @@ export function BookingDrawer({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label htmlFor="bk-type" className="label">
-                    Type
+                    {t("typeLabel")}
                   </label>
                   <select
                     id="bk-type"
@@ -416,13 +437,13 @@ export function BookingDrawer({
                       );
                     }}
                   >
-                    <option value="standard">Standard</option>
-                    <option value="formation">Formation</option>
+                    <option value="standard">{t("typeStandard")}</option>
+                    <option value="formation">{t("typeFormation")}</option>
                   </select>
                 </div>
                 <div>
                   <label htmlFor="bk-category" className="label">
-                    Category
+                    {t("categoryLabel")}
                   </label>
                   <select
                     id="bk-category"
@@ -432,7 +453,7 @@ export function BookingDrawer({
                   >
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name_en}
+                        {categoryName(c, locale)}
                       </option>
                     ))}
                   </select>
@@ -442,7 +463,7 @@ export function BookingDrawer({
               {/* Room + client */}
               <div>
                 <label htmlFor="bk-room" className="label">
-                  Room
+                  {t("roomLabel")}
                 </label>
                 <select
                   id="bk-room"
@@ -450,7 +471,7 @@ export function BookingDrawer({
                   value={roomId}
                   onChange={(e) => setRoomId(e.target.value)}
                 >
-                  <option value="">No room / off-site</option>
+                  <option value="">{t("noRoomOffSite")}</option>
                   {rooms.map((r) => (
                     <option key={r.id} value={r.id}>
                       {roomLabel(r.name)} · {r.location} · {r.capacity}p
@@ -460,7 +481,7 @@ export function BookingDrawer({
               </div>
               <div>
                 <label htmlFor="bk-client" className="label">
-                  Client
+                  {t("clientLabel")}
                 </label>
                 <select
                   id="bk-client"
@@ -468,7 +489,7 @@ export function BookingDrawer({
                   value={clientId}
                   onChange={(e) => setClientId(e.target.value)}
                 >
-                  <option value="">No client</option>
+                  <option value="">{t("noClient")}</option>
                   {clients.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.full_name}
@@ -481,7 +502,7 @@ export function BookingDrawer({
               <div className="grid grid-cols-[1.2fr_1fr_1fr] gap-3">
                 <div>
                   <label htmlFor="bk-date" className="label">
-                    Date
+                    {t("dateLabel")}
                   </label>
                   <input
                     id="bk-date"
@@ -493,7 +514,7 @@ export function BookingDrawer({
                 </div>
                 <div>
                   <label htmlFor="bk-start" className="label">
-                    Start
+                    {t("startLabel")}
                   </label>
                   <input
                     id="bk-start"
@@ -506,7 +527,7 @@ export function BookingDrawer({
                 </div>
                 <div>
                   <label htmlFor="bk-end" className="label">
-                    End
+                    {t("endLabel")}
                   </label>
                   <input
                     id="bk-end"
@@ -523,7 +544,7 @@ export function BookingDrawer({
               {/* Price */}
               <div>
                 <label htmlFor="bk-price" className="label">
-                  Price (MAD, optional — informational)
+                  {t("priceOptionalLabel")}
                 </label>
                 <input
                   id="bk-price"
@@ -532,7 +553,7 @@ export function BookingDrawer({
                   step={50}
                   inputMode="numeric"
                   className="input"
-                  placeholder="e.g. 675"
+                  placeholder={t("pricePlaceholder")}
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                 />
@@ -541,13 +562,13 @@ export function BookingDrawer({
               {/* Notes */}
               <div>
                 <label htmlFor="bk-notes" className="label">
-                  Notes
+                  {t("notesLabel")}
                 </label>
                 <textarea
                   id="bk-notes"
                   className="input min-h-[76px] resize-y py-3"
                   rows={3}
-                  placeholder="Anything the team should know…"
+                  placeholder={t("notesPlaceholder")}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
@@ -556,7 +577,7 @@ export function BookingDrawer({
               {/* Validation error */}
               {submitted && !canSubmit && (
                 <p role="alert" className="text-[13px] font-semibold text-error">
-                  Please add a title and make sure the end time is after the start time.
+                  {t("validationError")}
                 </p>
               )}
 
@@ -580,20 +601,20 @@ export function BookingDrawer({
                           key={c.id}
                           className="text-[13px] font-bold leading-snug text-[#a34d00]"
                         >
-                          {selectedRoomName} is booked{" "}
-                          {formatTimeRange(new Date(c.starts_at), new Date(c.ends_at))}{" "}
-                          — {c.title}
+                          {t("conflictRoomBooked", {
+                            room: selectedRoomName,
+                            timeRange: formatTimeRange(new Date(c.starts_at), new Date(c.ends_at), intlLocale),
+                            title: c.title ?? t("existingBooking"),
+                          })}
                         </p>
                       ))}
                       {conflicts.length > 2 && (
                         <p className="mt-0.5 text-[12px] font-semibold text-[#a34d00]">
-                          +{conflicts.length - 2} more overlapping booking
-                          {conflicts.length - 2 > 1 ? "s" : ""}
+                          {t("plusConflicts", { count: conflicts.length - 2 })}
                         </p>
                       )}
                       <p className="mt-1 text-[12px] leading-snug text-obsidian-light">
-                        Pick another slot, or ask {incumbentName} to move their booking —
-                        we’ll send a change request instead of double-booking the room.
+                        {t("conflictAskMove", { incumbent: incumbentName })}
                       </p>
                     </div>
                   </div>
@@ -602,7 +623,7 @@ export function BookingDrawer({
                   {suggestionChips.length > 0 && (
                     <div className="mt-2.5 pl-[30px]">
                       <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#a34d00]">
-                        Suggested slots
+                        {t("suggestedSlots")}
                       </p>
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {suggestionChips.map((s) => (
@@ -610,7 +631,7 @@ export function BookingDrawer({
                             key={s.startsAt}
                             type="button"
                             onClick={() => applySuggestion(s)}
-                            title={formatTimeRange(new Date(s.startsAt), new Date(s.endsAt))}
+                            title={formatTimeRange(new Date(s.startsAt), new Date(s.endsAt), intlLocale)}
                             className="chip border border-warning/50 bg-white/70 text-[11px] text-[#a34d00] transition-all hover:-translate-y-px hover:bg-white"
                           >
                             {s.label}
@@ -628,14 +649,14 @@ export function BookingDrawer({
                       className="inline-flex h-9 items-center gap-1.5 rounded-pill bg-warning px-4 text-[12px] font-bold text-obsidian transition-all hover:brightness-95"
                     >
                       <Send size={13} strokeWidth={2.4} aria-hidden="true" />
-                      Request change from {incumbentName}
+                      {t("requestChangeFrom", { incumbent: incumbentName })}
                     </button>
                     <button
                       type="button"
                       onClick={() => setConflictModalOpen(true)}
                       className="inline-flex h-9 items-center gap-0.5 rounded-pill px-3 text-[12px] font-bold text-[#a34d00] transition-colors hover:bg-warning/20"
                     >
-                      Review conflicts
+                      {t("reviewConflicts")}
                       <ChevronRight size={14} strokeWidth={2.6} aria-hidden="true" />
                     </button>
                   </div>
@@ -649,7 +670,7 @@ export function BookingDrawer({
                     className="flex items-center gap-1.5 text-[12px] font-semibold text-success"
                   >
                     <CheckCircle2 size={15} strokeWidth={2.2} aria-hidden="true" />
-                    Slot is free — {selectedRoomName} · {start ? formatTimeRange(start, end!) : ""}
+                    {t("slotFree", { room: selectedRoomName, timeRange: start ? formatTimeRange(start, end!, intlLocale) : "" })}
                   </p>
                 )
               )}
@@ -674,20 +695,20 @@ export function BookingDrawer({
           {isView ? (
             <>
               <button type="button" onClick={onClose} className="btn btn-secondary">
-                Close
+                {tCommon("close")}
               </button>
               <button
                 type="button"
                 onClick={() => setView("edit")}
                 className="btn btn-primary"
               >
-                Edit booking
+                {t("headingEditBooking")}
               </button>
             </>
           ) : (
             <>
               <button type="button" onClick={onClose} className="btn btn-secondary">
-                Cancel
+                {tCommon("cancel")}
               </button>
               <button
                 type="submit"
@@ -698,7 +719,7 @@ export function BookingDrawer({
                 {hasConflicts && (
                   <Send size={16} strokeWidth={2.4} aria-hidden="true" />
                 )}
-                {saving ? "Saving…" : submitLabel}
+                {saving ? t("saving") : submitLabel}
               </button>
             </>
           )}
@@ -743,10 +764,13 @@ function ViewBody({
   clientName: string | null;
   categoryName: string;
 }) {
+  const t = useTranslations("calendar");
+  const locale = useLocale();
+  const intlLocale = appLocaleTag(locale);
   if (!booking) {
     return (
       <div className="flex-1 overflow-y-auto px-5 py-5">
-        <p className="text-[14px] text-obsidian-light">No booking selected.</p>
+        <p className="text-[14px] text-obsidian-light">{t("noBookingSelected")}</p>
       </div>
     );
   }
@@ -765,7 +789,7 @@ function ViewBody({
             ) : (
               <DoorOpen size={13} strokeWidth={2.2} aria-hidden="true" />
             )}
-            {isFormation ? "Formation" : "Standard"}
+            {isFormation ? t("typeFormation") : t("typeStandard")}
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-pill bg-white px-2.5 py-1 text-[11px] font-bold text-obsidian ring-1 ring-border">
             <span className={`h-2 w-2 rounded-full ${statusMeta.dot}`} aria-hidden="true" />
@@ -776,34 +800,34 @@ function ViewBody({
           {booking.title}
         </h3>
         <p className="mt-1 text-[12px] font-medium text-muted">
-          Created by {creatorName(booking.created_by)} · Ref #{shortRef(booking.id)}
+          {t("createdByLine", { name: creatorName(booking.created_by, t("unknown")), ref: shortRef(booking.id) })}
         </p>
       </div>
 
       {/* Fact rows */}
       <dl className="mt-5 divide-y divide-divider rounded-md border border-border bg-white">
-        <FactRow icon={DoorOpen} label="Room">
+        <FactRow icon={DoorOpen} label={t("roomLabel")}>
           {selectedRoomName}
           {roomLocation ? (
             <span className="text-muted"> · {roomLocation}</span>
           ) : null}
         </FactRow>
-        <FactRow icon={Clock} label="Date & time">
-          {start.toLocaleDateString("en-GB", {
+        <FactRow icon={Clock} label={t("dateTimeFactLabel")}>
+          {start.toLocaleDateString(intlLocale, {
             weekday: "long",
             day: "numeric",
             month: "long",
             year: "numeric",
           })}{" "}
-          · {formatTimeRange(start, end)}
+          · {formatTimeRange(start, end, intlLocale)}
         </FactRow>
-        <FactRow icon={Users} label="Client">
-          {clientName ?? "No client"}
+        <FactRow icon={Users} label={t("clientLabel")}>
+          {clientName ?? t("noClient")}
         </FactRow>
-        <FactRow icon={Tag} label="Category">
+        <FactRow icon={Tag} label={t("categoryLabel")}>
           {categoryName}
         </FactRow>
-        <FactRow icon={Banknote} label="Price">
+        <FactRow icon={Banknote} label={t("priceFactLabel")}>
           {booking.price != null ? `${booking.price} MAD` : "—"}
         </FactRow>
       </dl>
@@ -811,7 +835,7 @@ function ViewBody({
       {booking.notes && (
         <div className="mt-4 rounded-sm border border-border border-l-2 border-l-electric bg-white p-3.5">
           <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
-            Notes
+            {t("notesLabel")}
           </p>
           <p className="mt-1 text-[13px] leading-snug text-obsidian-light">
             {booking.notes}

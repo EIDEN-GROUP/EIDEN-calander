@@ -9,10 +9,11 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { GraduationCap } from "lucide-react";
+import { useTranslations, useLocale } from "next-intl";
 import type { BookingRow } from "@/lib/types/db";
 import {
   HATCH_STYLE,
-  WEEKDAY_SHORT,
+  WEEKDAY_SHORT_KEYS,
   bookingTint,
   formatDayLong,
   formatTimeRange,
@@ -21,6 +22,7 @@ import {
   minutesOf,
   type Lookup,
 } from "./calendar-utils";
+import { appLocaleTag } from "@/lib/intl-locale";
 
 const START_HOUR = 7;
 const END_HOUR = 21;
@@ -60,6 +62,8 @@ export function TimeGrid({
   onCreateRange,
   onBookingContextMenu,
 }: TimeGridProps) {
+  const t = useTranslations("calendar");
+  const intlLocale = appLocaleTag(useLocale());
   const [now, setNow] = useState<Date>(() => new Date(serverNow));
   const [drag, setDrag] = useState<{
     dayIndex: number;
@@ -143,11 +147,13 @@ export function TimeGrid({
 
   const minWidth = days.length > 1 ? "min-w-[760px]" : "min-w-[420px]";
 
+  const weekdayShort = WEEKDAY_SHORT_KEYS.map((k) => t(k));
+
   return (
     <div
       className="card overflow-hidden"
       role="region"
-      aria-label="Time grid"
+      aria-label={t("timeGridLabel")}
     >
       <div className="overflow-x-auto">
         <div className={minWidth}>
@@ -164,7 +170,7 @@ export function TimeGrid({
                   }`}
                 >
                   <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted">
-                    {WEEKDAY_SHORT[(day.getDay() + 6) % 7]}
+                    {weekdayShort[(day.getDay() + 6) % 7]}
                   </span>
                   <span
                     className={`flex h-8 w-8 items-center justify-center rounded-pill text-[14px] font-bold ${
@@ -201,7 +207,7 @@ export function TimeGrid({
                 <div
                   key={day.toISOString()}
                   role="group"
-                  aria-label={formatDayLong(day)}
+                  aria-label={formatDayLong(day, intlLocale)}
                   data-day-index={i}
                   onMouseDown={handleColumnMouseDown(i)}
                   className="relative cursor-cell touch-none select-none border-r border-divider last:border-r-0"
@@ -274,9 +280,11 @@ export function TimeGrid({
                           e.preventDefault();
                           onBookingContextMenu?.(booking, e.clientX, e.clientY);
                         }}
-                        aria-label={`${booking.title}, ${formatDayLong(bStart)}, ${formatTimeRange(bStart, bEnd)}${
-                          isPending ? ", pending conflict" : ""
-                        }`}
+                        aria-label={t(isPending ? "bookingAriaLabelPending" : "bookingAriaLabel", {
+                          title: booking.title,
+                          day: formatDayLong(bStart, intlLocale),
+                          timeRange: formatTimeRange(bStart, bEnd, intlLocale),
+                        })}
                         className={`absolute overflow-hidden rounded-sm border px-1.5 py-1 text-left align-top transition-shadow hover:z-20 hover:shadow-md focus-visible:z-20 ${tint.block} ${
                           booking.status === "completed" || booking.status === "cancelled" || booking.status === "paused"
                             ? "opacity-60"
@@ -310,13 +318,13 @@ export function TimeGrid({
                         </span>
                         {height >= 34 && (
                           <span className="mt-0.5 block truncate text-[9.5px] font-semibold tabular-nums opacity-80">
-                            {formatTimeRange(bStart, bEnd)}
-                            {isPending && height < 52 ? " · Pending" : ""}
+                            {formatTimeRange(bStart, bEnd, intlLocale)}
+                            {isPending && height < 52 ? ` · ${t("pending")}` : ""}
                           </span>
                         )}
                         {isPending && height >= 52 && (
                           <span className="mt-1 inline-flex items-center rounded-pill border border-dashed border-warning/70 bg-white/60 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-[#a34d00]">
-                            Pending
+                            {t("pending")}
                           </span>
                         )}
                       </button>

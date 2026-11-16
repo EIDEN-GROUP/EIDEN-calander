@@ -9,6 +9,7 @@
 
 import { useMemo, useState, useSyncExternalStore, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { CalendarDays, Plus, Search } from "lucide-react";
 import { NowBarMark } from "@/components/brand/NowBar";
 import { DEMO_ROOMS } from "@/lib/demo-data";
@@ -32,13 +33,14 @@ import { duplicateFormation } from "./duplicate";
 import { FormationCard } from "./FormationCard";
 import { Modal } from "./Modal";
 import { ToastViewport, useToast } from "./Toast";
+import { appLocaleTag } from "@/lib/intl-locale";
 
 type Segment = "all" | "open" | "full" | "completed";
-const SEGMENTS: Array<{ key: Segment; label: string }> = [
-  { key: "all", label: "All" },
-  { key: "open", label: "Open" },
-  { key: "full", label: "Full" },
-  { key: "completed", label: "Completed" },
+const SEGMENTS: Array<{ key: Segment; labelKey: "segmentAll" | "segmentOpen" | "segmentFull" | "segmentCompleted" }> = [
+  { key: "all", labelKey: "segmentAll" },
+  { key: "open", labelKey: "segmentOpen" },
+  { key: "full", labelKey: "segmentFull" },
+  { key: "completed", labelKey: "segmentCompleted" },
 ];
 
 interface CreateFormState {
@@ -70,6 +72,7 @@ function localTodayISO(): string {
 }
 
 export function FormationsClient({ data }: { data?: FormationListData | null }) {
+  const t = useTranslations("formations");
   const router = useRouter();
   const live = data != null && data.live;
   const rooms = data?.rooms ?? DEMO_ROOMS;
@@ -151,13 +154,13 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
         description: vm.formation.description ?? null,
       });
       if (!res.ok) return push(res.error.message, "error");
-      push(`Duplicated — same session ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(starts)}`);
+      push(t("duplicateToastSame", { date: new Intl.DateTimeFormat(appLocaleTag(), { day: "numeric", month: "short" }).format(starts) }));
       router.refresh();
       return;
     }
     const { booking } = duplicateFormation(vm);
     // Persisting emits the change event this list subscribes to.
-    push(`Duplicated — moved to ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(booking.starts_at))}`);
+    push(t("duplicateToastMoved", { date: new Intl.DateTimeFormat(appLocaleTag(), { day: "numeric", month: "short" }).format(new Date(booking.starts_at)) }));
   }
 
   /* ---------- create ---------- */
@@ -182,13 +185,13 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
   async function submitCreate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const title = form.title.trim();
-    if (!title) return setFormError("Give the session a title.");
-    if (!form.date) return setFormError("Pick a date for the session.");
+    if (!title) return setFormError(t("errorTitle"));
+    if (!form.date) return setFormError(t("errorDate"));
     if (!form.start || !form.end || form.start >= form.end)
-      return setFormError("End time must be after the start time.");
+      return setFormError(t("errorEndAfterStart"));
     const capacity = Number(form.capacity);
     if (!Number.isFinite(capacity) || capacity < 1)
-      return setFormError("Capacity must be at least 1 seat.");
+      return setFormError(t("errorCapacity"));
 
     const startsAt = new Date(`${form.date}T${form.start}:00`);
     const endsAt = new Date(`${form.date}T${form.end}:00`);
@@ -227,12 +230,12 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
         description: form.description.trim() || null,
       });
       if (!res.ok) {
-        setFormError(res.error.code === "room_conflict" ? "That room is already taken at that time — pick another slot or room." : res.error.message);
+        setFormError(res.error.code === "room_conflict" ? t("errorRoomConflict") : res.error.message);
         return;
       }
       setCreateOpen(false);
       setForm({ ...EMPTY_FORM, roomId: rooms[0]?.id ?? "", date: localTodayISO() });
-      push("Formation created — roster ready to fill");
+      push(t("createdToast"));
       router.refresh();
       return;
     }
@@ -240,7 +243,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
 
     setCreateOpen(false);
     setForm({ ...EMPTY_FORM, date: localTodayISO() });
-    push("Formation created — roster ready to fill");
+    push(t("createdToast"));
   }
 
   const hasActiveFilters = segment !== "all" || query.trim() !== "";
@@ -251,15 +254,15 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="max-w-2xl">
           <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.04em] text-obsidian sm:text-[32px]">
-            Formations
+            {t("title")}
           </h1>
           <p className="mt-1.5 text-[14px] font-medium leading-snug text-obsidian-light">
-            Training sessions with capacity, waitlist &amp; attendance — powered by bookings
+            {t("subtitle")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <div className="segmented max-w-full overflow-x-auto" role="group" aria-label="Filter formations by status">
-            {SEGMENTS.map(({ key, label }) => (
+          <div className="segmented max-w-full overflow-x-auto" role="group" aria-label={t("filterByStatusLabel")}>
+            {SEGMENTS.map(({ key, labelKey }) => (
               <button
                 key={key}
                 type="button"
@@ -267,7 +270,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
                 aria-pressed={segment === key}
                 className={`segment px-3 sm:px-4 ${segment === key ? "segment-active" : ""}`}
               >
-                {label}
+                {t(labelKey)}
                 <span className="ml-1.5 hidden text-[11px] font-bold tabular-nums text-muted sm:inline">{counts[key]}</span>
               </button>
             ))}
@@ -279,20 +282,20 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
               className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted"
             />
             <label htmlFor="formation-search" className="sr-only">
-              Search formations
+              {t("searchLabel")}
             </label>
             <input
               id="formation-search"
               type="search"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search title, room…"
+              placeholder={t("searchPlaceholder")}
               className="input h-11 w-40 pl-10 sm:w-56"
             />
           </div>
           <button type="button" onClick={openCreate} className="btn btn-primary h-11 shadow-electric">
             <Plus size={18} strokeWidth={2.4} aria-hidden="true" />
-            New formation
+            {t("newFormation")}
           </button>
         </div>
       </div>
@@ -308,11 +311,10 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
         <div className="card mt-6 flex flex-col items-center px-6 py-16 text-center">
           <NowBarMark size={52} className="opacity-90" />
           <h2 className="mt-5 text-[19px] font-extrabold tracking-[-0.03em] text-obsidian">
-            {query.trim() ? `Nothing matches “${query.trim()}”` : "No formations in this view yet"}
+            {query.trim() ? t("emptyNoMatch", { query: query.trim() }) : t("emptyNone")}
           </h2>
           <p className="mt-1.5 max-w-md text-[14px] leading-snug text-obsidian-light">
-            Adjust the filters or set up the next session — capacity, waitlist and attendance are tracked
-            automatically from the booking.
+            {t("emptyBody")}
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
             {hasActiveFilters && (
@@ -324,12 +326,12 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
                 }}
                 className="btn btn-secondary h-10 px-5 text-[14px]"
               >
-                Clear filters
+                {t("clearFilters")}
               </button>
             )}
             <button type="button" onClick={openCreate} className="btn btn-primary h-10 px-5 text-[14px]">
               <Plus size={16} strokeWidth={2.4} aria-hidden="true" />
-              New formation
+              {t("newFormation")}
             </button>
           </div>
         </div>
@@ -337,20 +339,20 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
 
       {/* Result count (screen-reader + subtle sighted label) */}
       <p aria-live="polite" className="mt-4 text-center text-[12px] font-medium tabular-nums text-muted">
-        {filtered.length} of {vms.length} formation{vms.length === 1 ? "" : "s"} shown
+        {t("resultsShown", { shown: filtered.length, total: vms.length })}
       </p>
 
       {/* Create modal */}
       {createOpen && (
         <Modal
-          title="New formation"
-          description="Capacity, waitlist and attendance are tracked on the booking — everything stays in this demo until the backend is wired."
+          title={t("newFormation")}
+          description={t("createModalDescription")}
           onClose={() => setCreateOpen(false)}
           size="lg"
         >
           <form onSubmit={submitCreate} noValidate className="grid gap-4">
             <div>
-              <label htmlFor="nf-title" className="label">Title</label>
+              <label htmlFor="nf-title" className="label">{t("labelTitle")}</label>
               <input
                 id="nf-title"
                 type="text"
@@ -363,7 +365,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="nf-room" className="label">Room</label>
+                <label htmlFor="nf-room" className="label">{t("labelRoom")}</label>
                 <select
                   id="nf-room"
                   value={form.roomId}
@@ -378,7 +380,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
                 </select>
               </div>
               <div>
-                <label htmlFor="nf-date" className="label">Date</label>
+                <label htmlFor="nf-date" className="label">{t("labelDate")}</label>
                 <input
                   id="nf-date"
                   type="date"
@@ -390,7 +392,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
-                <label htmlFor="nf-start" className="label">Start</label>
+                <label htmlFor="nf-start" className="label">{t("labelStart")}</label>
                 <input
                   id="nf-start"
                   type="time"
@@ -400,7 +402,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
                 />
               </div>
               <div>
-                <label htmlFor="nf-end" className="label">End</label>
+                <label htmlFor="nf-end" className="label">{t("labelEnd")}</label>
                 <input
                   id="nf-end"
                   type="time"
@@ -410,7 +412,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
                 />
               </div>
               <div>
-                <label htmlFor="nf-capacity" className="label">Capacity</label>
+                <label htmlFor="nf-capacity" className="label">{t("labelCapacity")}</label>
                 <input
                   id="nf-capacity"
                   type="number"
@@ -423,7 +425,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
                 />
               </div>
               <div>
-                <label htmlFor="nf-price" className="label">Price / seat</label>
+                <label htmlFor="nf-price" className="label">{t("labelPricePerSeat")}</label>
                 <div className="relative">
                   <input
                     id="nf-price"
@@ -442,12 +444,12 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
               </div>
             </div>
             <div>
-              <label htmlFor="nf-description" className="label">Description</label>
+              <label htmlFor="nf-description" className="label">{t("labelDescription")}</label>
               <textarea
                 id="nf-description"
                 value={form.description}
                 onChange={(e) => updateField("description", e.target.value)}
-                placeholder="What the cohort will cover — hands-on, bring your laptop…"
+                placeholder={t("placeholderDescription")}
                 rows={3}
                 className="input h-auto min-h-[84px] py-3 leading-snug"
               />
@@ -462,15 +464,15 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-divider pt-4">
               <p className="flex items-center gap-2 text-[12px] font-medium text-muted">
                 <CalendarDays size={14} aria-hidden="true" />
-                Saved locally in this demo until wired to the bookings engine.
+                {t("savedLocallyNote")}
               </p>
               <div className="flex items-center gap-2">
                 <button type="button" onClick={() => setCreateOpen(false)} className="btn btn-ghost h-11 px-5 text-[14px]">
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button type="submit" className="btn btn-primary h-11">
                   <Plus size={17} strokeWidth={2.4} aria-hidden="true" />
-                  Create formation
+                  {t("createFormation")}
                 </button>
               </div>
             </div>

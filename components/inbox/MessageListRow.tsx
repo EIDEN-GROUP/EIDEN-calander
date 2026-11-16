@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations, useLocale } from "next-intl";
+import { appLocaleTag } from "@/lib/intl-locale";
 import { Mail, MailOpen, Paperclip } from "lucide-react";
 import type { MailFolder, MailMessageSummary } from "./types";
 import { shortListDate, senderName } from "./format";
@@ -23,9 +25,11 @@ export function MessageListRow({
   /** xl two-pane: select in place instead of navigating */
   onSelect?: (uid: number) => void;
 }) {
+  const t = useTranslations("inbox");
+  const intlLocale = appLocaleTag(useLocale());
   const unread = !message.seen;
   const href = `/inbox/${message.uid}?folder=${encodeURIComponent(folder)}`;
-  const fromLabel = senderName(message.from);
+  const fromLabel = senderName(message.from, t("unknownSender"));
 
   return (
     <li className="group/row relative border-b border-divider last:border-b-0">
@@ -33,7 +37,7 @@ export function MessageListRow({
       <Link
         href={href}
         aria-current={selected || undefined}
-        aria-label={`${unread ? "Unread — " : ""}${fromLabel}: ${message.subject}`}
+        aria-label={t(unread ? "messageUnreadAria" : "messageAria", { from: fromLabel, subject: message.subject })}
         onClick={(event) => {
           // Two-pane on xl: select in place; below xl, navigate as usual.
           if (onSelect && typeof window !== "undefined" && window.matchMedia("(min-width: 1280px)").matches) {
@@ -60,9 +64,9 @@ export function MessageListRow({
             </span>
             <span className="flex shrink-0 items-center gap-1.5 text-[11px] tabular-nums text-muted">
               {message.hasAttachments && (
-                <Paperclip size={13} strokeWidth={2} aria-label="Has attachments" className="text-muted" />
+                <Paperclip size={13} strokeWidth={2} aria-label={t("hasAttachments")} className="text-muted" />
               )}
-              {shortListDate(message.date)}
+              {shortListDate(message.date, intlLocale)}
             </span>
           </span>
           <span
@@ -86,8 +90,8 @@ export function MessageListRow({
         }}
         disabled={seenPending}
         aria-pressed={message.seen}
-        aria-label={message.seen ? "Mark as unread" : "Mark as read"}
-        title={message.seen ? "Mark as unread" : "Mark as read"}
+        aria-label={message.seen ? t("markAsUnread") : t("markAsRead")}
+        title={message.seen ? t("markAsUnread") : t("markAsRead")}
         className="absolute right-3 top-1/2 -translate-y-1/2 rounded-pill p-2 text-muted opacity-100 transition-all hover:bg-electric-tint hover:text-electric focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-electric disabled:opacity-50 sm:opacity-0 sm:group-hover/row:opacity-100"
       >
         {message.seen ? <Mail size={17} strokeWidth={2} /> : <MailOpen size={17} strokeWidth={2} />}

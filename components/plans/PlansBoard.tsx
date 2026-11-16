@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import type { DragEvent, KeyboardEvent } from "react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { setLiveStaff } from "./demo-staff";
 import { createPlanAction, updatePlanStatusAction } from "@/app/actions/plans";
 import type { PlansData } from "@/lib/plans-live";
@@ -24,7 +25,8 @@ import { useDemoToast } from "@/components/charts/useDemoToast";
 import { useDemoStore } from "./useDemoStore";
 import type { PlanRow, PlanStatus, PlanTaskRow } from "@/lib/types/db";
 import {
-  PLAN_PRIORITY_META,
+  PLAN_PRIORITY_LABEL_KEY,
+  PLAN_STATUS_LABEL_KEY,
   PLAN_STATUS_META,
   PlanStatusChip,
   PriorityDot,
@@ -34,22 +36,25 @@ import { PlanCard } from "./PlanCard";
 import { NewPlanModal, type NewPlanDraft } from "./NewPlanModal";
 import { getStaff } from "./demo-staff";
 import { formatFullDate, isOverdueDate } from "@/components/charts/format";
+import { appLocaleTag } from "@/lib/intl-locale";
 
 type View = "board" | "list";
 
 const COLUMNS: Array<{
   status: PlanStatus;
-  label: string;
   icon: LucideIcon;
-  emptyHint: string;
+  emptyKey: "emptyPlanning" | "emptyActive" | "emptyOnHold" | "emptyCompleted";
 }> = [
-  { status: "planning", label: "Planning", icon: ClipboardList, emptyHint: "Nothing in planning — drag a card here or create a plan" },
-  { status: "active", label: "Active", icon: Zap, emptyHint: "Nothing active right now" },
-  { status: "on_hold", label: "On hold", icon: PauseCircle, emptyHint: "Nothing on hold" },
-  { status: "completed", label: "Completed", icon: CheckCircle2, emptyHint: "Nothing completed yet — finish something today" },
+  { status: "planning", icon: ClipboardList, emptyKey: "emptyPlanning" },
+  { status: "active", icon: Zap, emptyKey: "emptyActive" },
+  { status: "on_hold", icon: PauseCircle, emptyKey: "emptyOnHold" },
+  { status: "completed", icon: CheckCircle2, emptyKey: "emptyCompleted" },
 ];
 
 export function PlansBoard({ data }: { data?: PlansData | null }) {
+  const t = useTranslations("plans");
+  const locale = useLocale();
+  const dateLocale = locale === "fr" ? "fr" : appLocaleTag();
   const router = useRouter();
   const live = data?.live === true;
   const liveMembers = (data?.members ?? []).map((m) => ({ id: m.id, name: m.full_name.split(" ")[0] ?? m.full_name }));
@@ -78,52 +83,42 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
     return map;
   }, [tasks]);
 
-  const planProgress = useCallback(
-    (plan: PlanRow) => {
-      const list = tasksByPlan.get(plan.id) ?? [];
-      if (list.length === 0) return plan.progress;
-      const done = list.filter((t) => t.status === "done").length;
-      return Math.round((done / list.length) * 100);
-    },
-    [tasksByPlan],
-  );
+  const planProgress = (plan: PlanRow) => {
+    const list = tasksByPlan.get(plan.id) ?? [];
+    if (list.length === 0) return plan.progress;
+    const done = list.filter((t) => t.status === "done").length;
+    return Math.round((done / list.length) * 100);
+  };
 
-  const movePlanTo = useCallback(
-    (planId: string, status: PlanStatus) => {
-      if (live) {
-        void updatePlanStatusAction({ planId, status }).then((res) => {
-          if (!res.ok) showToast(res.error.message, undefined, "warning");
-          router.refresh();
-        });
-        return;
-      }
-      commitPlans((prev) =>
-        prev.map((p) =>
-          p.id === planId
-            ? { ...p, status, progress: status === "completed" ? 100 : p.progress }
-            : p,
-        ),
-      );
-    },
-    [commitPlans, live, router, showToast],
-  );
+  const movePlanTo = (planId: string, status: PlanStatus) => {
+    if (live) {
+      void updatePlanStatusAction({ planId, status }).then((res) => {
+        if (!res.ok) showToast(res.error.message, undefined, "warning");
+        router.refresh();
+      });
+      return;
+    }
+    commitPlans((prev) =>
+      prev.map((p) =>
+        p.id === planId
+          ? { ...p, status, progress: status === "completed" ? 100 : p.progress }
+          : p,
+      ),
+    );
+  };
 
-  const handleDrop = useCallback(
-    (e: DragEvent<HTMLDivElement>, status: PlanStatus) => {
-      e.preventDefault();
-      const planId = e.dataTransfer.getData("text/plan-id") || draggedId;
-      if (planId) {
-        movePlanTo(planId, status);
-        showToast(`Moved to ${PLAN_STATUS_META[status].label}`, undefined, "success");
-      }
-      setDraggedId(null);
-      setDropColumn(null);
-    },
-    [draggedId, movePlanTo, showToast],
-  );
+  const handleDrop = (e: DragEvent<HTMLDivElement>, status: PlanStatus) => {
+    e.preventDefault();
+    const planId = e.dataTransfer.getData("text/plan-id") || draggedId;
+    if (planId) {
+      movePlanTo(planId, status);
+      showToast(t("movedTo", { status: t(PLAN_STATUS_LABEL_KEY[status]) }), undefined, "success");
+    }
+    setDraggedId(null);
+    setDropColumn(null);
+  };
 
-  const createPlan = useCallback(
-    (draft: NewPlanDraft) => {
+  const createPlan = (draft: NewPlanDraft) => {
       if (live) {
         void createPlanAction({
           title: draft.title,
@@ -136,7 +131,7 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
           showOnCalendar: draft.target_date_marker,
         }).then((res) => {
           if (!res.ok) showToast(res.error.message, undefined, "warning");
-          else showToast("Plan created", draft.title, "success");
+          else showToast(t("planCreated"), draft.title, "success");
           setModalOpen(false);
           router.refresh();
         });
@@ -156,16 +151,11 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
       };
       commitPlans((prev) => [plan, ...prev]);
       setModalOpen(false);
-      showToast("Plan created", plan.title, "success");
-    },
-    [commitPlans, showToast, live, router],
-  );
+      showToast(t("planCreated"), plan.title, "success");
+  };
 
-  const isPlanOverdue = useCallback(
-    (p: PlanRow) =>
-      p.status !== "completed" && p.status !== "cancelled" && isOverdueDate(p.target_date),
-    [],
-  );
+  const isPlanOverdue = (p: PlanRow) =>
+    p.status !== "completed" && p.status !== "cancelled" && isOverdueDate(p.target_date);
 
   const listPlans = useMemo(
     () => (overdueOnly ? plans.filter(isPlanOverdue) : plans),
@@ -186,17 +176,17 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.04em] text-obsidian sm:text-[32px]">
-            Plans
+            {t("title")}
           </h1>
           <p className="mt-1 max-w-xl text-[14px] font-medium text-obsidian-light">
-            Strategic objectives, tracked like work — no meetings about meetings
+            {t("subtitle")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div
             className="segmented"
             role="group"
-            aria-label="View: board or list"
+            aria-label={t("viewToggleAria")}
           >
             <button
               type="button"
@@ -205,7 +195,7 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
               onClick={() => setView("board")}
             >
               <LayoutGrid size={14} strokeWidth={2.2} aria-hidden="true" className="mr-1.5" />
-              Board
+              {t("viewBoard")}
             </button>
             <button
               type="button"
@@ -214,12 +204,12 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
               onClick={() => setView("list")}
             >
               <List size={14} strokeWidth={2.2} aria-hidden="true" className="mr-1.5" />
-              List
+              {t("viewList")}
             </button>
           </div>
           <button type="button" className="btn btn-primary h-11" onClick={() => setModalOpen(true)}>
             <Plus size={18} strokeWidth={2.4} aria-hidden="true" />
-            New plan
+            {t("newPlan")}
           </button>
         </div>
       </div>
@@ -229,19 +219,20 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
         <div className="mt-5 grid gap-3.5 md:grid-cols-2 xl:grid-cols-4">
           {COLUMNS.map((col) => {
             const colPlans = plans.filter((p) => p.status === col.status);
+            const colLabel = t(PLAN_STATUS_LABEL_KEY[col.status]);
             const Icon = col.icon;
             const isDropTarget = dropColumn === col.status;
             return (
               <section
                 key={col.status}
-                aria-label={`${col.label} plans, ${colPlans.length}`}
+                aria-label={t("columnAriaLabel", { label: colLabel, count: colPlans.length })}
                 className="min-w-0"
               >
                 {/* Column header */}
                 <div className="flex items-center justify-between gap-2 px-1">
                   <h2 className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.08em] text-obsidian-light">
                     <span aria-hidden="true" className={`h-2 w-2 rounded-pill ${PLAN_STATUS_META[col.status].dot}`} />
-                    {col.label}
+                    {colLabel}
                   </h2>
                   <span className="rounded-pill bg-track px-2 py-0.5 font-mono text-[11px] font-bold text-obsidian-light tabular-nums">
                     {colPlans.length}
@@ -267,7 +258,7 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
                     <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-white/60 px-4 py-10 text-center">
                       <Icon size={22} strokeWidth={1.8} className="text-muted" aria-hidden="true" />
                       <p className="max-w-[200px] text-[11.5px] font-medium leading-snug text-muted">
-                        {col.emptyHint}
+                        {t(col.emptyKey)}
                       </p>
                     </div>
                   ) : (
@@ -298,7 +289,7 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
 
       {/* ============ LIST ============ */}
       {view === "list" && (
-        <section className="card mt-5 overflow-hidden" aria-label="Plans list">
+        <section className="card mt-5 overflow-hidden" aria-label={t("listAriaLabel")}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-divider px-4 py-3 sm:px-5">
             <label className="flex cursor-pointer select-none items-center gap-2 text-[13px] font-semibold text-obsidian-light">
               <input
@@ -307,23 +298,23 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
                 checked={overdueOnly}
                 onChange={(e) => setOverdueOnly(e.target.checked)}
               />
-              Overdue only
+              {t("overdueOnly")}
             </label>
             <p className="font-mono text-[11px] font-semibold text-muted tabular-nums">
-              {listPlans.length} of {plans.length} plans
+              {t("plansShown", { shown: listPlans.length, total: plans.length })}
             </p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[920px] text-left">
               <thead>
                 <tr className="border-b border-divider">
-                  {["Plan", "Owner", "Status", "Priority", "Target", "Progress"].map((col) => (
+                  {(["tablePlan", "tableOwner", "tableStatus", "tablePriority", "tableTarget", "tableProgress"] as const).map((colKey) => (
                     <th
-                      key={col}
+                      key={colKey}
                       scope="col"
                       className="px-5 py-3 text-[10px] font-bold uppercase tracking-[0.09em] text-muted"
                     >
-                      {col}
+                      {t(colKey)}
                     </th>
                   ))}
                 </tr>
@@ -331,13 +322,13 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
               <tbody className="divide-y divide-divider">
                 {listPlans.map((plan) => {
                   const progress = planProgress(plan);
-                  const owner = getStaff(plan.owner_id);
+                  const owner = getStaff(plan.owner_id, t("unassigned"));
                   const overdue = isPlanOverdue(plan);
                   return (
                     <tr
                       key={plan.id}
                       tabIndex={0}
-                      aria-label={`Open plan ${plan.title}`}
+                      aria-label={t("openPlanNamed", { title: plan.title })}
                       onClick={() => openPlan(plan.id)}
                       onKeyDown={(e) => onRowKeyDown(e, plan.id)}
                       className="cursor-pointer transition-colors hover:bg-canvas/70 focus-visible:bg-electric-tint/40"
@@ -349,13 +340,13 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
                         {plan.target_date_marker && (
                           <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-electric">
                             <CalendarDays size={10} strokeWidth={2.4} aria-hidden="true" />
-                            Marker on calendar
+                            {t("markerOnCalendar")}
                           </span>
                         )}
                       </td>
                       <td className="px-5 py-3.5">
                         <span className="flex items-center gap-2">
-                          <AvatarInitials id={plan.owner_id} size={22} />
+                          <AvatarInitials id={plan.owner_id} size={22} unassignedLabel={t("unassigned")} />
                           <span className="whitespace-nowrap text-[12px] font-semibold text-obsidian-light">
                             {owner.name}
                           </span>
@@ -367,7 +358,7 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
                       <td className="px-5 py-3.5">
                         <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-obsidian-light">
                           <PriorityDot priority={plan.priority} />
-                          {PLAN_PRIORITY_META[plan.priority].label}
+                          {t(PLAN_PRIORITY_LABEL_KEY[plan.priority])}
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
@@ -377,8 +368,8 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
                               overdue ? "text-error" : "text-obsidian-light"
                             }`}
                           >
-                            {formatFullDate(plan.target_date)}
-                            {overdue && <span className="ml-1.5 font-sans text-[10px] font-bold uppercase tracking-wide">Overdue</span>}
+                            {formatFullDate(plan.target_date, dateLocale)}
+                            {overdue && <span className="ml-1.5 font-sans text-[10px] font-bold uppercase tracking-wide">{t("overdue")}</span>}
                           </span>
                         ) : (
                           <span className="text-[12px] text-muted">—</span>
@@ -392,7 +383,7 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
                             aria-valuenow={progress}
                             aria-valuemin={0}
                             aria-valuemax={100}
-                            aria-label={`Progress for ${plan.title}`}
+                            aria-label={t("progressFor", { title: plan.title })}
                           >
                             <span
                               className="block h-full rounded-pill bg-electric transition-all duration-500"
@@ -410,7 +401,7 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
                 {listPlans.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-5 py-10 text-center text-[13px] font-medium text-muted">
-                      No plans match “Overdue only”.
+                      {t("noPlansMatch")}
                     </td>
                   </tr>
                 )}
@@ -419,7 +410,7 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
           </div>
           <div className="border-t border-divider px-5 py-2.5">
             <p className="flex items-center gap-1 text-[11px] font-medium text-muted">
-              Click a row or press Enter to open the plan
+              {t("listFooterHint")}
               <ChevronRight size={11} strokeWidth={2.4} aria-hidden="true" />
             </p>
           </div>

@@ -1,0 +1,15 @@
+{
+  "notifications": {
+    "title": "Notifications",
+    "unreadSummary": "{count} unread — mentions, confirmations and change requests",
+    "allCaughtUp": "You're all caught up",
+    "emptyTitle": "No notifications yet",
+    "emptyBody": "Booking updates, change requests and formation reminders will show up here in real time.",
+    "unread": "Unread",
+    "footerNote": "Showing the latest 50 — retention is 90 days.",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "markAsRead": "Mark as read",
+    "markAllRead": "Mark all read"
+  }
+}

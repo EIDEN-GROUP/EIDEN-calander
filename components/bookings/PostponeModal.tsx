@@ -8,7 +8,9 @@ import { postponeBookingAction } from "@/app/actions/bookings";
 import type { BookingRow } from "@/lib/types/db";
 import { formatTimeRange, relativeDayLabel, startOfDay } from "@/components/calendar/calendar-utils";
 import { useModalA11y } from "@/components/bookings/focus-trap";
+import { useTranslations, useLocale } from "next-intl";
 import { useRef } from "react";
+import { appLocaleTag } from "@/lib/intl-locale";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const toDateInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -33,6 +35,8 @@ export function PostponeModal({
   onDone: (startsAt: string, endsAt: string) => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const t = useTranslations("common");
+  const intlLocale = appLocaleTag(useLocale());
   useModalA11y(panelRef, onClose, true);
 
   const [date, setDate] = useState(() => toDateInput(new Date(booking.starts_at)));
@@ -74,11 +78,11 @@ export function PostponeModal({
     e?.preventDefault();
     setError(null);
     if (!timesValid || !start || !end) {
-      setError("End time must be after the start time.");
+      setError(t("postponeErrorEndBeforeStart"));
       return;
     }
     if (hasConflicts) {
-      setError("That slot clashes with an existing booking — pick a suggested time.");
+      setError(t("postponeErrorClashes"));
       return;
     }
     setSaving(true);
@@ -93,22 +97,22 @@ export function PostponeModal({
         return;
       }
       if ("conflict" in res.data) {
-        setError("That slot was just taken — pick a suggested time.");
+        setError(t("postponeErrorTaken"));
         return;
       }
       onDone(start.toISOString(), end.toISOString());
     } catch {
-      setError("Something went wrong — try again.");
+      setError(t("postponeErrorGeneric"));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[65]" role="dialog" aria-modal="true" aria-label="Postpone booking">
+    <div className="fixed inset-0 z-[65]" role="dialog" aria-modal="true" aria-label={t("postponeTitle")}>
       <button
         type="button"
-        aria-label="Close"
+        aria-label={t("close")}
         tabIndex={-1}
         onClick={onClose}
         className="absolute inset-0 cursor-default bg-obsidian/40 backdrop-blur-[2px]"
@@ -125,7 +129,7 @@ export function PostponeModal({
             </span>
             <div className="min-w-0">
               <h2 className="text-[17px] font-extrabold leading-snug tracking-[-0.02em] text-obsidian">
-                Postpone booking
+                {t("postponeTitle")}
               </h2>
               <p className="mt-0.5 line-clamp-1 text-[12px] font-medium text-obsidian-light">{booking.title}</p>
             </div>
@@ -133,7 +137,7 @@ export function PostponeModal({
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("close")}
             className="rounded-pill p-2 text-muted transition-colors hover:bg-black/[0.04] hover:text-obsidian"
           >
             <X size={18} strokeWidth={2} aria-hidden="true" />
@@ -144,15 +148,15 @@ export function PostponeModal({
         <form onSubmit={submit} className="p-5">
           <div className="grid grid-cols-[1fr_1fr_1fr] gap-3">
             <div className="col-span-1">
-              <label htmlFor="pp-date" className="label">Date</label>
+              <label htmlFor="pp-date" className="label">{t("postponeDate")}</label>
               <input id="pp-date" type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
             <div className="col-span-1">
-              <label htmlFor="pp-start" className="label">Start</label>
+              <label htmlFor="pp-start" className="label">{t("postponeStart")}</label>
               <input id="pp-start" type="time" className="input" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
             </div>
             <div className="col-span-1">
-              <label htmlFor="pp-end" className="label">End</label>
+              <label htmlFor="pp-end" className="label">{t("postponeEnd")}</label>
               <input id="pp-end" type="time" className="input" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
             </div>
           </div>
@@ -162,10 +166,10 @@ export function PostponeModal({
             <div role="status" className="mt-4 rounded-sm border border-warning/40 bg-warning-tint px-4 py-3">
               <p className="flex items-center gap-2 text-[12px] font-bold text-[#a34d00]">
                 <TriangleAlert size={15} strokeWidth={2.2} aria-hidden="true" />
-                Clashes with {conflicts[0]?.title ?? "another booking"}
+                {t("postponeClashesWith", { title: conflicts[0]?.title ?? t("anotherBooking") })}
               </p>
               <p className="mt-1.5 text-[11px] font-medium leading-snug text-[#a34d00]">
-                {conflicts[0] ? formatTimeRange(new Date(conflicts[0].starts_at), new Date(conflicts[0].ends_at)) : ""} — pick a suggested slot instead.
+                {t("postponePickSuggested", { range: conflicts[0] ? formatTimeRange(new Date(conflicts[0].starts_at), new Date(conflicts[0].ends_at)) : "" })}
               </p>
               {suggestions.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
@@ -192,7 +196,7 @@ export function PostponeModal({
             timesValid && (
               <p role="status" className="mt-4 flex items-center gap-2 text-[12px] font-semibold text-success">
                 <CheckCircle2 size={15} strokeWidth={2.2} aria-hidden="true" />
-                Free slot — {formatTimeRange(start, end)}
+                {t("postponeFreeSlot", { range: formatTimeRange(start, end) })}
               </p>
             )
           )}
@@ -206,7 +210,7 @@ export function PostponeModal({
           {/* Actions */}
           <div className="mt-5 flex items-center justify-end gap-2 border-t border-divider pt-4">
             <button type="button" onClick={onClose} className="btn btn-secondary h-11">
-              Cancel
+              {t("cancel")}
             </button>
             <button
               type="submit"
@@ -216,10 +220,10 @@ export function PostponeModal({
               {saving ? (
                 <>
                   <Loader2 size={16} className="animate-spin" aria-hidden="true" />
-                  Moving…
+                  {t("moving")}
                 </>
               ) : (
-                "Postpone"
+                t("postponeSubmit")
               )}
             </button>
           </div>

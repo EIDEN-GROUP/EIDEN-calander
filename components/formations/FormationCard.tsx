@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { useTranslations, useLocale } from "next-intl";
+import { appLocaleTag } from "@/lib/intl-locale";
 import { ArrowRight, CalendarDays, Copy, DoorOpen } from "lucide-react";
 import {
   effectiveStatus,
@@ -25,6 +27,8 @@ export function FormationCard({
   onDuplicate: (vm: FormationVM) => void;
   rooms?: RoomRow[];
 }) {
+  const t = useTranslations("formations");
+  const intlLocale = appLocaleTag(useLocale());
   const { booking, formation, participants } = vm;
   const status = effectiveStatus(vm);
   const left = seatsLeft(formation, participants);
@@ -37,7 +41,7 @@ export function FormationCard({
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <StatusChip tone="green" className="tracking-[0.06em]">
-            FORMATION
+            {t("chipFormation")}
           </StatusChip>
           <FormationStatusChip status={status} seatsLeft={left} />
         </div>
@@ -54,12 +58,12 @@ export function FormationCard({
         <p className="flex items-center gap-2">
           <CalendarDays size={15} aria-hidden="true" className="shrink-0 text-muted" />
           <span className="tabular-nums">
-            {formatDay(booking.starts_at)} · {formatTimeRange(booking.starts_at, booking.ends_at)}
+            {formatDay(booking.starts_at, intlLocale)} · {formatTimeRange(booking.starts_at, booking.ends_at, intlLocale)}
           </span>
         </p>
         <p className="flex items-center gap-2">
           <DoorOpen size={15} aria-hidden="true" className="shrink-0 text-muted" />
-          <span className="truncate">{room ? stripDemoSuffix(room.name) : "Room to be assigned"}</span>
+          <span className="truncate">{room ? stripDemoSuffix(room.name) : t("roomToBeAssigned")}</span>
           <span className="chip bg-track px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-muted">
             {locationBadge(room?.location)}
           </span>
@@ -69,7 +73,7 @@ export function FormationCard({
       {/* Footer */}
       <div className="mt-4 border-t border-divider pt-4">
         <span className="chip bg-track font-mono text-[11px] font-semibold tracking-tight text-obsidian">
-          {formation.price_label != null ? `${formatMad(formation.price_label)} / seat` : "Price on request"}
+          {formation.price_label != null ? `${formatMad(formation.price_label)} ${t("perSeat")}` : t("priceOnRequest")}
         </span>
       </div>
       <div className="mt-3 flex items-center justify-between gap-2">
@@ -77,14 +81,14 @@ export function FormationCard({
           href={`/formations/${booking.id}`}
           className="inline-flex items-center gap-1.5 rounded-sm text-[13px] font-bold text-electric transition-colors hover:text-electric-hover"
         >
-          View roster
+          {t("viewRoster")}
           <ArrowRight size={14} aria-hidden="true" />
         </Link>
         <button
           type="button"
           onClick={() => onDuplicate(vm)}
-          aria-label={`Duplicate ${booking.title} — same session next week`}
-          title="Duplicate +1 week"
+          aria-label={t("duplicateAria", { title: booking.title })}
+          title={t("duplicateWeek")}
           className="flex h-9 w-9 items-center justify-center rounded-pill text-obsidian-light transition-colors hover:bg-hover-fill hover:text-obsidian"
         >
           <Copy size={17} aria-hidden="true" />

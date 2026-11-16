@@ -12,6 +12,7 @@ import {
   X,
   ScrollText,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { PageHeader } from "@/components/settings/PageHeader";
 import { ToastViewport, useToast } from "@/components/settings/Toast";
 import { NowBarMark } from "@/components/brand/NowBar";
@@ -47,17 +48,24 @@ const TIMEZONES = [
 ];
 
 const CURRENCIES = [
-  { value: "MAD", label: "MAD — Moroccan Dirham" },
-  { value: "EUR", label: "EUR — Euro" },
-  { value: "USD", label: "USD — US Dollar" },
-];
+  { value: "MAD", labelKey: "currencyMad" },
+  { value: "EUR", labelKey: "currencyEur" },
+  { value: "USD", labelKey: "currencyUsd" },
+] as const;
 
-const COUNTRIES = ["Morocco", "France", "Belgium", "Spain", "United Arab Emirates"];
+const COUNTRIES = [
+  { value: "Morocco", labelKey: "countryMorocco" },
+  { value: "France", labelKey: "countryFrance" },
+  { value: "Belgium", labelKey: "countryBelgium" },
+  { value: "Spain", labelKey: "countrySpain" },
+  { value: "United Arab Emirates", labelKey: "countryUae" },
+] as const;
 
 const ALLOWED_LOGO_TYPES = ["image/svg+xml", "image/png", "image/webp"];
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
 export function GeneralView({ initial = null, live = false }: { initial?: GeneralInitial | null; live?: boolean }) {
+  const t = useTranslations("settings");
   const router = useRouter();
   const { toasts, push } = useToast();
 
@@ -74,7 +82,7 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
   const [siteUrl, setSiteUrl] = useState(initial?.publicUrl ?? "https://eiden-group.com");
 
   const [logo, setLogo] = useState<{ name: string; url: string } | null>(
-    initial?.logoUrl ? { name: "Current logo", url: initial.logoUrl } : null,
+    initial?.logoUrl ? { name: t("currentLogo"), url: initial.logoUrl } : null,
   );
   const [logoError, setLogoError] = useState<string | null>(null);
   const [logoBusy, setLogoBusy] = useState(false);
@@ -93,11 +101,11 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
   const handleLogoFile = async (file: File) => {
     if (logoError) setLogoError(null);
     if (!ALLOWED_LOGO_TYPES.includes(file.type)) {
-      setLogoError("Unsupported file — use SVG, PNG or WebP.");
+      setLogoError(t("logoUnsupportedType"));
       return;
     }
     if (file.size > MAX_LOGO_BYTES) {
-      setLogoError("File is larger than 2MB — export a smaller version and try again.");
+      setLogoError(t("logoTooLarge"));
       return;
     }
     if (!live) {
@@ -112,7 +120,7 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
     setLogoBusy(true);
     try {
       const supabase = createClient();
-      if (!supabase) throw new Error("Supabase isn't configured.");
+      if (!supabase) throw new Error(t("supabaseNotConfigured"));
       const ext = file.name.split(".").pop()?.toLowerCase() ?? "svg";
       const path = `logo-${Date.now()}.${ext}`;
       const { error: upErr } = await supabase.storage.from("brand-assets").upload(path, file, {
@@ -124,10 +132,10 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
       const res = await updateBusinessLogoAction({ logoUrl: pub.publicUrl });
       if (!res.ok) throw new Error(res.error.message);
       setLogo({ name: file.name, url: pub.publicUrl });
-      push("Logo updated everywhere it renders");
+      push(t("logoUpdated"));
       router.refresh();
     } catch (err) {
-      setLogoError(err instanceof Error ? err.message : "Upload failed — try again.");
+      setLogoError(err instanceof Error ? err.message : t("logoUploadFailed"));
     } finally {
       setLogoBusy(false);
     }
@@ -146,7 +154,7 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
     setLogoError(null);
     if (live) {
       const res = await updateBusinessLogoAction({ logoUrl: null });
-      if (res.ok) push("Logo removed");
+      if (res.ok) push(t("logoRemoved"));
       else push(res.error.message);
       router.refresh();
     }
@@ -155,7 +163,7 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!live) {
-      push("Saved (demo)");
+      push(t("savedDemo"));
       return;
     }
     setSaving(true);
@@ -180,15 +188,15 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
       push(res.error.message);
       return;
     }
-    push("General settings saved");
+    push(t("generalSaved"));
     router.refresh();
   };
 
   return (
     <div className="mx-auto max-w-6xl">
       <PageHeader
-        title="General"
-        sub="Business identity, contact details, timezone and currency — the single source of truth for invoices, emails and the public site."
+        title={t("tabGeneral")}
+        sub={t("generalSub")}
       />
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
@@ -198,64 +206,64 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
               <Building2 size={18} strokeWidth={1.9} aria-hidden="true" />
             </span>
             <div>
-              <h2 className="text-[15px] font-extrabold text-obsidian">Business profile</h2>
-              <p className="text-[11px] font-medium text-muted">Shown on emails, invoices and the login screen.</p>
+              <h2 className="text-[15px] font-extrabold text-obsidian">{t("businessProfileTitle")}</h2>
+              <p className="text-[11px] font-medium text-muted">{t("businessProfileDesc")}</p>
             </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor="gen-business-name" className="label">Business name</label>
+              <label htmlFor="gen-business-name" className="label">{t("businessNameLabel")}</label>
               <input id="gen-business-name" className="input" value={businessName} onChange={(e) => setBusinessName(e.target.value)} autoComplete="organization" />
             </div>
             <div>
-              <label htmlFor="gen-legal-name" className="label">Legal name</label>
+              <label htmlFor="gen-legal-name" className="label">{t("legalNameLabel")}</label>
               <input id="gen-legal-name" className="input" value={legalName} onChange={(e) => setLegalName(e.target.value)} autoComplete="organization" />
             </div>
             <div>
-              <label htmlFor="gen-contact-email" className="label">Contact email</label>
+              <label htmlFor="gen-contact-email" className="label">{t("contactEmailLabel")}</label>
               <input id="gen-contact-email" type="email" className="input font-mono text-[13px]" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} autoComplete="email" />
             </div>
             <div>
-              <label htmlFor="gen-phone" className="label">Phone</label>
+              <label htmlFor="gen-phone" className="label">{t("phoneLabel")}</label>
               <input id="gen-phone" type="tel" className="input font-mono text-[13px]" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
             </div>
             <div className="sm:col-span-2">
-              <label htmlFor="gen-address" className="label">Address</label>
+              <label htmlFor="gen-address" className="label">{t("addressLabel")}</label>
               <input id="gen-address" className="input" value={address} onChange={(e) => setAddress(e.target.value)} autoComplete="street-address" />
             </div>
             <div>
-              <label htmlFor="gen-city" className="label">City</label>
+              <label htmlFor="gen-city" className="label">{t("cityLabel")}</label>
               <input id="gen-city" className="input" value={city} onChange={(e) => setCity(e.target.value)} autoComplete="address-level2" />
             </div>
             <div>
-              <label htmlFor="gen-country" className="label">Country</label>
+              <label htmlFor="gen-country" className="label">{t("countryLabel")}</label>
               <select id="gen-country" className="input" value={country} onChange={(e) => setCountry(e.target.value)}>
                 {COUNTRIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c.value} value={c.value}>{t(c.labelKey)}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label htmlFor="gen-timezone" className="label">Timezone</label>
+              <label htmlFor="gen-timezone" className="label">{t("timezoneLabel")}</label>
               <select id="gen-timezone" className="input font-mono text-[13px]" value={timezone} onChange={(e) => setTimezone(e.target.value)}>
                 {TIMEZONES.map((tz) => (
                   <option key={tz.value} value={tz.value}>{tz.label}</option>
                 ))}
               </select>
-              <p className="mt-1.5 text-[11px] font-medium leading-snug text-muted">Covers Casablanca &amp; Agadir — same time</p>
+              <p className="mt-1.5 text-[11px] font-medium leading-snug text-muted">{t("timezoneNote")}</p>
             </div>
             <div>
-              <label htmlFor="gen-currency" className="label">Currency</label>
+              <label htmlFor="gen-currency" className="label">{t("currencyLabel")}</label>
               <select id="gen-currency" className="input" value={currency} onChange={(e) => setCurrency(e.target.value)}>
                 {CURRENCIES.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
+                  <option key={c.value} value={c.value}>{t(c.labelKey)}</option>
                 ))}
               </select>
-              <p className="mt-1.5 text-[11px] font-medium leading-snug text-muted">Amounts on invoices and exports</p>
+              <p className="mt-1.5 text-[11px] font-medium leading-snug text-muted">{t("currencyNote")}</p>
             </div>
             <div className="sm:col-span-2">
-              <span className="label" id="gen-locale-label">Default locale</span>
+              <span className="label" id="gen-locale-label">{t("defaultLocaleLabel")}</span>
               <div role="group" aria-labelledby="gen-locale-label" className="segmented">
                 {(["en", "fr"] as const).map((l) => (
                   <button
@@ -265,20 +273,20 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
                     onClick={() => setLocale(l)}
                     className={`segment ${locale === l ? "segment-active" : ""}`}
                   >
-                    {l === "en" ? "EN — English" : "FR — Français"}
+                    {l === "en" ? t("localeEnOption") : t("localeFrOption")}
                   </button>
                 ))}
               </div>
-              <p className="mt-1.5 text-[11px] font-medium leading-snug text-muted">Users can override this per profile</p>
+              <p className="mt-1.5 text-[11px] font-medium leading-snug text-muted">{t("localeNote")}</p>
             </div>
             <div className="sm:col-span-2">
-              <label htmlFor="gen-site-url" className="label">Public site URL</label>
+              <label htmlFor="gen-site-url" className="label">{t("siteUrlLabel")}</label>
               <input id="gen-site-url" type="url" inputMode="url" className="input font-mono text-[13px]" value={siteUrl} onChange={(e) => setSiteUrl(e.target.value)} placeholder="https://" />
             </div>
           </div>
 
           <div>
-            <span className="label" id="gen-logo-label">Logo</span>
+            <span className="label" id="gen-logo-label">{t("logoLabel")}</span>
             <div
               role="group"
               aria-labelledby="gen-logo-label"
@@ -307,19 +315,19 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
                 onChange={onLogoPick}
               />
               {logoBusy ? (
-                <p className="text-[13px] font-semibold text-obsidian-light" role="status">Uploading logo…</p>
+                <p className="text-[13px] font-semibold text-obsidian-light" role="status">{t("logoUploading")}</p>
               ) : logo ? (
                 <div className="flex w-full flex-col items-center gap-3 sm:flex-row sm:justify-between">
                   <div className="flex items-center gap-3">
                     {/* eslint-disable-next-line @next/next/no-img-element -- client-side object URL preview */}
                     <img
                       src={logo.url}
-                      alt={`Logo preview of ${logo.name}`}
+                      alt={t("logoPreviewAlt", { name: logo.name })}
                       className="h-16 w-16 rounded-sm border border-border bg-white object-contain p-1.5"
                     />
                     <div className="text-left">
                       <p className="max-w-[220px] truncate font-mono text-[12px] font-semibold text-obsidian">{logo.name}</p>
-                      <p className="mt-0.5 text-[11px] font-medium text-muted">{live ? "Live — applies everywhere right away" : "Demo preview — nothing is uploaded"}</p>
+                      <p className="mt-0.5 text-[11px] font-medium text-muted">{live ? t("logoLiveNote") : t("logoDemoNote")}</p>
                     </div>
                   </div>
                   <button
@@ -328,7 +336,7 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
                     className="inline-flex h-9 items-center gap-1.5 rounded-pill border border-border bg-white px-3 text-[12px] font-semibold text-obsidian-light transition-colors hover:bg-canvas"
                   >
                     <X size={13} strokeWidth={2.4} aria-hidden="true" />
-                    Remove
+                    {t("removeLogoButton")}
                   </button>
                 </div>
               ) : (
@@ -336,14 +344,14 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
                   <span className="flex h-11 w-11 items-center justify-center rounded-pill bg-white text-muted shadow-sm">
                     <ImagePlus size={20} strokeWidth={1.8} aria-hidden="true" />
                   </span>
-                  <p className="mt-2.5 text-[13px] font-semibold text-obsidian">Drag &amp; drop your logo, or</p>
+                  <p className="mt-2.5 text-[13px] font-semibold text-obsidian">{t("logoDragDrop")}</p>
                   <button type="button" onClick={() => logoInputRef.current?.click()} className="btn btn-secondary mt-2 h-9 px-4 text-[13px]">
-                    Browse files
+                    {t("logoBrowse")}
                   </button>
                 </>
               )}
             </div>
-            <p className="mt-1.5 text-[11px] font-medium leading-snug text-muted">SVG, PNG or WebP · max 2MB — rendered via <code>&lt;img&gt;</code>, never inlined</p>
+            <p className="mt-1.5 text-[11px] font-medium leading-snug text-muted">{t("logoFormatsBefore")} <code>&lt;img&gt;</code> {t("logoFormatsAfter")}</p>
             {logoError ? (
               <p role="alert" className="mt-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-error">
                 <CircleExclamationPoint size={13} strokeWidth={2.2} aria-hidden="true" />
@@ -355,10 +363,10 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-divider pt-4">
             <p className="flex items-center gap-1.5 text-[11px] font-medium text-muted">
               <ScrollText size={12} strokeWidth={2} aria-hidden="true" />
-              Changes are written to the audit log
+              {t("auditLogNote")}
             </p>
             <button type="submit" disabled={saving} className="btn btn-primary h-11 disabled:opacity-60">
-              {saving ? "Saving…" : "Save changes"}
+              {saving ? t("saving") : t("saveChanges")}
             </button>
           </div>
         </form>
@@ -378,10 +386,10 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
 
             <dl className="mt-4 divide-y divide-divider border-y border-divider">
               {[
-                { term: "Timezone", value: timezone },
-                { term: "Currency", value: currency },
-                { term: "Week start", value: "Monday" },
-                { term: "Locale", value: locale === "en" ? "English (EN)" : "Français (FR)" },
+                { term: t("previewTimezone"), value: timezone },
+                { term: t("previewCurrency"), value: currency },
+                { term: t("previewWeekStart"), value: t("mondayLabel") },
+                { term: t("previewLocale"), value: locale === "en" ? t("localeSummaryEn") : t("localeSummaryFr") },
               ].map(({ term, value }) => (
                 <div key={term} className="grid grid-cols-[104px_1fr] items-baseline gap-3 py-2.5">
                   <dt className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{term}</dt>
@@ -392,16 +400,16 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
 
             <div className="mt-4 flex items-start gap-2 rounded-sm bg-tint-blue p-3 text-[12px] font-medium leading-snug text-tint-fg-blue">
               <Info size={14} strokeWidth={2.2} aria-hidden="true" className="mt-0.5 shrink-0" />
-              Logo also updates favicon, login and emails once live.
+              {t("logoFaviconNote")}
             </div>
 
             <div className="mt-4 flex items-center gap-2 rounded-sm border border-divider bg-canvas/60 px-3 py-2.5 text-[11px] font-medium leading-snug text-muted">
               <Mail size={13} strokeWidth={2} aria-hidden="true" className="shrink-0" />
-              <span>Public identity on <span className="font-mono text-obsidian-light">{siteUrl.replace(/^https?:\/\//, "") || "eiden-group.com"}</span></span>
+              <span>{t("publicIdentityOn")} <span className="font-mono text-obsidian-light">{siteUrl.replace(/^https?:\/\//, "") || "eiden-group.com"}</span></span>
             </div>
             <div className="mt-2 flex items-center gap-2 rounded-sm border border-divider bg-canvas/60 px-3 py-2.5 text-[11px] font-medium leading-snug text-muted">
               <Phone size={13} strokeWidth={2} aria-hidden="true" className="shrink-0" />
-              <span>Replies route to <span className="font-mono text-obsidian-light">{contactEmail}</span></span>
+              <span>{t("repliesRouteTo")} <span className="font-mono text-obsidian-light">{contactEmail}</span></span>
             </div>
           </div>
         </aside>

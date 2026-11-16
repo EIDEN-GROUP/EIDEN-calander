@@ -1,11 +1,15 @@
 import { connection } from "next/server";
 import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 import { ScrollText } from "lucide-react";
 import { AuditView, type AuditEntryLive } from "@/components/settings/views/AuditView";
 import { listAuditLogAction } from "@/app/actions/settings";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Audit Log · Settings" };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("settings");
+  return { title: t("metaAudit") };
+}
 // Reads live data at request time — block prerender.
 export const instant = false;
 
@@ -35,6 +39,7 @@ function detailsOf(action: string, meta: unknown): string {
 
 export default async function AuditPage() {
   await connection();
+  const t = await getTranslations("settings");
   const supabase = await createClient();
   let isAdmin = false;
   let entries: AuditEntryLive[] | null = null;
@@ -99,9 +104,9 @@ export default async function AuditPage() {
       <div className="mx-auto max-w-3xl">
         <div className="card flex flex-col items-center px-6 py-16 text-center">
           <ScrollText size={36} strokeWidth={1.5} className="text-muted" aria-hidden="true" />
-          <h1 className="mt-4 text-[22px] font-extrabold tracking-[-0.03em] text-obsidian">Admin only</h1>
+          <h1 className="mt-4 text-[22px] font-extrabold tracking-[-0.03em] text-obsidian">{t("adminOnlyTitle")}</h1>
           <p className="mt-1.5 max-w-sm text-[14px] leading-snug text-obsidian-light">
-            The audit log records every change in the workspace. Only administrators can read it.
+            {t("adminOnlyBody")}
           </p>
         </div>
       </div>
