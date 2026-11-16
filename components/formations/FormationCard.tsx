@@ -40,7 +40,7 @@ export function FormationCard({
       {/* Top row: chips + fill ring */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <StatusChip tone="green" className="tracking-[0.06em]">
+          <StatusChip tone="green" className="tracking-[0.08em]">
             {t("chipFormation")}
           </StatusChip>
           <FormationStatusChip status={status} seatsLeft={left} />
@@ -49,7 +49,7 @@ export function FormationCard({
       </div>
 
       {/* Title */}
-      <h2 className="mt-3 min-h-[2.9rem] line-clamp-2 text-[17px] font-bold leading-snug tracking-[-0.01em] text-obsidian">
+      <h2 className="mt-3 min-h-[2.9rem] line-clamp-2 text-[17px] font-bold leading-snug tracking-[-0.02em] text-obsidian" title={booking.title}>
         {booking.title}
       </h2>
 
@@ -63,8 +63,8 @@ export function FormationCard({
         </p>
         <p className="flex items-center gap-2">
           <DoorOpen size={15} aria-hidden="true" className="shrink-0 text-muted" />
-          <span className="truncate">{room ? stripDemoSuffix(room.name) : t("roomToBeAssigned")}</span>
-          <span className="chip bg-track px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-muted">
+          <span className="truncate" title={room ? stripDemoSuffix(room.name) : t("roomToBeAssigned")}>{room ? stripDemoSuffix(room.name) : t("roomToBeAssigned")}</span>
+          <span className="chip bg-track px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
             {locationBadge(room?.location)}
           </span>
         </p>

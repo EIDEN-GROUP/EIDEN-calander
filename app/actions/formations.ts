@@ -8,7 +8,7 @@ import type { ActionResult } from "@/lib/types/db";
 import { logAudit } from "@/lib/audit";
 
 function notConfigured<T>(): ActionResult<T> {
-  return { ok: false, error: { code: "not_configured", message: "Supabase isn't configured — set .env." } };
+  return { ok: false, error: { code: "not_configured", message: "Supabase isn't configured: set .env." } };
 }
 function fail(code: string, message: string): ActionResult<never> {
   return { ok: false, error: { code, message } };
@@ -84,7 +84,7 @@ const participantInput = z.object({
   clientId: z.string().uuid().nullable().optional(),
 });
 
-/** Enroll a participant — waitlist automatically when at capacity. */
+/** Enroll a participant: waitlist automatically when at capacity. */
 export async function enrollParticipantAction(raw: unknown): Promise<ActionResult<{ participantId: string; waitlisted: boolean }>> {
   try {
     await requireUser();
@@ -167,7 +167,7 @@ const importInput = z.object({
   })).max(500),
 });
 
-/** Bulk import participants from a CSV dry-run — skips duplicate emails per formation. */
+/** Bulk import participants from a CSV dry-run: skips duplicate emails per formation. */
 export async function importParticipantsAction(raw: unknown): Promise<ActionResult<{ enrolled: number; skipped: number }>> {
   try {
     await requireUser();
@@ -211,7 +211,7 @@ export async function importParticipantsAction(raw: unknown): Promise<ActionResu
   }
 }
 
-/** Remove a participant from the roster (staff/admin — shared ops). */
+/** Remove a participant from the roster (staff/admin: shared ops). */
 export async function removeParticipantAction(raw: unknown): Promise<ActionResult<{ removed: true }>> {
   try {
     await requireUser();

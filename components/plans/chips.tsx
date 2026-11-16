@@ -3,9 +3,9 @@ import { useTranslations } from "next-intl";
 import type { PlanPriority, PlanStatus } from "@/lib/types/db";
 
 /**
- * Shared plan chips — status (static chip + editable select variant) and
+ * Shared plan chips: status (static chip + editable select variant) and
  * priority (dot / full chip). Brand tints only, no hex.
- * Labels come from the `plans` namespace — use the LABEL_KEY maps with t().
+ * Labels come from the `plans` namespace: use the LABEL_KEY maps with t().
  */
 
 export const PLAN_STATUS_LABEL_KEY: Record<
@@ -36,14 +36,14 @@ export const PLAN_STATUS_META: Record<
   active: { chip: "bg-tint-green text-tint-fg-green", dot: "bg-success" },
   on_hold: { chip: "bg-warning-tint text-tint-fg-amber", dot: "bg-warning" },
   completed: { chip: "bg-track text-obsidian-light", dot: "bg-success" },
-  cancelled: { chip: "bg-error-tint text-error", dot: "bg-error" },
+  cancelled: { chip: "bg-error-tint text-error-fg", dot: "bg-error" },
 };
 
 export const PLAN_PRIORITY_META: Record<
   PlanPriority,
   { dot: string; chip: string }
 > = {
-  high: { dot: "bg-error", chip: "bg-error-tint text-error" },
+  high: { dot: "bg-error", chip: "bg-error-tint text-error-fg" },
   medium: { dot: "bg-warning", chip: "bg-warning-tint text-tint-fg-amber" },
   low: { dot: "bg-success", chip: "bg-success-tint text-tint-fg-green" },
 };
@@ -59,7 +59,7 @@ export function PlanStatusChip({ status }: { status: PlanStatus }) {
   );
 }
 
-/** Editable status chip — a native <select> dressed as a chip (keyboard + SR friendly). */
+/** Editable status chip: a native <select> dressed as a chip (keyboard + SR friendly). */
 export function PlanStatusSelect({
   status,
   onChange,
@@ -93,7 +93,7 @@ export function PlanStatusSelect({
       </select>
       <ChevronDown
         size={11}
-        strokeWidth={2.6}
+        strokeWidth={2.4}
         aria-hidden="true"
         className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 opacity-70"
       />

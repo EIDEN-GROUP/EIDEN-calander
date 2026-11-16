@@ -1,5 +1,5 @@
 /**
- * StatusChip — token-only tinted pill. FormationStatusChip maps a derived
+ * StatusChip: token-only tinted pill. FormationStatusChip maps a derived
  * formation lifecycle state onto a tone + label.
  */
 
@@ -21,7 +21,7 @@ export type ChipTone =
 const TONE_CLASSES: Record<ChipTone, string> = {
   success: "bg-success-tint text-tint-fg-green",
   warning: "bg-warning-tint text-tint-fg-amber",
-  error: "bg-error-tint text-error",
+  error: "bg-error-tint text-error-fg",
   muted: "bg-track text-muted",
   electric: "bg-electric-tint text-electric",
   green: "bg-tint-green text-tint-fg-green",

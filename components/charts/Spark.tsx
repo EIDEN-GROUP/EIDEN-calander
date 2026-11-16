@@ -3,7 +3,7 @@
 import { Area, AreaChart, ResponsiveContainer } from "recharts";
 
 /**
- * Spark — tiny headless-ish sparkline (no axes, no grid, Electric stroke,
+ * Spark: tiny headless-ish sparkline (no axes, no grid, Electric stroke,
  * tint fill). Solid electric per brand restraint.
  */
 export function Spark({

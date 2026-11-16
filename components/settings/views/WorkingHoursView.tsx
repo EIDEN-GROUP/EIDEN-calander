@@ -64,7 +64,7 @@ const toHHMM = (t: string) => (t ?? "08:00").slice(0, 5);
 export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursInitial | null }) {
   const t = useTranslations("settings");
   const router = useRouter();
-  const { toasts, push } = useToast();
+  const { toasts, leaving, push } = useToast();
   const baseWeek = initial
     ? initial.week.map((d) => ({ ...DEFAULT_WEEK.find((w) => w.key === d.key)!, isOpen: d.isOpen, open: toHHMM(d.open), close: toHHMM(d.close) }))
     : DEFAULT_WEEK;
@@ -147,9 +147,9 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
               </div>
             </div>
 
-            <div className="hidden grid-cols-[150px_auto_1fr_auto] gap-3 border-b border-divider px-4 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted sm:grid sm:px-5">
+            <div className="hidden grid-cols-[150px_auto_1fr_auto] gap-3 border-b border-divider px-4 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-muted sm:grid sm:px-5">
               <span>{t("colDay")}</span>
-              <span className="w-11">{t("colOpen")}</span>
+              <span className="w-14">{t("colOpen")}</span>
               <span>{t("colHours")}</span>
               <span className="w-[76px] text-right">{t("colCopy")}</span>
             </div>
@@ -159,11 +159,11 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                 const invalid = invalidKeys.has(day.key);
                 const errorId = `err-${day.key}`;
                 return (
-                  <li key={day.key} className="px-4 py-3 transition-colors hover:bg-canvas/50 sm:px-5">
+                  <li key={day.key} className="px-4 py-3 transition-colors hover:bg-canvas/60 sm:px-5">
                     <div className="grid grid-cols-[110px_auto_1fr_auto] items-center gap-2 sm:grid-cols-[150px_auto_1fr_auto] sm:gap-3">
                       <div className="min-w-0">
                         <p className="text-[13px] font-bold text-obsidian">{t(day.labelKey)}</p>
-                        <p className={`text-[10px] font-bold uppercase tracking-[0.1em] ${day.isOpen ? "text-tint-fg-green" : "text-muted"}`}>
+                        <p className={`text-[11px] font-bold uppercase tracking-[0.08em] ${day.isOpen ? "text-tint-fg-green" : "text-muted"}`}>
                           {day.isOpen ? t("dayOpenLabel") : t("dayClosedLabel")}
                         </p>
                       </div>
@@ -200,19 +200,19 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                           <button
                             type="button"
                             onClick={() => copyMondayTo(day.key)}
-                            className="inline-flex items-center gap-1 rounded-pill border border-border bg-white px-2 py-1.5 text-[10px] font-bold text-obsidian-light transition-colors hover:bg-canvas hover:text-obsidian"
+                            className="inline-flex items-center gap-1 rounded-pill border border-border bg-white px-2 py-1.5 text-[11px] font-bold text-obsidian-light transition-colors hover:bg-canvas hover:text-obsidian"
                             title={t("copyMondayTitle")}
                           >
                             <Copy size={11} strokeWidth={2.2} aria-hidden="true" />
                             {t("dayMonShort")}
                           </button>
                         ) : (
-                          <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted">{t("sourceLabel")}</span>
+                          <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{t("sourceLabel")}</span>
                         )}
                       </div>
                     </div>
                     {invalid ? (
-                      <p id={errorId} role="alert" className="mt-2 flex items-center gap-1.5 pl-[118px] text-[11px] font-semibold text-error sm:pl-[166px]">
+                      <p id={errorId} role="alert" className="mt-2 flex items-center gap-1.5 pl-[118px] text-[11px] font-semibold text-error-fg sm:pl-[162px]">
                         <CircleExclamationPoint size={12} strokeWidth={2.4} aria-hidden="true" />
                         {t("hoursOrderError", { day: t(day.labelKey) })}
                       </p>
@@ -223,7 +223,7 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
             </ul>
 
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-divider px-4 py-3.5 sm:px-5">
-              <p aria-live="polite" className={`flex items-center gap-1.5 text-[11px] font-semibold ${hasErrors ? "text-error" : "text-muted"}`}>
+              <p aria-live="polite" className={`flex items-center gap-1.5 text-[11px] font-semibold ${hasErrors ? "text-error-fg" : "text-muted"}`}>
                 {hasErrors ? (
                   <>
                     <CircleExclamationPoint size={13} strokeWidth={2.4} aria-hidden="true" />
@@ -274,7 +274,7 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                   />
                   <span aria-hidden="true" className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[11px] font-bold text-muted">min</span>
                 </div>
-                <p className="mt-1.5 text-[10px] font-medium text-muted">{t("bufferNote")}</p>
+                <p className="mt-1.5 text-[11px] font-medium text-muted">{t("bufferNote")}</p>
               </div>
               <div>
                 <label htmlFor="min-notice" className="label">{t("minNoticeLabel")}</label>
@@ -290,7 +290,7 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                   />
                   <span aria-hidden="true" className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[11px] font-bold text-muted">h</span>
                 </div>
-                <p className="mt-1.5 text-[10px] font-medium text-muted">{t("minNoticeNote")}</p>
+                <p className="mt-1.5 text-[11px] font-medium text-muted">{t("minNoticeNote")}</p>
               </div>
               <div className="sm:col-span-2">
                 <span className="label" id="week-start-label">{t("weekStartLabel")}</span>
@@ -330,7 +330,7 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
               const height = valid ? windowPct(toMinutes(day.close)) - windowPct(toMinutes(day.open)) : 0;
               return (
                 <div key={day.key} className="flex min-w-0 flex-col items-center gap-1">
-                  <span className="font-mono text-[9px] leading-none text-muted">{valid ? day.open : ""}</span>
+                  <span className="font-mono text-[10px] leading-none text-muted">{valid ? day.open : ""}</span>
                   <div className="relative h-44 w-full overflow-hidden rounded-sm border border-divider bg-canvas">
                     {/* faint slot gridlines */}
                     {[12, 18].map((hour) => (
@@ -351,18 +351,18 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                       />
                     ) : (
                       <span className="absolute inset-0 flex items-center justify-center">
-                        <span className="-rotate-90 whitespace-nowrap text-[8px] font-bold uppercase tracking-[0.18em] text-muted">{t("dayClosedLabel")}</span>
+                        <span className="-rotate-90 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.08em] text-muted">{t("dayClosedLabel")}</span>
                       </span>
                     )}
                   </div>
-                  <span className="font-mono text-[9px] leading-none text-muted">{valid ? day.close : ""}</span>
+                  <span className="font-mono text-[10px] leading-none text-muted">{valid ? day.close : ""}</span>
                   <span className="text-[11px] font-bold text-obsidian">{t(day.shortKey)}</span>
                 </div>
               );
             })}
           </div>
 
-          <div className="mt-3 flex items-center justify-between gap-2 border-t border-divider pt-3 text-[10px] font-medium leading-snug text-muted">
+          <div className="mt-3 flex items-center justify-between gap-2 border-t border-divider pt-3 text-[11px] font-medium leading-snug text-muted">
             <span className="flex items-center gap-1.5">
               <span className="h-2 w-2 rounded-pill bg-electric" aria-hidden="true" />
               {t("openInterval")}
@@ -374,14 +374,14 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
             <Info size={13} strokeWidth={2.2} aria-hidden="true" className="mt-0.5 shrink-0" />
             {t("previewLiveNote")}
           </div>
-          <p className="mt-3 flex items-center gap-1.5 text-[10px] font-semibold text-muted">
+          <p className="mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-muted">
             <ArrowRight size={11} strokeWidth={2.4} aria-hidden="true" />
             {t("slotSummary", { slot, buffer: buffer || "0", notice: minNotice || "0" })}
           </p>
         </aside>
       </div>
 
-      <ToastViewport toasts={toasts} />
+      <ToastViewport toasts={toasts} leaving={leaving} />
     </div>
   );
 }

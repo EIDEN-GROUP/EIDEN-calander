@@ -33,7 +33,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ""
 
       - name: Audit (high severity)
-        run: npm audit --audit-level=high || echo "::warning::npm audit found high-severity issues — review before launch (non-blocking during pre-launch)"
+        run: npm audit --audit-level=high || echo "::warning::npm audit found high-severity issues: review before launch (non-blocking during pre-launch)"
 
       - name: i18n key parity (en/fr)
         run: |

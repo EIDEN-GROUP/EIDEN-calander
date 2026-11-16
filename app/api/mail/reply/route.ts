@@ -9,9 +9,9 @@
  *  - In-Reply-To + References set from the original Message-ID.
  *  - Recipients come from the original message (to=From for INBOX, else the
  *    first To: of the Sent original, falling back to From). No spoofing.
- *  - Rate limit: 30 replies / 10 min / user — in-memory, best effort.
+ *  - Rate limit: 30 replies / 10 min / user: in-memory, best effort.
  *    TODO(WIRE): enforce at the edge / Upstash before multi-instance deploys.
- *  - SMTP failure → 502 { error.message: "Mailbox rejected the message — check SMTP settings" }.
+ *  - SMTP failure → 502 { error.message: "Mailbox rejected the message: check SMTP settings" }.
  *  - On success, best effort: APPEND the sent message to Sent via IMAP.
  *  - Demo mode: validates + returns a demo receipt (nothing is sent).
  */
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   }
   const record = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
 
-  // ---- manual validation (no new deps) -----------------------------------
+  // manual validation (no new deps)
   const uidRaw = record.uid;
   const uid = typeof uidRaw === "number" ? uidRaw : Number(uidRaw);
   if (!Number.isInteger(uid) || uid < 1 || uid > 2_147_483_647) {
@@ -58,18 +58,18 @@ export async function POST(request: Request) {
   const bcc = parseEmailList(typeof record.bcc === "string" ? record.bcc : undefined);
   if (bcc === null) return jsonError(400, "INVALID_BCC", "bcc must be a comma-separated list of valid email addresses.");
 
-  // ---- rate limit (best effort, per user) --------------------------------
+  // rate limit (best effort, per user)
   const rateKey = access.profile?.id ?? "demo:anonymous";
   const rate = checkReplyRateLimit(rateKey);
   if (!rate.ok) {
     return jsonError(
       429,
       "RATE_LIMITED",
-      `Too many replies — please wait ${Math.ceil((rate.retryAfterSeconds ?? 600) / 60)} minute(s) and try again.`,
+      `Too many replies: please wait ${Math.ceil((rate.retryAfterSeconds ?? 600) / 60)} minute(s) and try again.`,
     );
   }
 
-  // ---- load the original message -----------------------------------------
+  // load the original message
   let original: {
     from: { name: string; address: string } | null;
     to: { name: string; address: string }[];
@@ -89,7 +89,7 @@ export async function POST(request: Request) {
     } else {
       mailbox = await Mailbox.create();
       if (!mailbox) {
-        return jsonError(502, "IMAP_UNAVAILABLE", "Could not reach the mailbox — check host, port and network.");
+        return jsonError(502, "IMAP_UNAVAILABLE", "Could not reach the mailbox: check host, port and network.");
       }
       original = await mailbox.fetchMessage(folder, uid);
     }
@@ -132,7 +132,7 @@ export async function POST(request: Request) {
 
     const result = await sendMail(sendInput);
     if (!result.ok) {
-      return jsonError(502, result.error?.code ?? "SMTP_UNKNOWN", "Mailbox rejected the message — check SMTP settings");
+      return jsonError(502, result.error?.code ?? "SMTP_UNKNOWN", "Mailbox rejected the message: check SMTP settings");
     }
 
     // Best effort: keep a copy in Sent so the thread lives in the mailbox.

@@ -28,7 +28,7 @@ export function fullDateTime(iso: string, localeTag?: string): string {
   return fullFmt(localeTag).format(d);
 }
 
-/** "812 B" · "4.7 KB" · "1.2 MB" — tabular-nums friendly. */
+/** "812 B" · "4.7 KB" · "1.2 MB": tabular-nums friendly. */
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes < 0) return "—";
   if (bytes < 1024) return `${bytes} B`;

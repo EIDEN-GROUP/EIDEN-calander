@@ -11,7 +11,7 @@ export function appLocaleTag(requestLocale?: string | null): string {
   return raw.toLowerCase().startsWith("fr") ? "fr-FR" : "en-GB";
 }
 
-/** Display name for a booking category — FR when available and active, else EN. */
+/** Display name for a booking category: FR when available and active, else EN. */
 export function categoryName(
   cat: { name_en: string; name_fr?: string | null } | undefined | null,
   locale: string,

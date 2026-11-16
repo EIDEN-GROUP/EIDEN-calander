@@ -1,5 +1,5 @@
 /**
- * Dashboard — live data loader (server-only).
+ * Dashboard: live data loader (server-only).
  * Everything the overview needs in one shot; falls back to null on error/unconfigured.
  */
 import "server-only";
@@ -84,7 +84,7 @@ export async function loadDashboard(): Promise<DashboardData | null> {
     const totalSeats = (formations ?? []).reduce((s, f) => s + Number(f.capacity ?? 0), 0);
     const totalEnrolled = (formations ?? []).reduce((s, f) => s + (activeParticipants.get(f.booking_id as string) ?? 0), 0);
 
-    // grid events this week — paused bookings still render (in hold style)
+    // grid events this week: paused bookings still render (in hold style)
     const events = (bookings ?? [])
       .filter((b) => b.status !== "cancelled")
       .map((b) => {

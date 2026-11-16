@@ -45,7 +45,7 @@ export function MessageListRow({
             onSelect(message.uid);
           }
         }}
-        className={`relative flex gap-3 px-4 py-3 pr-14 outline-none transition-colors hover:bg-hover-fill/50 focus-visible:bg-electric-tint/40 ${
+        className={`row-lift relative flex gap-3 px-4 py-3 pr-14 outline-none hover:bg-hover-fill/50 focus-visible:bg-electric-tint/40 ${
           selected ? "bg-electric-tint/60" : ""
         }`}
       >
@@ -56,6 +56,7 @@ export function MessageListRow({
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-3">
             <span
+              title={fromLabel}
               className={`truncate text-[14px] leading-snug ${
                 unread ? "font-bold text-obsidian" : "font-medium text-obsidian-light"
               }`}
@@ -70,13 +71,14 @@ export function MessageListRow({
             </span>
           </span>
           <span
+            title={message.subject}
             className={`mt-0.5 block truncate text-[13px] leading-snug ${
               unread ? "font-semibold text-obsidian" : "text-obsidian-light"
             }`}
           >
             {message.subject}
           </span>
-          <span className="mt-0.5 block truncate text-[12px] leading-snug text-muted">
+          <span className="mt-0.5 block truncate text-[12px] leading-snug text-muted" title={message.preview}>
             {message.preview}
           </span>
         </span>
@@ -94,7 +96,7 @@ export function MessageListRow({
         title={message.seen ? t("markAsUnread") : t("markAsRead")}
         className="absolute right-3 top-1/2 -translate-y-1/2 rounded-pill p-2 text-muted opacity-100 transition-all hover:bg-electric-tint hover:text-electric focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-electric disabled:opacity-50 sm:opacity-0 sm:group-hover/row:opacity-100"
       >
-        {message.seen ? <Mail size={17} strokeWidth={2} /> : <MailOpen size={17} strokeWidth={2} />}
+        {message.seen ? <Mail size={17} strokeWidth={2} aria-hidden="true" /> : <MailOpen size={17} strokeWidth={2} aria-hidden="true" />}
       </button>
     </li>
   );

@@ -2,7 +2,7 @@ import { Info } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 /**
- * "Preview data" pill — shown on settings tabs only when the app is NOT
+ * "Preview data" pill: shown on settings tabs only when the app is NOT
  * connected to a real Supabase project, so admins never think live data
  * is fake, and demo users aren't confused when saves vanish.
  * Decided at build time from the public Supabase URL.

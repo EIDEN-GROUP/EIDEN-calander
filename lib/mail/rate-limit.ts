@@ -1,12 +1,12 @@
 /**
- * rate-limit.ts — best-effort reply rate limiting (SERVER-ONLY).
+ * rate-limit.ts: best-effort reply rate limiting (SERVER-ONLY).
  *
  * In-memory token window: at most `limit` replies per `windowMs` per userId.
  * Module-scope Map, pruned on every write. This is per-instance and lost on
- * redeploy/restart — acceptable for a single-instance internal preview.
+ * redeploy/restart: acceptable for a single-instance internal preview.
  *
  * TODO(WIRE): move enforcement to the edge / Upstash (or Hostinger-side caps)
- * before multi-instance deployment. Not a security boundary on its own — the
+ * before multi-instance deployment. Not a security boundary on its own: the
  * SMTP layer additionally authenticates as the mailbox owner, so abuse here is
  * limited to authenticated staff.
  */
@@ -36,7 +36,7 @@ export function checkReplyRateLimit(userId: string, now = Date.now()): RateLimit
   return { ok: true };
 }
 
-/** Test hook — clear all windows. */
+/** Test hook: clear all windows. */
 export function __resetReplyRateLimit(): void {
   hits.clear();
 }

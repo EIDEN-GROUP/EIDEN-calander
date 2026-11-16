@@ -1,5 +1,5 @@
 -- 0001_extensions_enums.sql
--- CALENDAR. — Eiden Group internal scheduling system
+-- CALENDAR.: Eiden Group internal scheduling system
 -- Extensions + enum types. Runs clean on a fresh database (PostgreSQL 15+ / Supabase).
 -- File order matters: 0001 -> 0002 -> 0003 -> 0004 -> 0005.
 

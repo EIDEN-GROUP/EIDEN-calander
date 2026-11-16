@@ -1,11 +1,10 @@
 "use client";
 
 import { useRef } from "react";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { ChevronRight, TriangleAlert, X } from "lucide-react";
 import { useModalA11y } from "./focus-trap";
 import { formatTimeRange } from "@/components/calendar/calendar-utils";
-import { appLocaleTag } from "@/lib/intl-locale";
 
 export interface ConflictClash {
   id: string;
@@ -45,7 +44,6 @@ export function ConflictModal({
   onRequestChange,
 }: ConflictModalProps) {
   const t = useTranslations("calendar");
-  const intlLocale = appLocaleTag(useLocale());
   const tCommon = useTranslations("common");
   const panelRef = useRef<HTMLDivElement>(null);
   useModalA11y(panelRef, onClose);
@@ -78,7 +76,7 @@ export function ConflictModal({
         </button>
 
         <div className="flex h-12 w-12 items-center justify-center rounded-sm bg-warning-tint">
-          <TriangleAlert size={24} strokeWidth={2} className="text-warning" aria-hidden="true" />
+          <TriangleAlert size={24} strokeWidth={2} className="text-tint-fg-amber" aria-hidden="true" />
         </div>
 
         <h2

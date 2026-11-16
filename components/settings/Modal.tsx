@@ -79,18 +79,18 @@ export function Modal({
         aria-label={t("closeDialog")}
         tabIndex={-1}
         onClick={onClose}
-        className="absolute inset-0 cursor-default bg-obsidian/45 backdrop-blur-[2px]"
+        className="overlay-enter absolute inset-0 cursor-default bg-obsidian/45 backdrop-blur-[2px]"
       />
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`relative flex max-h-[92vh] w-full ${maxWidth} flex-col overflow-hidden rounded-md border border-border bg-white shadow-lg`}
+        className={`modal-enter relative flex max-h-[92vh] w-full ${maxWidth} flex-col overflow-hidden rounded-md border border-border bg-white shadow-lg`}
       >
         <div className="flex items-start justify-between gap-4 border-b border-divider px-5 pb-3.5 pt-4">
           <div className="min-w-0">
-            <h2 className="text-[16px] font-extrabold tracking-[-0.01em] text-obsidian">{title}</h2>
+            <h2 className="text-[16px] font-extrabold tracking-[-0.02em] text-obsidian">{title}</h2>
             {description ? (
               <p className="mt-0.5 text-[12px] font-medium leading-snug text-muted">{description}</p>
             ) : null}

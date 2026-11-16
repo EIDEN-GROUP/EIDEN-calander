@@ -1,5 +1,5 @@
 /**
- * Demo store — sessionStorage-backed external store (useSyncExternalStore).
+ * Demo store: sessionStorage-backed external store (useSyncExternalStore).
  * Module-level caches keep getSnapshot referentially stable; writes publish
  * to all subscribers. Falls back to the canonical demo dataset when empty.
  * Server snapshot = DEMO_* constants (hydration-safe).
@@ -44,7 +44,7 @@ function safeWrite(key: string, value: unknown): void {
     if (typeof window === "undefined") return;
     window.sessionStorage.setItem(key, JSON.stringify(value));
   } catch {
-    // Quota / private mode — demo stays in memory only.
+    // Quota / private mode: demo stays in memory only.
   }
 }
 

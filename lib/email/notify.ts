@@ -1,5 +1,5 @@
 /**
- * CALENDAR. — booking/change-request transactional emails.
+ * CALENDAR. · booking/change-request transactional emails.
  * Best-effort: never throws, never blocks the mutation it accompanies.
  * Logs failures to the server console.
  */
@@ -65,7 +65,7 @@ export async function isTransactionalEnabled(
     const prefs = (data?.notification_prefs ?? {}) as Record<string, boolean>;
     return prefs[key] !== false;
   } catch (err) {
-    console.error(`[notify] could not read notification_prefs — sending "${key}" anyway`, err);
+    console.error(`[notify] could not read notification_prefs: sending "${key}" anyway`, err);
     return true;
   }
 }
@@ -123,7 +123,7 @@ export async function notifyBookingEvent(
 ): Promise<void> {
   try {
     if (!(await isTransactionalEnabled(supabase, PREF_BY_BOOKING_EVENT[event]))) {
-      console.log(`[notify] booking ${event} — disabled in Settings → Notifications, skipping`);
+      console.log(`[notify] booking ${event}: disabled in Settings → Notifications, skipping`);
       return;
     }
     const { data: booking } = await supabase
@@ -135,7 +135,7 @@ export async function notifyBookingEvent(
 
     const { clientEmail, room } = await loadMailContext(supabase, booking as BookingRowPick);
     if (!clientEmail) {
-      console.log(`[notify] booking ${event} — no client email attached to booking ${bookingId}, skipping`);
+      console.log(`[notify] booking ${event}: no client email attached to booking ${bookingId}, skipping`);
       return;
     }
 
@@ -174,7 +174,7 @@ export async function notifyChangeRequestEvent(
 ): Promise<void> {
   try {
     if (!(await isTransactionalEnabled(supabase, PREF_BY_CHANGE_EVENT[event]))) {
-      console.log(`[notify] change-request ${event} — disabled in Settings → Notifications, skipping`);
+      console.log(`[notify] change-request ${event}: disabled in Settings → Notifications, skipping`);
       return;
     }
     const { data: cr } = await supabase
@@ -186,7 +186,7 @@ export async function notifyChangeRequestEvent(
       .maybeSingle();
     if (!cr) return;
 
-    // Resolve room (from the incumbent's booking — both bookings almost always share the room)
+    // Resolve room (from the incumbent's booking: both bookings almost always share the room)
     let roomName = "your room";
     if (cr.conflicting_booking_id) {
       const { data: oldB } = await supabase
@@ -232,7 +232,7 @@ export async function notifyChangeRequestEvent(
     if (event === "received") {
       const to = (incumbentProfile.data?.email as string | null) ?? null;
       if (!to) {
-        console.log(`[notify] change-request received — no email for incumbent ${cr.assigned_to}`);
+        console.log(`[notify] change-request received: no email for incumbent ${cr.assigned_to}`);
         return;
       }
       const incumbentLocale = incumbentProfile.data?.locale === "fr" ? "fr" : "en";
@@ -253,7 +253,7 @@ export async function notifyChangeRequestEvent(
     const locale = requesterLocale as "en" | "fr";
     const to = (requesterProfile.data?.email as string | null) ?? null;
     if (!to) {
-      console.log(`[notify] change-request ${event} — no email for requester ${cr.requested_by}`);
+      console.log(`[notify] change-request ${event}: no email for requester ${cr.requested_by}`);
       return;
     }
     if (event === "approved") {

@@ -39,7 +39,7 @@ const PROTOCOLS: Array<{
 
 export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
   const t = useTranslations("settings");
-  const { toasts, push } = useToast();
+  const { toasts, leaving, push } = useToast();
   const [lines, setLines] = useState<Record<Protocol, LineState>>({
     smtp: { status: "idle" },
     imap: { status: "idle" },
@@ -95,14 +95,14 @@ export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
                 <MailCheck size={22} strokeWidth={1.8} aria-hidden="true" />
               </span>
               <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">{t("connectedAccountLabel")}</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{t("connectedAccountLabel")}</p>
                 <p className="mt-0.5 flex items-center gap-2 font-mono text-[13px] font-semibold text-obsidian">
                   {mailboxAddress}
                   <span title={t("mailboxVisibleTitle")} className="inline-flex items-center text-muted">
                     <EyeOff size={12} strokeWidth={2.2} aria-hidden="true" />
                   </span>
                 </p>
-                <p className="mt-0.5 text-[11px] font-medium text-muted">Hostinger — mail.eiden-group.com</p>
+                <p className="mt-0.5 text-[11px] font-medium text-muted">Hostinger: mail.eiden-group.com</p>
               </div>
             </div>
             <Link href="/inbox" className="btn btn-secondary h-10 px-4 text-[13px]">
@@ -144,7 +144,7 @@ export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
                           </p>
                         )}
                         {line.status === "error" && (
-                          <p role="alert" className="flex items-center gap-1.5 text-[11px] font-semibold leading-snug text-error">
+                          <p role="alert" className="flex items-center gap-1.5 text-[11px] font-semibold leading-snug text-error-fg">
                             <CircleExclamationPoint size={13} strokeWidth={2.4} aria-hidden="true" className="shrink-0" />
                             {line.message}
                           </p>
@@ -186,7 +186,7 @@ export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
 
         <aside className="space-y-4">
           <div className="card p-5">
-            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">{t("howItWorksHeading")}</h2>
+            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-muted">{t("howItWorksHeading")}</h2>
             <ol className="mt-3 space-y-3 text-[12px] font-medium leading-snug text-obsidian-light">
               {[
                 t("howItWorksStep1"),
@@ -194,14 +194,14 @@ export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
                 t("howItWorksStep3"),
               ].map((step, i) => (
                 <li key={i} className="flex gap-2.5">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-pill bg-canvas font-mono text-[10px] font-bold text-obsidian">{i + 1}</span>
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-pill bg-canvas font-mono text-[11px] font-bold text-obsidian">{i + 1}</span>
                   {step}
                 </li>
               ))}
             </ol>
           </div>
           <div className="card p-5">
-            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">{t("ifTestFailsHeading")}</h2>
+            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-muted">{t("ifTestFailsHeading")}</h2>
             <ul className="mt-3 space-y-2.5 text-[12px] font-medium leading-snug text-obsidian-light">
               <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />{t("testFailsRoute")}</li>
               <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />{t("testFailsAuth")}</li>
@@ -211,7 +211,7 @@ export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
         </aside>
       </div>
 
-      <ToastViewport toasts={toasts} />
+      <ToastViewport toasts={toasts} leaving={leaving} />
     </div>
   );
 }

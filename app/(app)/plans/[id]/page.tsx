@@ -8,7 +8,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("plans");
   return { title: t("planTitle") };
 }
-// Dynamic by plan id + today-relative dates — block prerender.
+// Dynamic by plan id + today-relative dates: block prerender.
 export const instant = false;
 
 export default async function PlanDetailPage({

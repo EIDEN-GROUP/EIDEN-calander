@@ -69,7 +69,7 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
         setUnread((u) => ({ ...u, [other]: result.messages.filter((m) => !m.seen).length }));
       })
       .catch(() => {
-        // badge stays partial — not worth surfacing an error for the counter
+        // badge stays partial: not worth surfacing an error for the counter
       });
     return () => {
       cancelled = true;
@@ -125,7 +125,7 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
     [folder, applySeen, t],
   );
 
-  // The inline (xl) reading pane toggled seen — mirror it in the list.
+  // The inline (xl) reading pane toggled seen: mirror it in the list.
   const handleSeenFromPane = useCallback(
     (uid: number, seen: boolean) => applySeen(folder, uid, seen),
     [folder, applySeen],
@@ -140,7 +140,7 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
     <div className="flex flex-col gap-4">
       {/* H1 row */}
       <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-[28px] font-extrabold leading-none tracking-[-0.04em] text-obsidian">
+        <h1 className="text-[28px] font-extrabold leading-none tracking-[-0.05em] text-obsidian">
           {t("folderInbox")}
         </h1>
         <span
@@ -150,7 +150,7 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
           <span className="h-1.5 w-1.5 rounded-pill bg-success" aria-hidden="true" />
           <code className="font-mono">{mailboxAddress}</code>
           <span
-            className="ml-1 inline-flex min-w-[1.5rem] items-center justify-center rounded-pill bg-electric-tint px-1.5 py-0.5 font-sans text-[10px] font-bold tabular-nums text-electric"
+            className="ml-1 inline-flex min-w-[1.5rem] items-center justify-center rounded-pill bg-electric-tint px-1.5 py-0.5 font-sans text-[11px] font-bold tabular-nums text-electric"
             aria-label={t("unreadAcrossFolders", { count: totalUnread })}
           >
             {totalUnread}
@@ -170,7 +170,7 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t("searchMailPlaceholder")}
               aria-label={t("searchMailAria")}
-              className="h-10 w-48 rounded-pill border border-border bg-white pl-10 pr-4 text-[13px] text-obsidian outline-none transition-shadow placeholder:text-black/30 focus:border-electric/50 focus:shadow-[0_0_0_4px_var(--color-electric-tint)] sm:w-56"
+              className="h-10 w-48 rounded-pill border border-border bg-white pl-10 pr-4 text-[13px] text-obsidian outline-none transition-shadow placeholder:text-black/50 focus:border-electric/50 focus:shadow-[0_0_0_4px_var(--color-electric-tint)] sm:w-56"
             />
           </label>
           <button
@@ -218,9 +218,9 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
           </span>
         )}
         <p className="ms-auto hidden text-[11px] text-muted lg:block">
-          <kbd className="rounded border border-border bg-white px-1.5 py-0.5 font-mono text-[10px]">↑</kbd>{" "}
-          <kbd className="rounded border border-border bg-white px-1.5 py-0.5 font-mono text-[10px]">↓</kbd> {t("keyboardNavigate")} ·{" "}
-          <kbd className="rounded border border-border bg-white px-1.5 py-0.5 font-mono text-[10px]">Enter</kbd> {t("keyboardOpen")}
+          <kbd className="rounded border border-border bg-white px-1.5 py-0.5 font-mono text-[11px]">↑</kbd>{" "}
+          <kbd className="rounded border border-border bg-white px-1.5 py-0.5 font-mono text-[11px]">↓</kbd> {t("keyboardNavigate")} ·{" "}
+          <kbd className="rounded border border-border bg-white px-1.5 py-0.5 font-mono text-[11px]">Enter</kbd> {t("keyboardOpen")}
         </p>
       </div>
 
@@ -233,16 +233,18 @@ export function InboxView({ initialFolder = "INBOX", mailboxAddress }: { initial
           className="card flex max-h-[62vh] flex-col overflow-hidden xl:max-h-none"
         >
           {error && <MailErrorBanner error={error} onRetry={() => void load(folder, query)} />}
-          <MailboxList
-            folder={folder}
-            messages={visible}
-            loading={loading}
-            query={query}
-            onToggleSeen={(uid, seen) => void toggleSeen(uid, seen)}
-            seenPendingIds={seenPending}
-            selectedUid={selectedUid}
-            onSelect={setSelectedUid}
-          />
+          <div key={folder} className="view-enter min-h-0 flex-1">
+            <MailboxList
+              folder={folder}
+              messages={visible}
+              loading={loading}
+              query={query}
+              onToggleSeen={(uid, seen) => void toggleSeen(uid, seen)}
+              seenPendingIds={seenPending}
+              selectedUid={selectedUid}
+              onSelect={setSelectedUid}
+            />
+          </div>
         </section>
 
         {/* Two-pane on xl: inline reading pane (or branded empty state) */}

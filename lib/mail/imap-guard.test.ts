@@ -34,7 +34,7 @@ describe("lib/mail/imap boot guard", () => {
   it("is unconfigured (no throw) when env is missing", async () => {
     const mod = await import("./imap");
     expect(mod.isMailConfigured()).toBe(false);
-    expect(await mod.Mailbox.create()).toBeNull(); // demo path — never throws
+    expect(await mod.Mailbox.create()).toBeNull(); // demo path: never throws
   });
 
   it("throws at import time when IMAP_USER and MAILBOX_ALLOWED mismatch", async () => {
@@ -60,7 +60,7 @@ describe("lib/mail/imap boot guard", () => {
       MAILBOX_ALLOWED: "contact@eiden-group.com",
       IMAP_PASSWORD: "secret",
       IMAP_HOST: "127.0.0.1",
-      IMAP_PORT: "1", // ECONNREFUSED — fast
+      IMAP_PORT: "1", // ECONNREFUSED: fast
     });
     const mod = await import("./imap");
     const mailbox = await mod.Mailbox.create();

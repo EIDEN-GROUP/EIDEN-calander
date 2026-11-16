@@ -1,0 +1,45 @@
+/* Login right stage — staggered entrance + Now-Bar pulse */
+
+.login-stagger {
+  opacity: 0;
+  transform: translateY(16px);
+  animation: loginElementRise 0.75s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  animation-delay: var(--stagger-delay, 0ms);
+}
+
+@keyframes loginElementRise {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-now-bar-pill {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: loginNowBarPulse 3.4s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+}
+
+@keyframes loginNowBarPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 0.76;
+    transform: scaleY(0.91);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-stagger {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .login-now-bar-pill {
+    animation: none;
+  }
+}

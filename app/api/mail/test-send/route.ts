@@ -11,13 +11,13 @@ import { sendMail } from "@/lib/email/send";
 import { base } from "@/lib/email/templates";
 
 export async function POST() {
-  // No request data is read — opt out of build-time prerendering explicitly.
+  // No request data is read: opt out of build-time prerendering explicitly.
   await connection();
   const access = await authorizeMail();
   if (!("demo" in access)) return access; // 401
 
   if (access.demo) {
-    return jsonOk({ demo: true, sent: false, note: "Demo mode — nothing was sent." });
+    return jsonOk({ demo: true, sent: false, note: "Demo mode: nothing was sent." });
   }
 
   const to = access.profile?.email;
@@ -25,12 +25,12 @@ export async function POST() {
 
   const rendered = base(
     "en",
-    "CALENDAR. — test email",
+    "CALENDAR. · test email",
     "This is the test email from CALENDAR. Settings → Notifications.",
     `<p style="margin:0 0 12px;font-size:15px;">Hi${typeof access.profile?.full_name === "string" && access.profile.full_name.trim() ? ` ${access.profile.full_name.split(" ")[0]}` : ""},</p>
-       <p style="margin:0 0 12px;font-size:15px;">This is the test email from <strong>CALENDAR.</strong> — Settings, Notifications, "Send test email to me".</p>
+       <p style="margin:0 0 12px;font-size:15px;">This is the test email from <strong>CALENDAR.</strong>: Settings, Notifications, "Send test email to me".</p>
        <p style="margin:0;font-size:15px;">If it reached you, transactional mail works: bookings, changes and reminders will be delivered from this address.</p>`,
-    `Hi,\n\nThis is the test email from CALENDAR. — Settings, Notifications, "Send test email to me".\n\nIf it reached you, transactional mail works: bookings, changes and reminders will be delivered from this address.`,
+    `Hi,\n\nThis is the test email from CALENDAR. · Settings, Notifications, "Send test email to me".\n\nIf it reached you, transactional mail works: bookings, changes and reminders will be delivered from this address.`,
   );
   // base() sets subject to its title argument.
   const result = await sendMail({

@@ -89,7 +89,7 @@ export function TimeGrid({
     [days, bookings],
   );
 
-  /* ---------- drag-to-create ---------- */
+  /* drag-to-create */
   const handleColumnMouseDown =
     (dayIndex: number) => (e: ReactMouseEvent<HTMLDivElement>) => {
       if (e.button !== 0) return;
@@ -169,7 +169,7 @@ export function TimeGrid({
                     isWeekend(day) ? "text-muted" : ""
                   }`}
                 >
-                  <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                     {weekdayShort[(day.getDay() + 6) % 7]}
                   </span>
                   <span
@@ -192,7 +192,7 @@ export function TimeGrid({
               {HOURS.map((h) => (
                 <span
                   key={h}
-                  className="absolute right-2 -translate-y-1/2 text-[10px] font-semibold tabular-nums text-muted"
+                  className="absolute right-2 -translate-y-1/2 text-[11px] font-semibold tabular-nums text-muted"
                   style={{ top: (h - START_HOUR) * HOUR_PX }}
                 >
                   {pad2(h)}:00
@@ -247,7 +247,7 @@ export function TimeGrid({
                           height: ((hi - lo) / 60) * HOUR_PX,
                         }}
                       >
-                        <span className="text-[10px] font-bold tabular-nums text-electric">
+                        <span className="text-[11px] font-bold tabular-nums text-electric">
                           {minutesLabel(lo)} – {minutesLabel(hi)}
                         </span>
                       </div>
@@ -312,18 +312,18 @@ export function TimeGrid({
                               className="shrink-0"
                             />
                           )}
-                          <span className="truncate text-[11px] font-bold leading-tight">
+                          <span title={booking.title} className="truncate text-[11px] font-bold leading-tight">
                             {booking.title}
                           </span>
                         </span>
                         {height >= 34 && (
-                          <span className="mt-0.5 block truncate text-[9.5px] font-semibold tabular-nums opacity-80">
+                          <span className="mt-0.5 block truncate text-[10px] font-semibold tabular-nums opacity-80" title={formatTimeRange(bStart, bEnd, intlLocale)}>
                             {formatTimeRange(bStart, bEnd, intlLocale)}
                             {isPending && height < 52 ? ` · ${t("pending")}` : ""}
                           </span>
                         )}
                         {isPending && height >= 52 && (
-                          <span className="mt-1 inline-flex items-center rounded-pill border border-dashed border-warning/70 bg-white/60 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.06em] text-[#a34d00]">
+                          <span className="mt-1 inline-flex items-center rounded-pill border border-dashed border-warning/70 bg-white/60 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-tint-fg-amber">
                             {t("pending")}
                           </span>
                         )}

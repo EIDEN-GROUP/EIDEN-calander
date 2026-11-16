@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { DragEvent, KeyboardEvent } from "react";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -37,6 +37,10 @@ import { NewPlanModal, type NewPlanDraft } from "./NewPlanModal";
 import { getStaff } from "./demo-staff";
 import { formatFullDate, isOverdueDate } from "@/components/charts/format";
 import { appLocaleTag } from "@/lib/intl-locale";
+
+const isPlanOverdue = (p: PlanRow): boolean =>
+  p.status !== "completed" && p.status !== "cancelled" && isOverdueDate(p.target_date);
+
 
 type View = "board" | "list";
 
@@ -154,12 +158,9 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
       showToast(t("planCreated"), plan.title, "success");
   };
 
-  const isPlanOverdue = (p: PlanRow) =>
-    p.status !== "completed" && p.status !== "cancelled" && isOverdueDate(p.target_date);
-
   const listPlans = useMemo(
     () => (overdueOnly ? plans.filter(isPlanOverdue) : plans),
-    [plans, overdueOnly, isPlanOverdue],
+    [plans, overdueOnly],
   );
 
   const openPlan = (id: string) => router.push(`/plans/${id}`);
@@ -175,7 +176,7 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
       {/* Page header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.04em] text-obsidian sm:text-[32px]">
+          <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.05em] text-obsidian sm:text-[32px]">
             {t("title")}
           </h1>
           <p className="mt-1 max-w-xl text-[14px] font-medium text-obsidian-light">
@@ -248,7 +249,7 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
                   }}
                   onDragLeave={() => setDropColumn((c) => (c === col.status ? null : c))}
                   onDrop={(e) => handleDrop(e, col.status)}
-                  className={`mt-2 flex min-h-[280px] flex-col gap-2.5 rounded-md border-2 border-dashed p-2 transition-colors duration-150 ${
+                  className={`mt-2 flex min-h-[280px] flex-col gap-2.5 rounded-md border-2 border-dashed p-2 transition-colors duration-fast ${
                     isDropTarget
                       ? "border-electric/50 bg-electric-tint/40"
                       : "border-transparent bg-canvas/70"
@@ -257,7 +258,7 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
                   {colPlans.length === 0 ? (
                     <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-md border border-dashed border-border bg-white/60 px-4 py-10 text-center">
                       <Icon size={22} strokeWidth={1.8} className="text-muted" aria-hidden="true" />
-                      <p className="max-w-[200px] text-[11.5px] font-medium leading-snug text-muted">
+                      <p className="max-w-[200px] text-[12px] font-medium leading-snug text-muted">
                         {t(col.emptyKey)}
                       </p>
                     </div>
@@ -312,7 +313,7 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
                     <th
                       key={colKey}
                       scope="col"
-                      className="px-5 py-3 text-[10px] font-bold uppercase tracking-[0.09em] text-muted"
+                      className="px-5 py-3 text-[11px] font-bold uppercase tracking-[0.08em] text-muted"
                     >
                       {t(colKey)}
                     </th>
@@ -338,7 +339,7 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
                           {plan.title}
                         </span>
                         {plan.target_date_marker && (
-                          <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-electric">
+                          <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-electric">
                             <CalendarDays size={10} strokeWidth={2.4} aria-hidden="true" />
                             {t("markerOnCalendar")}
                           </span>
@@ -365,11 +366,11 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
                         {plan.target_date ? (
                           <span
                             className={`whitespace-nowrap font-mono text-[12px] font-semibold tabular-nums ${
-                              overdue ? "text-error" : "text-obsidian-light"
+                              overdue ? "text-error-fg" : "text-obsidian-light"
                             }`}
                           >
                             {formatFullDate(plan.target_date, dateLocale)}
-                            {overdue && <span className="ml-1.5 font-sans text-[10px] font-bold uppercase tracking-wide">{t("overdue")}</span>}
+                            {overdue && <span className="ml-1.5 font-sans text-[11px] font-bold uppercase tracking-wide">{t("overdue")}</span>}
                           </span>
                         ) : (
                           <span className="text-[12px] text-muted">—</span>
@@ -386,7 +387,7 @@ export function PlansBoard({ data }: { data?: PlansData | null }) {
                             aria-label={t("progressFor", { title: plan.title })}
                           >
                             <span
-                              className="block h-full rounded-pill bg-electric transition-all duration-500"
+                              className="block h-full rounded-pill bg-electric transition-all duration-slower"
                               style={{ width: `${progress}%` }}
                             />
                           </span>

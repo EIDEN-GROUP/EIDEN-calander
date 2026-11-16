@@ -87,7 +87,7 @@ export function MailboxList({
       <div className="flex h-full flex-col items-center justify-center px-6 py-14 text-center">
         {trimmed ? (
           <>
-            <SearchX size={36} strokeWidth={1.5} className="text-muted" aria-hidden="true" />
+            <SearchX size={36} strokeWidth={1.8} className="text-muted" aria-hidden="true" />
             <p className="mt-4 text-[15px] font-bold text-obsidian">{t("noMessagesMatch", { query: trimmed })}</p>
             <p className="mt-1 max-w-[26ch] text-[13px] text-muted">{t("noMessagesHint")}</p>
           </>
@@ -137,21 +137,21 @@ export function MailboxDemoChips({ demo, offline }: { demo: boolean; offline: bo
   const t = useTranslations("inbox");
   if (offline) {
     return (
-      <span className="chip border border-warning/40 bg-warning-tint text-[10px] font-bold uppercase tracking-[0.08em] text-[#A34D00]">
-        <CloudOff size={11} strokeWidth={2.5} aria-hidden="true" /> {t("offlinePreview")}
+      <span className="chip border border-warning/40 bg-warning-tint text-[11px] font-bold uppercase tracking-[0.08em] text-tint-fg-amber">
+        <CloudOff size={11} strokeWidth={2.4} aria-hidden="true" /> {t("offlinePreview")}
       </span>
     );
   }
   if (demo) {
     return (
-      <span className="chip border border-electric/20 bg-electric-tint text-[10px] font-bold uppercase tracking-[0.08em] text-electric">
-        <Sparkles size={11} strokeWidth={2.5} aria-hidden="true" /> {t("demoData")}
+      <span className="chip border border-electric/20 bg-electric-tint text-[11px] font-bold uppercase tracking-[0.08em] text-electric">
+        <Sparkles size={11} strokeWidth={2.4} aria-hidden="true" /> {t("demoData")}
       </span>
     );
   }
   return (
-    <span className="chip border border-success/25 bg-success-tint text-[10px] font-bold uppercase tracking-[0.08em] text-[#1E6B31]">
-      <InboxIcon size={11} strokeWidth={2.5} aria-hidden="true" /> {t("liveMailbox")}
+    <span className="chip border border-success/25 bg-success-tint text-[11px] font-bold uppercase tracking-[0.08em] text-tint-fg-green">
+      <InboxIcon size={11} strokeWidth={2.4} aria-hidden="true" /> {t("liveMailbox")}
     </span>
   );
 }

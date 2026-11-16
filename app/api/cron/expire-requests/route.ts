@@ -1,5 +1,5 @@
 /**
- * GET /api/cron/expire-requests — closes pending change requests past their
+ * GET /api/cron/expire-requests: closes pending change requests past their
  * 72h deadline. Protected by CRON_SECRET bearer token. Idempotent.
  *
  * Schedule: hourly, via vercel.json.

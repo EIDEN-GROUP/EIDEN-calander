@@ -1,8 +1,8 @@
 /**
- * Formations — demo persistence helpers.
+ * Formations: demo persistence helpers.
  * Locally created/duplicated formations are kept in sessionStorage so the
  * demo flow survives navigation (list → detail). Exposed to components via
- * useSyncExternalStore (an external system — no setState-in-effect).
+ * useSyncExternalStore (an external system: no setState-in-effect).
  *
  * Demo fallback only. Live mode: server loads VMs, mutations go through
  * app/actions/formations.ts (enrollParticipantAction, createFormationAction, …).
@@ -82,7 +82,7 @@ export function appendStoredFormation(item: StoredFormation): void {
   try {
     window.sessionStorage.setItem(KEY, JSON.stringify([...getFormationsSnapshot(), item]));
   } catch {
-    // Quota exceeded — still notify so in-memory demo state stays consistent.
+    // Quota exceeded: still notify so in-memory demo state stays consistent.
   }
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }

@@ -8,7 +8,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("inbox");
   return { title: t("metaMessageTitle") };
 }
-// params + searchParams are request-time data — block prerender.
+// params + searchParams are request-time data: block prerender.
 export const instant = false;
 
 export default async function Page({

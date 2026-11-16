@@ -143,7 +143,7 @@ export function NewPlanModal({
               aria-describedby={titleError ? "plan-title-error" : undefined}
             />
             {titleError && (
-              <p id="plan-title-error" role="alert" className="mt-1.5 text-[11px] font-semibold text-error">
+              <p id="plan-title-error" role="alert" className="mt-1.5 text-[11px] font-semibold text-error-fg">
                 {titleError}
               </p>
             )}
@@ -250,7 +250,7 @@ export function NewPlanModal({
             </div>
           </div>
           {dateRangeError && (
-            <p id="plan-date-error" role="alert" className="-mt-2 text-[11px] font-semibold text-error">
+            <p id="plan-date-error" role="alert" className="-mt-2 text-[11px] font-semibold text-error-fg">
               {dateRangeError}
             </p>
           )}

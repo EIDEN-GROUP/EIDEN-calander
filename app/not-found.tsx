@@ -10,8 +10,8 @@ export default function NotFound() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-canvas px-6 py-12 text-center">
       <NowBarMark size={56} className="opacity-90" />
-      <p className="mt-8 font-mono text-[12px] font-bold uppercase tracking-[0.2em] text-electric">404</p>
-      <h1 className="mt-2 text-[28px] font-extrabold tracking-[-0.04em] text-obsidian">{t("title")}</h1>
+      <p className="mt-8 font-mono text-[12px] font-bold uppercase tracking-[0.08em] text-electric">404</p>
+      <h1 className="mt-2 text-[28px] font-extrabold tracking-[-0.05em] text-obsidian">{t("title")}</h1>
       <p className="mt-2 max-w-sm text-[14px] leading-snug text-obsidian-light">{t("body")}</p>
       <Link href="/dashboard" className="btn btn-primary mt-6 inline-flex h-11 items-center gap-2">
         <ArrowLeft size={16} aria-hidden="true" />

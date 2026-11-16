@@ -95,7 +95,7 @@ export function TeamView({
         you: m.id === currentUserId,
       }))
     : INITIAL_TEAM;
-  const { toasts, push } = useToast();
+  const { toasts, leaving, push } = useToast();
   const [team, setTeam] = useState<TeamMember[]>(initialTeam);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
@@ -261,7 +261,7 @@ export function TeamView({
         title={t("tabTeam")}
         sub={t("teamSub")}
       >
-        <span className="chip bg-obsidian text-[10px] uppercase tracking-[0.12em] text-white">{t("adminBadge")}</span>
+        <span className="chip bg-obsidian text-[11px] uppercase tracking-[0.08em] text-white">{t("adminBadge")}</span>
         <button type="button" onClick={openCreate} className="btn btn-primary h-10 px-4 text-[13px]">
           <Plus size={15} strokeWidth={2.4} aria-hidden="true" />
           {t("createUser")}
@@ -272,7 +272,7 @@ export function TeamView({
         <div className="card overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider px-4 py-3 sm:px-5">
             <p className="text-[12px] font-semibold text-obsidian-light">
-              <span className="font-mono text-obsidian">{team.length}</span> {t("usersCountBefore")} <span className="font-mono text-obsidian">{activeCount}</span> {t("usersActiveSuffix")}
+              <span className="font-mono text-obsidian">{team.length}</span> {t("usersCountBefore", { count: team.length })} <span className="font-mono text-obsidian">{activeCount}</span> {t("usersActiveSuffix", { count: activeCount })}
             </p>
             <p className="text-[11px] font-medium text-muted">{t("rolesGateNote")}</p>
           </div>
@@ -280,7 +280,7 @@ export function TeamView({
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-left text-[13px]">
               <thead>
-                <tr className="border-b border-border text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
+                <tr className="border-b border-border text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                   <th scope="col" className="px-4 py-2.5 sm:px-5">{t("colUser")}</th>
                   <th scope="col" className="px-3 py-2.5">{t("colRole")}</th>
                   <th scope="col" className="px-3 py-2.5">{t("colLastActive")}</th>
@@ -307,9 +307,9 @@ export function TeamView({
                           <div className="min-w-0">
                             <p className="flex items-center gap-1.5 font-semibold leading-tight text-obsidian">
                               {member.name}
-                              {member.you ? <span className="rounded-pill bg-canvas px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-muted">{t("youBadge")}</span> : null}
+                              {member.you ? <span className="rounded-pill bg-canvas px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-muted">{t("youBadge")}</span> : null}
                             </p>
-                            <p className="mt-0.5 flex items-center gap-1 truncate font-mono text-[11px] text-muted">
+                            <p title={member.email} className="mt-0.5 flex items-center gap-1 truncate font-mono text-[11px] text-muted">
                               <Mail size={10} strokeWidth={2.2} aria-hidden="true" className="shrink-0" />
                               {member.email}
                             </p>
@@ -370,7 +370,7 @@ export function TeamView({
                               disabled={member.you}
                               title={member.you ? t("youCantDeactivateSelf") : deactivated ? t("reactivateUserAria", { name: member.name }) : t("deactivateUserAria", { name: member.name })}
                               aria-label={deactivated ? t("reactivateUserAria", { name: member.name }) : t("deactivateUserAria", { name: member.name })}
-                              className="rounded-pill p-2 text-muted transition-colors hover:bg-error-tint hover:text-error disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted"
+                              className="rounded-pill p-2 text-muted transition-colors hover:bg-error-tint hover:text-error-fg disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted"
                             >
                               {deactivated ? <ShieldCheck size={15} strokeWidth={2} aria-hidden="true" /> : <UserRoundX size={15} strokeWidth={2} aria-hidden="true" />}
                             </button>
@@ -392,7 +392,7 @@ export function TeamView({
 
         <aside className="space-y-4">
           <div className="card p-5">
-            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">{t("accessControlHeading")}</h2>
+            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-muted">{t("accessControlHeading")}</h2>
             <ul className="mt-3 space-y-2.5 text-[12px] font-medium leading-snug text-obsidian-light">
               <li className="flex gap-2"><ShieldCheck size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />{t("accessAdmins")}</li>
               <li className="flex gap-2"><ShieldCheck size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />{t("accessStaff")}</li>
@@ -445,11 +445,11 @@ export function TeamView({
               <input id="edit-user-phone" type="tel" className="input h-11 font-mono text-[13px]" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} placeholder="+212 6 …" />
             </div>
           </div>
-          {editError ? <p role="alert" className="text-[12px] font-semibold text-error">{editError}</p> : null}
+          {editError ? <p role="alert" className="text-[12px] font-semibold text-error-fg">{editError}</p> : null}
         </form>
       </Modal>
 
-      {/* Create modal — stage 1: form, stage 2: one-time password */}
+      {/* Create modal: stage 1: form, stage 2: one-time password */}
       <Modal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
@@ -483,12 +483,12 @@ export function TeamView({
                 <option value="staff">{t("roleStaffScope")}</option>
               </select>
             </div>
-            {formError ? <p role="alert" className="text-[12px] font-semibold text-error">{formError}</p> : null}
+            {formError ? <p role="alert" className="text-[12px] font-semibold text-error-fg">{formError}</p> : null}
           </form>
         ) : (
           <div className="space-y-4">
             <div className="rounded-md border border-border bg-obsidian px-4 py-5 text-center shadow-md">
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/60">{t("temporaryPasswordLabel")}</p>
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/60">{t("temporaryPasswordLabel")}</p>
               <p className="mt-2 select-all font-mono text-[26px] font-bold leading-tight tracking-[0.08em] text-white" aria-label={t("temporaryPasswordAria", { password: tempPassword })}>
                 {tempPassword}
               </p>
@@ -500,7 +500,7 @@ export function TeamView({
               className="btn btn-secondary h-10 w-full text-[13px]"
               aria-live="polite"
             >
-              {copied ? <Check size={15} strokeWidth={2.6} aria-hidden="true" className="text-success" /> : <Copy size={15} strokeWidth={2.2} aria-hidden="true" />}
+              {copied ? <Check size={15} strokeWidth={2.4} aria-hidden="true" className="text-tint-fg-green" /> : <Copy size={15} strokeWidth={2.2} aria-hidden="true" />}
               {copied ? t("copiedToClipboard") : t("copyPasswordButton")}
             </button>
             <div role="alert" className="flex items-start gap-2 rounded-sm border border-warning/40 bg-warning-tint p-3 text-[12px] font-semibold leading-snug text-tint-fg-amber">
@@ -511,7 +511,7 @@ export function TeamView({
         )}
       </Modal>
 
-      <ToastViewport toasts={toasts} />
+      <ToastViewport toasts={toasts} leaving={leaving} />
     </div>
   );
 }

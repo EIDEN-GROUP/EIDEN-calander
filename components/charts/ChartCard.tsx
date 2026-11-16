@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 
 /**
- * ChartCard — white panel shell for one chart/table panel in reports.
+ * ChartCard: white panel shell for one chart/table panel in reports.
  * Title row (small icon tile + bold title) with a right-aligned export slot.
  */
 export function ChartCard({
@@ -30,14 +30,14 @@ export function ChartCard({
   return (
     <section aria-label={title} className="card flex min-w-0 flex-col p-4 sm:p-5">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="flex min-w-0 items-center gap-2 text-[15px] font-bold tracking-[-0.01em] text-obsidian">
+        <h2 className="flex min-w-0 items-center gap-2 text-[15px] font-bold tracking-[-0.02em] text-obsidian">
           <span
             className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-sm ${iconTint}`}
             aria-hidden="true"
           >
             <Icon size={16} strokeWidth={2} />
           </span>
-          <span className="truncate">{title}</span>
+          <span className="truncate" title={title}>{title}</span>
         </h2>
         {onExport && (
           <button

@@ -1,5 +1,5 @@
 /**
- * CALENDAR. — hand-written database row types (mirrors supabase/migrations).
+ * CALENDAR. · hand-written database row types (mirrors supabase/migrations).
  * Regenerate with `supabase gen types typescript` once a project exists:
  *   supabase gen types typescript --db-url $SUPABASE_DB_URL > lib/types/db.ts
  */

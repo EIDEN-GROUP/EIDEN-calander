@@ -8,7 +8,7 @@ import type { ActionResult } from "@/lib/types/db";
 import { logAudit } from "@/lib/audit";
 
 function notConfigured<T>(): ActionResult<T> {
-  return { ok: false, error: { code: "not_configured", message: "Supabase isn't configured — set .env." } };
+  return { ok: false, error: { code: "not_configured", message: "Supabase isn't configured: set .env." } };
 }
 function fail(code: string, message: string): ActionResult<never> {
   return { ok: false, error: { code, message } };

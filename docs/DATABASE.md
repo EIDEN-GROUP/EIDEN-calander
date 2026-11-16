@@ -1,22 +1,22 @@
-# DATABASE.md — CALENDAR. (Eiden Group internal scheduling)
+# DATABASE.md: CALENDAR. (Eiden Group internal scheduling)
 
 PostgreSQL 15+ / Supabase. One database, one business (Eiden Group, eiden-group.com),
 **shared workspace**: every authenticated user sees all data; access is controlled by
-role — `admin` (full admin) and `staff` (operations only). The only isolation boundary
+role: `admin` (full admin) and `staff` (operations only). The only isolation boundary
 in RLS is admin-vs-non-admin; everyone else works on the same dataset.
 
-Two Supabase projects exist — **staging** and **production** (free tier). Both receive
+Two Supabase projects exist: **staging** and **production** (free tier). Both receive
 the identical migration set. `seed.sql` is for staging/local only.
 
 ## Applying the migrations
 
 Fresh, empty project required. Files live in `supabase/migrations/` and must run **in
-order**: `0001` → `0005`.
+order**: `0001` → `0008`.
 
-**Option A — Supabase dashboard SQL editor (recommended for staging/prod):**
+**Option A: Supabase dashboard SQL editor (recommended for staging/prod):**
 Project → SQL Editor → New query → paste each file, in order, and run one file per query.
 
-**Option B — psql:**
+**Option B: psql:**
 ```bash
 export SUPABASE_DB_URL='postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres'
 psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/0001_extensions_enums.sql
@@ -24,6 +24,9 @@ psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/0002_tables.sq
 psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/0003_indexes_triggers.sql
 psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/0004_functions.sql
 psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/0005_rls.sql
+psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/0006_booking_status_paused.sql
+psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/0007_log_audit_event.sql
+psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/0008_notification_prefs_locale_brand.sql
 ```
 Connection string: Dashboard → Project Settings → Database → Connection string → URI.
 Use the direct connection or session pooler (transaction pooler does not support all
@@ -58,10 +61,13 @@ Creates the auth user (`email_confirm: true`), upserts the `profiles` row as
 | `0003_indexes_triggers.sql` | Indexes (trigram GIN on `bookings.title`, `clients.full_name`; partial index on `bookings(room_id, starts_at, ends_at)` where status ∈ (`confirmed`,`pending_conflict`); …; required baseline data: `working_hours` Mon–Sat open + Sun closed, 3 system `categories`, `business_settings` singleton) |
 | `0004_functions.sql` | Functions + triggers (see below) |
 | `0005_rls.sql` | Enables RLS on **all** tables, table/sequence privileges, function grants, all policies, adds `notifications` to the `supabase_realtime` publication (skipped silently on plain Postgres) |
+| `0006_booking_status_paused.sql` | `booking_status` enum: adds `paused` (an on-hold booking that does not block the room) |
+| `0007_log_audit_event.sql` | `log_audit_event()` security-definer RPC (the canonical write path for `audit_log`) |
+| `0008_notification_prefs_locale_brand.sql` | `business_settings`: `notification_prefs` jsonb, `hour_cycle`, `date_format`; `brand-assets` Storage bucket (public read, admin-only write, for logos) |
 
-`0003`–`0005` are written to be re-runnable (`if not exists`, `on conflict do nothing`,
+`0003`–`0008` are written to be re-runnable (`if not exists`, `on conflict do nothing`,
 `create or replace`, `drop … if exists`). `0001`/`0002` are one-shot. Never edit an
-already-applied migration on an environment — add a new `0006_*.sql` instead.
+already-applied migration on an environment: add a new `0009_*.sql` instead.
 
 ## Table summary
 
@@ -73,7 +79,7 @@ already-applied migration on an environment — add a new `0006_*.sql` instead.
 | `categories` | Booking categories; `is_system` rows from migration; `type` = standard\|formation; i18n names `name_en`/`name_fr`, color/icon, sort |
 | `rooms` | Rentable spaces; capacity/hourly_rate (MAD), amenities `text[]`, soft-toggle `is_active` |
 | `clients` | People/companies (`type`); `status` lead/active/inactive; `tags text[]`; **soft delete** via `deleted_at`; `anonymized_at` for GDPR-style anonymization; citext email |
-| `bookings` | Core entity. `type` standard\|formation, `status` confirmed/pending_conflict/cancelled/completed, price in client currency. `bookings_ends_after_starts` CHECK |
+| `bookings` | Core entity. `type` standard\|formation, `status` confirmed/pending_conflict/paused/cancelled/completed, price in client currency. `bookings_ends_after_starts` CHECK |
 | `formations` | 1:1 extension of `bookings` (`booking_id` PK). Capacity, description, `price_label` (numeric), `status` draft/open/full/ongoing/completed/cancelled |
 | `formation_participants` | Enrolment/attendance per formation; `status` enrolled/confirmed/attended/no_show/cancelled; `waitlist` flag; `checked_in_at` |
 | `plans` | Strategic plans/initiatives; status, priority, `target_date`, `progress` 0–100 (auto-computed), `target_date_marker` |
@@ -89,7 +95,7 @@ RLS enabled on **all** tables; default deny; **no policy for `anon` anywhere**.
 
 | Table | Select | Insert | Update | Delete |
 |---|---|---|---|---|
-| `profiles` | all authenticated | admin only | own row **without** changing `role`/`is_active` (staff), or any row (admin) | — (never) |
+| `profiles` | all authenticated | admin only | own row **without** changing `role`/`is_active` (staff), or any row (admin) | None |
 | `business_settings`, `working_hours`, `categories`, `rooms` | all authenticated | admin | admin | admin |
 | `clients` | all authenticated, `deleted_at is null` | `created_by = auth.uid()` | any authenticated (shared ops) | admin only (soft-delete preferred) |
 | `bookings` | all authenticated | `created_by = auth.uid()` | owner (`created_by`) or admin | admin |
@@ -97,7 +103,7 @@ RLS enabled on **all** tables; default deny; **no policy for `anon` anywhere**.
 | `formation_participants` | all authenticated | any authenticated | any authenticated | any authenticated |
 | `plans` | all authenticated | any authenticated | any authenticated | admin |
 | `plan_tasks` | all authenticated | any authenticated | any authenticated | any authenticated |
-| `change_requests` | requester / assignee / admin | `requested_by = auth.uid()` | assignee (respond) or requester (cancel only, `status='cancelled'`) or admin | — (service role) |
+| `change_requests` | requester / assignee / admin | `requested_by = auth.uid()` | assignee (respond) or requester (cancel only, `status='cancelled'`) or admin | Service role only |
 | `notifications` | own rows | **none** (security definer `notify_user` / service role only) | own rows, **`read_at` column only** (column-level grant + policy) | own rows |
 | `audit_log` | **admin only** | **none** (definer / service role) | **none** | **none** |
 
@@ -107,8 +113,8 @@ column grant `update (read_at)` on `notifications`; `insert, update, delete` on
 `audit_log` revoked from `authenticated`; default privileges aligned for future tables.
 
 `is_admin()` is `stable security definer` (`search_path = public`) reading
-`profiles where id = auth.uid() and role = 'admin' and is_active`. Policies call it —
-it never recurses because profiles policies don't select from profiles except the
+`profiles where id = auth.uid() and role = 'admin' and is_active`. Policies call it.
+It never recurses because profiles policies don't select from profiles except the
 `profiles_self_update` check, which is a plain unguarded `select` covered by the open
 `profiles_select_authenticated` policy.
 
@@ -118,7 +124,7 @@ it never recurses because profiles policies don't select from profiles except th
 |---|---|---|
 | `set_updated_at()` | BEFORE UPDATE trigger fn | Sets `updated_at := now()`. Triggered on `profiles`, `rooms`, `clients`, `bookings`, `plans`, `business_settings` |
 | `is_admin()` | SQL `stable`, `security definer` | `true` if the current auth user is an active admin |
-| `guard_booking_overlap()` | BEFORE INSERT OR UPDATE on `bookings`, `security definer` | Raises `exception 'room_conflict'` (SQLSTATE `P0001`) when a **confirmed** booking with non-null `room_id` overlaps another confirmed booking of the same room. Self ignored on UPDATE; `pending_conflict`/`cancelled` exempt. **Bypass for app/SQL editor only:** `set local app.force = '1'` inside the transaction |
+| `guard_booking_overlap()` | BEFORE INSERT OR UPDATE on `bookings`, `security definer` | Raises `exception 'room_conflict'` (SQLSTATE `P0001`) when a **confirmed** booking with non-null `room_id` overlaps another confirmed booking of the same room. Self ignored on UPDATE; any non-confirmed status exempt (`pending_conflict`, `paused`, `cancelled`, `completed`). **Bypass for app/SQL editor only:** `set local app.force = '1'` inside the transaction |
 | `recompute_plan_progress()` | AFTER INSERT/UPDATE/DELETE on `plan_tasks`, `security definer` | `plans.progress = round(100 × done / total)`; `0` tasks ⇒ `0`. Handles a task being moved between plans |
 | `touch_formation_full()` + helper `_touch_formation_full(uuid)` | AFTER INSERT/UPDATE/DELETE on `formation_participants`, `security definer` | Counts `enrolled`+`confirmed`, non-waitlist participants; flips `formations.status` `draft/open → full` at capacity and `full → open` when a seat frees. Never touches `ongoing`/`completed`. `_touch_formation_full` is revoked from app roles |
 | `notify_user(p_user_id, p_type, p_title, p_body, p_link, p_entity_id)` | `security definer`, returns `uuid` | Canonical notification writer; inserts into `notifications` |
@@ -137,7 +143,7 @@ Change-request lifecycle: `pending → approved | declined | cancelled | expired
   bookings (incl. one `pending_conflict` overlapping the Grande demo booking to exercise
   the change-request flow), 2 demo formations + 8 participants (the Excel one is exactly
   at capacity → flips to `full` via trigger), 2 plans + 7 tasks. Everything labelled
-  `DEMO`. **Never run against production.** Not idempotent — re-running duplicates data;
+  `DEMO`. **Never run against production.** Not idempotent: re-running duplicates data;
   reset by deleting `*DEMO*` rows or rebuilding the DB.
 
 ## Staging vs. production
@@ -149,7 +155,7 @@ Point each app environment at its own project URL/keys.
 ## Free-tier notes
 
 - **No `pg_cron` required.** Expiry of change requests is handled by an external
-  scheduler — e.g. a Vercel cron hitting an API route hourly that calls
+  scheduler: e.g. a Vercel cron hitting an API route hourly that calls
   `rpc('expire_change_requests')` with the **service role** key (protect the route with
   a `CRON_SECRET` bearer check). Safe to call repeatedly (`SKIP LOCKED`, idempotent).
 - Realtime: `0005_rls.sql` adds `notifications` to the `supabase_realtime` publication
@@ -162,22 +168,22 @@ Point each app environment at its own project URL/keys.
 
 After every migration, refresh the app's DB types (kept under `lib/`, owned by the app):
 ```bash
-npx supabase gen types typescript --project-id <project-ref> --schema public > lib/database.types.ts
+npx supabase gen types typescript --project-id <project-ref> --schema public > lib/supabase/database.types.ts
 # or, once `supabase link --project-ref <ref>` has been run:
-npx supabase gen types typescript --linked --schema public > lib/database.types.ts
+npx supabase gen types typescript --linked --schema public > lib/supabase/database.types.ts
 ```
 
 ## Caveats / gotchas
 
-- `citext` columns (e.g. `profiles.email`, `clients.email`) compare case-insensitively —
+- `citext` columns (e.g. `profiles.email`, `clients.email`) compare case-insensitively.
   store emails in any case; lookups are still unique.
 - `audit_log.actor_id` has no FK by design (audit survives user deletion).
 - `must_change_password` is stored by the DB but **enforced by the app** (redirect after
   sign-in); nothing forces the change at the database level.
 - The formation open↔full auto-flip only happens via `formation_participants` trigger;
   changing `formations.capacity` alone does not recompute `status`.
-- `plans.progress` is owned by the `plan_tasks` trigger — don't set it manually (it will
+- `plans.progress` is owned by the `plan_tasks` trigger: don't set it manually (it will
   be overwritten on the next task change).
 - `0001`/`0002` are not re-runnable; treat migrations as immutable history.
 - The `room_conflict` bypass (`set local app.force = '1'`) must never be exposed to the
-  browser bundle — service role / SQL editor only.
+  browser bundle: service role / SQL editor only.

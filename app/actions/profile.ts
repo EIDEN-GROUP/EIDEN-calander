@@ -25,7 +25,7 @@ export async function updateProfileAction(raw: unknown): Promise<ActionResult<{ 
     }).safeParse(raw);
     if (!parsed.success) return fail("validation", parsed.error.issues[0]?.message ?? "Invalid input");
     const supabase = await createClient();
-    if (!supabase) return fail("not_configured", "Supabase isn't configured — set .env.");
+    if (!supabase) return fail("not_configured", "Supabase isn't configured: set .env.");
     const { error } = await supabase
       .from("profiles")
       .update({ full_name: parsed.data.fullName, phone: parsed.data.phone ?? null, locale: parsed.data.locale, updated_at: new Date().toISOString() })
@@ -38,7 +38,7 @@ export async function updateProfileAction(raw: unknown): Promise<ActionResult<{ 
   }
 }
 
-/** Change password — re-verifies the current one first, then signs out OTHER sessions. */
+/** Change password: re-verifies the current one first, then signs out OTHER sessions. */
 export async function changePasswordAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
   try {
     const profile = await requireUser();
@@ -48,7 +48,7 @@ export async function changePasswordAction(raw: unknown): Promise<ActionResult<{
     }).safeParse(raw);
     if (!parsed.success) return fail("validation", parsed.error.issues[0]?.message ?? "Stronger password required");
     const supabase = await createClient();
-    if (!supabase) return fail("not_configured", "Supabase isn't configured — set .env.");
+    if (!supabase) return fail("not_configured", "Supabase isn't configured: set .env.");
 
     const { error: verifyError } = await supabase.auth.signInWithPassword({
       email: profile.email,

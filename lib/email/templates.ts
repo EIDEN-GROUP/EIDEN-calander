@@ -1,11 +1,11 @@
 /**
- * templates.ts — outbound transactional email templates (SERVER-ONLY).
+ * templates.ts: outbound transactional email templates (SERVER-ONLY).
  *
  * Every template is bilingual (EN/FR) and returns { subject, html, text }.
  * HTML is table-based, inline-styled, bulletproof for mail clients:
  *   · Obsidian header with the CALENDAR. wordmark (white) + Electric pill dot
  *   · white card body, Electric Blue accents (#0066CC)
- *   · footer: "Eiden Group — eiden-group.com · makrich@eiden-group.com"
+ *   · footer: "Eiden Group · eiden-group.com · makrich@eiden-group.com"
  * All interpolated values are HTML-escaped. Bodies never include secrets
  * beyond the intended payload (temp password is the point, not a leak).
  */
@@ -22,9 +22,7 @@ export interface RenderedEmail {
   text: string;
 }
 
-/* ------------------------------------------------------------------ */
-/* helpers                                                             */
-/* ------------------------------------------------------------------ */
+/* helpers */
 
 const L = <T,>(locale: Locale, en: T, fr: T): T => (locale === "fr" ? fr : en);
 
@@ -42,7 +40,7 @@ function fmtDateTime(iso: string | Date, locale: Locale): string {
 }
 
 const APP_BASE = "https://calendar.eiden-group.com";
-const BRAND_FOOTER_TEXT = "Eiden Group — eiden-group.com";
+const BRAND_FOOTER_TEXT = "Eiden Group · eiden-group.com";
 
 /** Shared layout. `preheader` is the inbox-preview line (hidden in the body). */
 export function base(
@@ -88,12 +86,12 @@ export function base(
 </table>
 </body>
 </html>`;
-  const text = `CALENDAR. — Eiden Group
+  const text = `CALENDAR. · Eiden Group
 =======================
 
 ${bodyText}
 
-—
+=======================
 ${BRAND_FOOTER_TEXT}`;
   return { subject: title, html, text };
 }
@@ -124,9 +122,7 @@ function p(text: string): string {
   return `<p style="margin:0 0 12px;">${escapeHtml(text)}</p>`;
 }
 
-/* ------------------------------------------------------------------ */
-/* Types                                                               */
-/* ------------------------------------------------------------------ */
+/* Types */
 
 export type BookingLike = Pick<BookingRow, "title" | "starts_at" | "ends_at"> &
   Partial<Pick<BookingRow, "notes" | "status">>;
@@ -196,21 +192,19 @@ export interface WeeklyDigestInput {
   locale: Locale;
 }
 
-/* ------------------------------------------------------------------ */
-/* welcomeTempPassword — full EN/FR                                    */
-/* ------------------------------------------------------------------ */
+/* welcomeTempPassword (EN/FR) */
 
 export function welcomeTempPassword(input: WelcomeTempPasswordInput): RenderedEmail {
   const { name, email, tempPassword, loginUrl, locale } = input;
   const subject = L(
     locale,
-    "Welcome to CALENDAR. — your temporary password",
-    "Bienvenue sur CALENDAR. — votre mot de passe temporaire",
+    "Welcome to CALENDAR.: your temporary password",
+    "Bienvenue sur CALENDAR. · votre mot de passe temporaire",
   );
   const preheader = L(
     locale,
-    "Your CALENDAR. account is ready — sign in with the temporary password below.",
-    "Votre compte CALENDAR. est prêt — connectez-vous avec le mot de passe temporaire.",
+    "Your CALENDAR. account is ready: sign in with the temporary password below.",
+    "Votre compte CALENDAR. est prêt : connectez-vous avec le mot de passe temporaire.",
   );
   const greeting = L(locale, `Hi ${name},`, `Bonjour ${name},`);
   const bodyHtml = `${h1(subject)}
@@ -218,8 +212,8 @@ ${p(greeting)}
 ${p(
   L(
     locale,
-    "An account has been created for you on CALENDAR. — Eiden Group’s internal scheduling platform (meeting rooms, formations and clients).",
-    "Un compte vient d’être créé pour vous sur CALENDAR. — la plateforme interne de réservation d’Eiden Group (salles de réunion, formations et clients).",
+    "An account has been created for you on CALENDAR., Eiden Group’s internal scheduling platform (meeting rooms, formations and clients).",
+    "Un compte vient d’être créé pour vous sur CALENDAR., la plateforme interne de réservation d’Eiden Group (salles de réunion, formations et clients).",
   ),
 )}
 ${p(L(locale, "Your temporary password:", "Votre mot de passe temporaire :"))}
@@ -247,7 +241,7 @@ ${p(
     locale,
     `${greeting}
 
-An account has been created for you on CALENDAR. — Eiden Group’s internal scheduling platform.
+An account has been created for you on CALENDAR., Eiden Group’s internal scheduling platform.
 
 Sign-in email: ${email}
 Temporary password: ${tempPassword}
@@ -259,7 +253,7 @@ Sign in: ${loginUrl}
 If you were not expecting this email, contact your administrator or write to makrich@eiden-group.com.`,
     `${greeting}
 
-Un compte vient d’être créé pour vous sur CALENDAR. — la plateforme interne de réservation d’Eiden Group.
+Un compte vient d’être créé pour vous sur CALENDAR., la plateforme interne de réservation d’Eiden Group.
 
 Email de connexion : ${email}
 Mot de passe temporaire : ${tempPassword}
@@ -273,9 +267,7 @@ Si vous n’êtes pas à l’origine de cette demande, contactez votre administr
   return { ...base(locale, subject, preheader, bodyHtml, text), subject };
 }
 
-/* ------------------------------------------------------------------ */
-/* weeklyDigest — full EN/FR                                           */
-/* ------------------------------------------------------------------ */
+/* weeklyDigest (EN/FR) */
 
 export function weeklyDigest(input: WeeklyDigestInput): RenderedEmail {
   const { rows, weekLabel, locale } = input;
@@ -285,8 +277,8 @@ export function weeklyDigest(input: WeeklyDigestInput): RenderedEmail {
     rows.length === 0 ? 0 : Math.round(rows.reduce((acc, r) => acc + r.utilizationPct, 0) / rows.length);
   const subject = L(
     locale,
-    `CALENDAR. — Weekly room digest · ${weekLabel}`,
-    `CALENDAR. — Récapitulatif hebdo des salles · ${weekLabel}`,
+    `CALENDAR. · Weekly room digest · ${weekLabel}`,
+    `CALENDAR. · Récapitulatif hebdo des salles · ${weekLabel}`,
   );
   const preheader = L(
     locale,
@@ -316,22 +308,22 @@ export function weeklyDigest(input: WeeklyDigestInput): RenderedEmail {
 </tr></tfoot>
 </table>`;
   const bodyHtml = `${h1(L(locale, "Weekly room digest", "Récapitulatif hebdo des salles"))}
-${p(L(locale, `Week of ${weekLabel} — here is how Eiden Group’s rooms were used.`, `Semaine du ${weekLabel} — voici comment les salles d’Eiden Group ont été utilisées.`))}
+${p(L(locale, `Week of ${weekLabel}: here is how Eiden Group’s rooms were used.`, `Semaine du ${weekLabel} : voici comment les salles d’Eiden Group ont été utilisées.`))}
 ${table}
 ${p(L(locale, "Figures are computed from confirmed bookings. Cancelled and pending-conflict slots are excluded.", "Les chiffres sont calculés sur les réservations confirmées. Les créneaux annulés et en conflit sont exclus."))}`;
   const rowsText = rows
-    .map((r) => `· ${r.room} — ${r.bookings} ${L(locale, "bookings", "réservations")}, ${r.hours} h, ${r.utilizationPct}%`)
+    .map((r) => `· ${r.room} · ${r.bookings} ${L(locale, "bookings", "réservations")}, ${r.hours} h, ${r.utilizationPct}%`)
     .join("\n");
   const text = L(
     locale,
-    `Weekly room digest — week of ${weekLabel}
+    `Weekly room digest: week of ${weekLabel}
 
 ${rowsText || "No bookings this week."}
 
 Totals: ${totalBookings} bookings · ${totalHours} h · ${avgUtil}% average utilization
 
 Figures are computed from confirmed bookings.`,
-    `Récapitulatif hebdo des salles — semaine du ${weekLabel}
+    `Récapitulatif hebdo des salles : semaine du ${weekLabel}
 
 ${rowsText || "Aucune réservation cette semaine."}
 
@@ -342,14 +334,12 @@ Les chiffres sont calculés sur les réservations confirmées.`,
   return { ...base(locale, subject, preheader, bodyHtml, text), subject };
 }
 
-/* ------------------------------------------------------------------ */
-/* bookingCreated / bookingUpdated / bookingCancelled                  */
-/* ------------------------------------------------------------------ */
+/* bookingCreated / bookingUpdated / bookingCancelled */
 
 function bookingDetails(booking: BookingLike, room: RoomLike, locale: Locale): string {
   return detailsTable(
     detailRow(L(locale, "Title", "Intitulé"), booking.title) +
-      detailRow(L(locale, "Room", "Salle"), room.capacity ? `${room.name} — ${room.location} (${room.capacity}p)` : `${room.name} — ${room.location}`) +
+      detailRow(L(locale, "Room", "Salle"), room.capacity ? `${room.name} · ${room.location} (${room.capacity}p)` : `${room.name} · ${room.location}`) +
       detailRow(L(locale, "When", "Quand"), fmtDateTime(booking.starts_at, locale)) +
       detailRow(L(locale, "Until", "Jusqu’à"), fmtDateTime(booking.ends_at, locale)),
   );
@@ -357,7 +347,7 @@ function bookingDetails(booking: BookingLike, room: RoomLike, locale: Locale): s
 
 export function bookingCreated(input: BookingMailInput): RenderedEmail {
   const { booking, room, locale } = input;
-  const subject = L(locale, `Booking confirmed — ${booking.title}`, `Réservation confirmée — ${booking.title}`);
+  const subject = L(locale, `Booking confirmed: ${booking.title}`, `Réservation confirmée : ${booking.title}`);
   const preheader = L(
     locale,
     `${room.name}, ${fmtDateTime(booking.starts_at, locale)}.`,
@@ -370,11 +360,11 @@ ${button(`${APP_BASE}/calendar`, L(locale, "Open the calendar", "Ouvrir le calen
   const text = L(
     locale,
     `Booking confirmed: ${booking.title}
-Room: ${room.name} — ${room.location}
+Room: ${room.name} · ${room.location}
 When: ${fmtDateTime(booking.starts_at, locale)} → ${fmtDateTime(booking.ends_at, locale)}
 Open the calendar: ${APP_BASE}/calendar`,
     `Réservation confirmée : ${booking.title}
-Salle : ${room.name} — ${room.location}
+Salle : ${room.name} · ${room.location}
 Quand : ${fmtDateTime(booking.starts_at, locale)} → ${fmtDateTime(booking.ends_at, locale)}
 Ouvrir le calendrier : ${APP_BASE}/calendar`,
   );
@@ -383,7 +373,7 @@ Ouvrir le calendrier : ${APP_BASE}/calendar`,
 
 export function bookingUpdated(input: BookingMailInput): RenderedEmail {
   const { booking, room, locale } = input;
-  const subject = L(locale, `Booking updated — ${booking.title}`, `Réservation modifiée — ${booking.title}`);
+  const subject = L(locale, `Booking updated: ${booking.title}`, `Réservation modifiée : ${booking.title}`);
   const preheader = L(locale, "The details of your booking changed.", "Les détails de votre réservation ont changé.");
   const bodyHtml = `${h1(L(locale, "Booking updated", "Réservation modifiée"))}
 ${p(L(locale, "Your booking was modified. The latest details are below.", "Votre réservation a été modifiée. Les informations à jour sont ci-dessous."))}
@@ -392,11 +382,11 @@ ${button(`${APP_BASE}/calendar`, L(locale, "Open the calendar", "Ouvrir le calen
   const text = L(
     locale,
     `Booking updated: ${booking.title}
-Room: ${room.name} — ${room.location}
+Room: ${room.name} · ${room.location}
 When: ${fmtDateTime(booking.starts_at, locale)} → ${fmtDateTime(booking.ends_at, locale)}
 Open the calendar: ${APP_BASE}/calendar`,
     `Réservation modifiée : ${booking.title}
-Salle : ${room.name} — ${room.location}
+Salle : ${room.name} · ${room.location}
 Quand : ${fmtDateTime(booking.starts_at, locale)} → ${fmtDateTime(booking.ends_at, locale)}
 Ouvrir le calendrier : ${APP_BASE}/calendar`,
   );
@@ -405,7 +395,7 @@ Ouvrir le calendrier : ${APP_BASE}/calendar`,
 
 export function bookingCancelled(input: BookingMailInput): RenderedEmail {
   const { booking, room, locale } = input;
-  const subject = L(locale, `Booking cancelled — ${booking.title}`, `Réservation annulée — ${booking.title}`);
+  const subject = L(locale, `Booking cancelled: ${booking.title}`, `Réservation annulée : ${booking.title}`);
   const preheader = L(locale, "This booking has been cancelled and the slot is released.", "Cette réservation a été annulée et le créneau est libéré.");
   const bodyHtml = `${h1(L(locale, "Booking cancelled", "Réservation annulée"))}
 ${p(L(locale, "The following booking has been cancelled. The room is available again for the slot.", "La réservation suivante a été annulée. La salle est de nouveau disponible sur ce créneau."))}
@@ -414,27 +404,25 @@ ${button(`${APP_BASE}/calendar`, L(locale, "Open the calendar", "Ouvrir le calen
   const text = L(
     locale,
     `Booking cancelled: ${booking.title}
-Room: ${room.name} — ${room.location}
+Room: ${room.name} · ${room.location}
 When: ${fmtDateTime(booking.starts_at, locale)} → ${fmtDateTime(booking.ends_at, locale)}
 Open the calendar: ${APP_BASE}/calendar`,
     `Réservation annulée : ${booking.title}
-Salle : ${room.name} — ${room.location}
+Salle : ${room.name} · ${room.location}
 Quand : ${fmtDateTime(booking.starts_at, locale)} → ${fmtDateTime(booking.ends_at, locale)}
 Ouvrir le calendrier : ${APP_BASE}/calendar`,
   );
   return { ...base(locale, subject, preheader, bodyHtml, text), subject };
 }
 
-/* ------------------------------------------------------------------ */
-/* change request lifecycle                                             */
-/* ------------------------------------------------------------------ */
+/* change request lifecycle */
 
 export function changeRequestReceived(input: ChangeRequestReceivedInput): RenderedEmail {
   const { incumbentName, requesterName, room, slot, suggested, locale } = input;
   const subject = L(
     locale,
-    `Action needed — ${requesterName} requests ${room}`,
-    `Action requise — ${requesterName} souhaite ${room}`,
+    `Action needed: ${requesterName} requests ${room}`,
+    `Action requise : ${requesterName} souhaite ${room}`,
   );
   const preheader = L(
     locale,
@@ -474,7 +462,7 @@ Examiner la demande : ${APP_BASE}/requests`,
 
 export function changeRequestApproved(input: ChangeRequestResolutionInput): RenderedEmail {
   const { requesterName, room, slot, responseMessage, locale } = input;
-  const subject = L(locale, `Request approved — ${room} · ${slot}`, `Demande acceptée — ${room} · ${slot}`);
+  const subject = L(locale, `Request approved: ${room} · ${slot}`, `Demande acceptée : ${room} · ${slot}`);
   const preheader = L(locale, "The slot is yours. The calendar has been updated.", "Le créneau vous est attribué. Le calendrier a été mis à jour.");
   const greetingName = requesterName ? ` ${requesterName}` : "";
   const bodyHtml = `${h1(L(locale, "Request approved", "Demande acceptée"))}
@@ -498,7 +486,7 @@ Ouvrir le calendrier : ${APP_BASE}/calendar`,
 
 export function changeRequestDeclined(input: ChangeRequestResolutionInput): RenderedEmail {
   const { requesterName, room, slot, responseMessage, locale } = input;
-  const subject = L(locale, `Request declined — ${room} · ${slot}`, `Demande refusée — ${room} · ${slot}`);
+  const subject = L(locale, `Request declined: ${room} · ${slot}`, `Demande refusée : ${room} · ${slot}`);
   const preheader = L(locale, "The incumbent kept the slot. Your request was declined.", "Le titulaire garde le créneau. Votre demande a été refusée.");
   const greetingName = requesterName ? ` ${requesterName}` : "";
   const bodyHtml = `${h1(L(locale, "Request declined", "Demande refusée"))}
@@ -523,8 +511,8 @@ Ouvrir le calendrier : ${APP_BASE}/calendar`,
 
 export function changeRequestExpired(input: ChangeRequestExpiryInput): RenderedEmail {
   const { requesterName, room, slot, locale } = input;
-  const subject = L(locale, `Request expired — ${room} · ${slot}`, `Demande expirée — ${room} · ${slot}`);
-  const preheader = L(locale, "No response within the window — the request expired.", "Sans réponse dans le délai imparti — la demande a expiré.");
+  const subject = L(locale, `Request expired: ${room} · ${slot}`, `Demande expirée : ${room} · ${slot}`);
+  const preheader = L(locale, "No response within the window: the request expired.", "Sans réponse dans le délai imparti : la demande a expiré.");
   const greetingName = requesterName ? ` ${requesterName}` : "";
   const bodyHtml = `${h1(L(locale, "Request expired", "Demande expirée"))}
 ${p(L(locale, `Hi${greetingName || ""}, your change request expired because the current holder did not respond within the allowed window.`, `Bonjour${greetingName || ""}, votre demande de modification a expiré car le titulaire n’a pas répondu dans le délai imparti.`))}
@@ -547,21 +535,19 @@ Ouvrir le calendrier : ${APP_BASE}/calendar`,
   return { ...base(locale, subject, preheader, bodyHtml, text), subject };
 }
 
-/* ------------------------------------------------------------------ */
-/* formationReminder                                                   */
-/* ------------------------------------------------------------------ */
+/* formationReminder */
 
 export function formationReminder(input: FormationReminderInput): RenderedEmail {
   const { formation, count, locale } = input;
   const subject = L(
     locale,
-    `Reminder — ${formation.title} · ${fmtDateTime(formation.starts_at, locale)}`,
-    `Rappel — ${formation.title} · ${fmtDateTime(formation.starts_at, locale)}`,
+    `Reminder: ${formation.title} · ${fmtDateTime(formation.starts_at, locale)}`,
+    `Rappel : ${formation.title} · ${fmtDateTime(formation.starts_at, locale)}`,
   );
   const preheader = L(
     locale,
-    "Your formation starts soon — arrival details inside.",
-    "Votre formation commence bientôt — les informations pratiques sont à l’intérieur.",
+    "Your formation starts soon: arrival details inside.",
+    "Votre formation commence bientôt : les informations pratiques sont à l’intérieur.",
   );
   const roomLine = formation.room_name ? formation.room_name : L(locale, "Room to be confirmed", "Salle à confirmer");
   const bodyHtml = `${h1(L(locale, "Formation reminder", "Rappel de formation"))}
@@ -576,14 +562,14 @@ ${p(L(locale, "Please arrive 10 minutes early. Bring a laptop if a hands-on sess
 ${button(`${APP_BASE}/formations`, L(locale, "View formation details", "Voir les détails de la formation"))}`;
   const text = L(
     locale,
-    `Reminder — ${formation.title}
+    `Reminder: ${formation.title}
 When: ${fmtDateTime(formation.starts_at, locale)}
 Room: ${roomLine}
 Participants: ${count}
 
 Please arrive 10 minutes early.
 Details: ${APP_BASE}/formations`,
-    `Rappel — ${formation.title}
+    `Rappel : ${formation.title}
 Quand : ${fmtDateTime(formation.starts_at, locale)}
 Salle : ${roomLine}
 Participants : ${count}
@@ -594,9 +580,7 @@ Détails : ${APP_BASE}/formations`,
   return { ...base(locale, subject, preheader, bodyHtml, text), subject };
 }
 
-/* ------------------------------------------------------------------ */
-/* reply composition — used by the /api/mail/reply route               */
-/* ------------------------------------------------------------------ */
+/* reply composition (used by the /api/mail/reply route) */
 
 export interface ReplyComposeInput {
   originalFrom: string;
@@ -609,7 +593,7 @@ export interface ReplyComposeInput {
 
 const REPLY_SUBJECT_RE = /^\s*(re|fwd?|wg|r)\s*:/i;
 
-/** "Re: <original>" — the prefix is added only when absent. */
+/** "Re: <original>"; the prefix is added only when absent. */
 export function replySubject(originalSubject: string): string {
   const clean = stripSubject(originalSubject);
   return REPLY_SUBJECT_RE.test(clean) ? clean : `Re: ${clean}`;

@@ -18,6 +18,7 @@ import { useTranslations } from "next-intl";
 import { PageHeader } from "@/components/settings/PageHeader";
 import { ToastViewport, useToast } from "@/components/settings/Toast";
 import { appLocaleTag } from "@/lib/intl-locale";
+import { useLocale } from "next-intl";
 
 type Verb = "create" | "update" | "delete" | "auth" | "settings";
 
@@ -39,26 +40,26 @@ interface AuditEntry {
 const VERB_META: Record<Verb, { labelKey: string; chip: string }> = {
   create: { labelKey: "verbCreate", chip: "bg-success-tint text-tint-fg-green" },
   update: { labelKey: "verbUpdate", chip: "bg-tint-blue text-tint-fg-blue" },
-  delete: { labelKey: "verbDelete", chip: "bg-error-tint text-error" },
+  delete: { labelKey: "verbDelete", chip: "bg-error-tint text-error-fg" },
   auth: { labelKey: "verbAuth", chip: "bg-warning-tint text-tint-fg-amber" },
   settings: { labelKey: "verbSettings", chip: "bg-canvas text-muted" },
 };
 
 const TEMPLATES: Array<{ verb: Verb; entity: string; details: string[] }> = [
-  { verb: "create", entity: "booking", details: ["bk-1042 confirmed — Salle Grande · Acme SARL · Tue 14:00", "bk-1043 created — React Avancé S3 · Salle Formation", "bk-1044 created — ONCF · Salle Grande · pending_conflict"] },
-  { verb: "update", entity: "booking", details: ["bk-1021 moved 09:30 → 10:00 — buffer revalidated", "bk-1033 notes updated · 'They bring own coffee'", "bk-1019 price 675 → 900 MAD"] },
-  { verb: "delete", entity: "booking", details: ["bk-0990 cancelled — Salle Petite · client notified", "bk-0977 cancelled by client — refund 500 MAD"] },
-  { verb: "create", entity: "client", details: ["cli-9 created — ONCF · source web", "cli-10 created — Salma Bennani · source walk-in"] },
-  { verb: "update", entity: "client", details: ["cli-1 tags updated — +recurring", "cli-6 status active → inactive"] },
+  { verb: "create", entity: "booking", details: ["bk-1042 confirmed: Salle Grande · Acme SARL · Tue 14:00", "bk-1043 created: React Avancé S3 · Salle Formation", "bk-1044 created: ONCF · Salle Grande · pending_conflict"] },
+  { verb: "update", entity: "booking", details: ["bk-1021 moved 09:30 → 10:00: buffer revalidated", "bk-1033 notes updated · 'They bring own coffee'", "bk-1019 price 675 → 900 MAD"] },
+  { verb: "delete", entity: "booking", details: ["bk-0990 cancelled: Salle Petite · client notified", "bk-0977 cancelled by client: refund 500 MAD"] },
+  { verb: "create", entity: "client", details: ["cli-9 created: ONCF · source web", "cli-10 created: Salma Bennani · source walk-in"] },
+  { verb: "update", entity: "client", details: ["cli-1 tags updated: +recurring", "cli-6 status active → inactive"] },
   { verb: "delete", entity: "client", details: ["cli-legacy-3 merged into cli-1 (dedupe)"] },
-  { verb: "auth", entity: "session", details: ["auth.login.success — 102.130.44.18", "auth.login.failure — wrong password ×2", "auth.password.changed — 3 sessions revoked"] },
-  { verb: "auth", entity: "user", details: ["usr-karim MFA enrolled — TOTP", "usr-sofia deactivated — sessions revoked"] },
-  { verb: "settings", entity: "settings", details: ["settings.general saved — currency MAD", "settings.notifications saved — digest on", "settings.working_hours saved — Sat 09:30–13:00", "settings.categories reordered — Maintenance up"] },
-  { verb: "settings", entity: "room", details: ["room-grande rate 400 → 450 MAD", "room-petite deactivated — hidden from pickers"] },
-  { verb: "create", entity: "user", details: ["usr-sofia role staff → admin — reverted same day", "usr-karim invited — temp password issued"] },
-  { verb: "update", entity: "formation", details: ["bk-11 capacity reached — waitlist auto-activated", "bk-5 price_label 900 MAD set"] },
-  { verb: "create", entity: "change_request", details: ["cr-1 opened — ONCF × React S3 conflict", "cr-2 approved — React S3 moved to 15:00"] },
-  { verb: "update", entity: "change_request", details: ["cr-2 expires in 6h — nudge sent", "cr-1 declined — requester notified"] },
+  { verb: "auth", entity: "session", details: ["auth.login.success: 102.130.44.18", "auth.login.failure: wrong password ×2", "auth.password.changed: 3 sessions revoked"] },
+  { verb: "auth", entity: "user", details: ["usr-karim MFA enrolled: TOTP", "usr-sofia deactivated: sessions revoked"] },
+  { verb: "settings", entity: "settings", details: ["settings.general saved: currency MAD", "settings.notifications saved: digest on", "settings.working_hours saved: Sat 09:30–13:00", "settings.categories reordered: Maintenance up"] },
+  { verb: "settings", entity: "room", details: ["room-grande rate 400 → 450 MAD", "room-petite deactivated: hidden from pickers"] },
+  { verb: "create", entity: "user", details: ["usr-sofia role staff → admin: reverted same day", "usr-karim invited: temp password issued"] },
+  { verb: "update", entity: "formation", details: ["bk-11 capacity reached: waitlist auto-activated", "bk-5 price_label 900 MAD set"] },
+  { verb: "create", entity: "change_request", details: ["cr-1 opened: ONCF × React S3 conflict", "cr-2 approved: React S3 moved to 15:00"] },
+  { verb: "update", entity: "change_request", details: ["cr-2 expires in 6h: nudge sent", "cr-1 declined: requester notified"] },
 ];
 
 const ACTORS = ["Marouane A.", "Yasmine B.", "Yasmine B.", "Karim L.", "Karim L.", "Marouane A.", "System", "System"];
@@ -73,10 +74,10 @@ function mulberry32(seed: number) {
   };
 }
 
-/** Fixed reference instant — keeps prerender and hydration identical. */
+/** Fixed reference instant: keeps prerender and hydration identical. */
 const DEMO_EPOCH = new Date(2026, 10, 13, 8, 15, 0).getTime();
 
-/** Deterministic demo log — 44 entries, newest first, spanning roughly two weeks. */
+/** Deterministic demo log: 44 entries, newest first, spanning roughly two weeks. */
 function buildEntries(): AuditEntry[] {
   const rand = mulberry32(20261113);
   const entries: AuditEntry[] = [];
@@ -118,8 +119,8 @@ export interface AuditEntryLive {
   meta: { requestId: string; ip: string; userAgent: string; entityId: string };
 }
 
-const dateFmt = new Intl.DateTimeFormat(appLocaleTag(), { day: "2-digit", month: "short" });
-const timeFmt = new Intl.DateTimeFormat(appLocaleTag(), { hour: "2-digit", minute: "2-digit", hour12: false });
+const dateFmt = (tag: string) => new Intl.DateTimeFormat(tag, { day: "2-digit", month: "short" });
+const timeFmt = (tag: string) => new Intl.DateTimeFormat(tag, { hour: "2-digit", minute: "2-digit", hour12: false });
 
 function csvCell(value: string): string {
   return `"${value.replace(/"/g, '""')}"`;
@@ -133,9 +134,12 @@ export function AuditView({
   live?: boolean;
 }) {
   const t = useTranslations("settings");
+  const intlLocale = appLocaleTag(useLocale());
+  const dateFmtL = dateFmt(intlLocale);
+  const timeFmtL = timeFmt(intlLocale);
   const source: AuditEntry[] = entriesProp ?? ALL_ENTRIES;
   const actorOptions = live ? Array.from(new Set(source.map((e) => e.actor))).sort() : ACTOR_OPTIONS;
-  const { toasts, push } = useToast();
+  const { toasts, leaving, push } = useToast();
   const [actor, setActor] = useState<string>("all");
   const [verb, setVerb] = useState<string>("all");
   const [from, setFrom] = useState("");
@@ -213,14 +217,14 @@ export function AuditView({
         title={t("tabAudit")}
         sub={t("auditSub")}
       >
-        <span className="chip bg-obsidian text-[10px] uppercase tracking-[0.12em] text-white">{t("adminBadge")}</span>
+        <span className="chip bg-obsidian text-[11px] uppercase tracking-[0.08em] text-white">{t("adminBadge")}</span>
       </PageHeader>
 
       {/* Filters */}
-      <div className="card mt-5 flex flex-wrap items-end gap-2 p-3 sm:p-4">
+      <div className="card mt-5 flex flex-wrap items-end gap-2 p-4 sm:p-5">
         <div>
           <label htmlFor="audit-actor" className="label">{t("actorLabel")}</label>
-          <select id="audit-actor" className="input h-10 w-36 px-2.5 text-[13px]" value={actor} onChange={(e) => resetAndSet(setActor)(e.target.value)}>
+          <select id="audit-actor" className="input h-10 w-44 px-2.5 text-[13px]" value={actor} onChange={(e) => resetAndSet(setActor)(e.target.value)}>
             <option value="all">{t("allActors")}</option>
             {actorOptions.map((a) => (
               <option key={a} value={a}>{a}</option>
@@ -229,7 +233,7 @@ export function AuditView({
         </div>
         <div>
           <label htmlFor="audit-verb" className="label">{t("colAction")}</label>
-          <select id="audit-verb" className="input h-10 w-32 px-2.5 text-[13px]" value={verb} onChange={(e) => resetAndSet(setVerb)(e.target.value)}>
+          <select id="audit-verb" className="input h-10 w-44 px-2.5 text-[13px]" value={verb} onChange={(e) => resetAndSet(setVerb)(e.target.value)}>
             <option value="all">{t("allActions")}</option>
             {Object.entries(VERB_META).map(([key, meta]) => (
               <option key={key} value={key}>{t(meta.labelKey)}</option>
@@ -286,7 +290,7 @@ export function AuditView({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] text-left text-[13px]">
             <thead>
-              <tr className="border-b border-border text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
+              <tr className="border-b border-border text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                 <th scope="col" className="px-4 py-2.5 sm:px-5">{t("colWhen")}</th>
                 <th scope="col" className="px-3 py-2.5">{t("colActor")}</th>
                 <th scope="col" className="px-3 py-2.5">{t("colAction")}</th>
@@ -315,32 +319,32 @@ export function AuditView({
                       onClick={() => toggleExpanded(entry.id)}
                       className="cursor-pointer align-middle transition-colors hover:bg-canvas/60"
                     >
-                      <td className="px-4 py-2.5 sm:px-5">
-                        <span className="block text-[12px] font-bold leading-tight text-obsidian">{dateFmt.format(entry.at)}</span>
-                        <span className="font-mono text-[10px] leading-tight text-muted">{timeFmt.format(entry.at)}</span>
+                      <td className="px-4 py-3 sm:px-5">
+                        <span className="block text-[12px] font-bold leading-tight text-obsidian">{dateFmtL.format(entry.at)}</span>
+                        <span className="font-mono text-[11px] leading-tight text-muted">{timeFmtL.format(entry.at)}</span>
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-3 py-3">
                         <span className="flex items-center gap-1.5 whitespace-nowrap text-[12px] font-semibold text-obsidian-light">
                           {entry.actor === "System" ? (
                             <ServerCog size={13} strokeWidth={2.2} aria-hidden="true" className="text-muted" />
                           ) : (
-                            <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center rounded-pill bg-tint-blue text-[8px] font-extrabold text-tint-fg-blue">
+                            <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center rounded-pill bg-tint-blue text-[10px] font-extrabold text-tint-fg-blue">
                               {entry.actor.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}
                             </span>
                           )}
                           {entry.actor}
                         </span>
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-3 py-3">
                         <span className={`chip ${VERB_META[entry.verb].chip}`}>{t(VERB_META[entry.verb].labelKey)}</span>
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-3 py-3">
                         <code className="font-mono text-[11px] font-semibold text-obsidian-light">{entry.entity}</code>
                       </td>
-                      <td className="max-w-[260px] truncate px-3 py-2.5 font-mono text-[11px] text-muted" title={entry.details}>
+                      <td className="max-w-[260px] truncate px-3 py-3 font-mono text-[11px] text-muted" title={entry.details}>
                         {entry.details}
                       </td>
-                      <td className="px-2 py-2.5 text-right">
+                      <td className="px-2 py-3 text-right">
                         <button
                           type="button"
                           onClick={(e) => {
@@ -352,7 +356,7 @@ export function AuditView({
                           aria-label={isOpen ? t("hideEntryMeta", { id: entry.id }) : t("showEntryMeta", { id: entry.id })}
                           className="rounded-pill p-1.5 text-muted transition-all hover:bg-canvas hover:text-obsidian"
                         >
-                          <ChevronDown size={15} strokeWidth={2.2} aria-hidden="true" className={`transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+                          <ChevronDown size={15} strokeWidth={2.2} aria-hidden="true" className={`transition-transform duration-base ${isOpen ? "rotate-180" : ""}`} />
                         </button>
                       </td>
                     </tr>,
@@ -421,7 +425,7 @@ export function AuditView({
         {t("everyMutationNote")}
       </div>
 
-      <ToastViewport toasts={toasts} />
+      <ToastViewport toasts={toasts} leaving={leaving} />
     </div>
   );
 }

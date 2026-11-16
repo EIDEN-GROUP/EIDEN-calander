@@ -1,7 +1,6 @@
 /**
- * Client-side CSV generation + download.
  * Client-side CSV generation + download for the live, filtered dataset.
- * If exports ever grow large, migrate to a streaming route handler under /api/reports.
+ * If exports grow large, migrate to a streaming route handler under /api/reports.
  */
 
 export type CsvRow = Array<string | number | null | undefined>;

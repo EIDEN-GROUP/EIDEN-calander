@@ -1,5 +1,5 @@
 /**
- * Formations list — client component.
+ * Formations list: client component.
  * Demo data (getDemoBookings + DEMO_FORMATIONS) + local state.
  * Live mode: VMs come from the server (Supabase) via loadFormations().
  * Demo mode: local sessionStorage fallback.
@@ -82,7 +82,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
     categories.find((c) => c.type === "formation") ??
     categories[0] ??
     null;
-  const { toasts, push, dismiss } = useToast();
+  const { toasts, leaving, push, dismiss } = useToast();
   // Locally created formations (sessionStorage) + demo dataset, merged.
   const storedFormations = useSyncExternalStore(
     subscribeFormations,
@@ -136,7 +136,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
     });
   }, [vms, segment, query, rooms]);
 
-  /* ---------- duplicate ---------- */
+  /* duplicate */
   async function handleDuplicate(vm: FormationVM) {
     if (live) {
       const starts = new Date(vm.booking.starts_at);
@@ -163,7 +163,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
     push(t("duplicateToastMoved", { date: new Intl.DateTimeFormat(appLocaleTag(), { day: "numeric", month: "short" }).format(new Date(booking.starts_at)) }));
   }
 
-  /* ---------- create ---------- */
+  /* create */
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState<CreateFormState>(EMPTY_FORM);
   const [formError, setFormError] = useState<string | null>(null);
@@ -253,7 +253,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="max-w-2xl">
-          <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.04em] text-obsidian sm:text-[32px]">
+          <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.05em] text-obsidian sm:text-[32px]">
             {t("title")}
           </h1>
           <p className="mt-1.5 text-[14px] font-medium leading-snug text-obsidian-light">
@@ -290,7 +290,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t("searchPlaceholder")}
-              className="input h-11 w-40 pl-10 sm:w-56"
+              className="input h-11 w-48 pl-10 sm:w-64"
             />
           </div>
           <button type="button" onClick={openCreate} className="btn btn-primary h-11 shadow-electric">
@@ -310,7 +310,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
       ) : (
         <div className="card mt-6 flex flex-col items-center px-6 py-16 text-center">
           <NowBarMark size={52} className="opacity-90" />
-          <h2 className="mt-5 text-[19px] font-extrabold tracking-[-0.03em] text-obsidian">
+          <h2 className="mt-5 text-[19px] font-extrabold tracking-[-0.02em] text-obsidian">
             {query.trim() ? t("emptyNoMatch", { query: query.trim() }) : t("emptyNone")}
           </h2>
           <p className="mt-1.5 max-w-md text-[14px] leading-snug text-obsidian-light">
@@ -358,7 +358,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
                 type="text"
                 value={form.title}
                 onChange={(e) => updateField("title", e.target.value)}
-                placeholder="React Avancé — Session 5"
+                placeholder="React Avancé: Session 5"
                 className="input"
                 autoComplete="off"
               />
@@ -456,7 +456,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
             </div>
 
             {formError && (
-              <p role="alert" className="rounded-sm border border-error/30 bg-error-tint px-4 py-2.5 text-[13px] font-semibold text-error">
+              <p role="alert" className="rounded-sm border border-error/30 bg-error-tint px-4 py-2.5 text-[13px] font-semibold text-error-fg">
                 {formError}
               </p>
             )}
@@ -480,7 +480,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
         </Modal>
       )}
 
-      <ToastViewport toasts={toasts} onDismiss={dismiss} />
+      <ToastViewport toasts={toasts} leaving={leaving} onDismiss={dismiss} />
     </div>
   );
 }

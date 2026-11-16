@@ -11,7 +11,7 @@ export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // Fresh clone without .env — render the app shell in "setup mode"
+  // Fresh clone without .env: render the app shell in "setup mode"
   // instead of redirecting in a loop or crashing.
   if (!url || !anon) {
     return NextResponse.next();
@@ -40,7 +40,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!user && !isPublic(pathname) && pathname !== "/") {
-    // API routes: never redirect to /login — return JSON 401 so clients can handle it.
+    // API routes: never redirect to /login: return JSON 401 so clients can handle it.
     if (pathname.startsWith("/api/cron/")) {
       return NextResponse.next(); // route enforces CRON_SECRET itself
     }
@@ -74,7 +74,7 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL("/profile?first-login=1", request.url));
       }
     } catch {
-      // profiles table unreachable — let the request through; RLS still guards data.
+      // profiles table unreachable: let the request through; RLS still guards data.
     }
   }
 

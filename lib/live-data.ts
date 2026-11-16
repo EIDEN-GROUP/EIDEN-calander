@@ -1,5 +1,5 @@
 /**
- * CALENDAR. — live data loader (server-only).
+ * CALENDAR. · live data loader (server-only).
  * Every page that wants live Supabase data calls this; on any failure
  * (or missing env) it falls back to DEMO data with live:false so the UI
  * never white-screens.
@@ -74,7 +74,7 @@ export async function loadCalendarData(): Promise<CalendarData> {
       clients: DEMO_CLIENTS,
       bookings: getDemoBookings(),
       workingHours: DEFAULT_WH,
-      error: "Database unreachable — showing demo data",
+      error: "Database unreachable: showing demo data",
     };
   }
 }

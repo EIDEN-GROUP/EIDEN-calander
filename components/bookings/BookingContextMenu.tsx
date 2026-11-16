@@ -136,18 +136,18 @@ export function BookingContextMenu({
       aria-label={t("actionsFor", { title: booking.title })}
       tabIndex={-1}
       className="fixed z-[70] overflow-hidden rounded-md border border-border bg-white shadow-lg outline-none"
-      style={{ left: pos.x, top: pos.y, width: MENU_WIDTH, animation: "menuPop 140ms cubic-bezier(.25,1,.5,1)" }}
+      style={{ left: pos.x, top: pos.y, width: MENU_WIDTH, animation: "menuPop var(--transition-duration-base) var(--ease-apple)" }}
     >
-      {/* Header — context: which booking */}
+      {/* Header: context: which booking */}
       <div className="border-b border-divider bg-canvas/60 px-4 pb-2.5 pt-3">
-        <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.14em] text-muted">
+        <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-muted">
           <Bookmark size={11} strokeWidth={2.4} aria-hidden="true" />
           {t("bookingRef", { ref: shortRef(booking.id) })}
         </p>
         <p className="mt-1 truncate text-[13px] font-bold text-obsidian" title={booking.title}>
           {booking.title}
         </p>
-        <p className="mt-1.5 inline-flex items-center gap-1.5 text-[10px] font-semibold text-obsidian-light">
+        <p className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-semibold text-obsidian-light">
           <span className={`h-2 w-2 rounded-pill ${STATUS_DOT[booking.status]}`} aria-hidden="true" />
           {statusLabel}
         </p>
@@ -170,11 +170,11 @@ export function BookingContextMenu({
                 item.action();
                 onClose();
               }}
-              className={`flex w-full items-center gap-3 px-4 py-2 text-left transition-colors duration-100 ${
+              className={`flex w-full items-center gap-3 px-4 py-2 text-left transition-colors duration-fast ${
                 danger
                   ? isActive
-                    ? "bg-error-tint text-error"
-                    : "text-error"
+                    ? "bg-error-tint text-error-fg"
+                    : "text-error-fg"
                   : isActive
                     ? "bg-electric-tint text-electric"
                     : "text-obsidian"
@@ -183,7 +183,7 @@ export function BookingContextMenu({
               <Icon size={16} strokeWidth={2} aria-hidden="true" className="shrink-0" />
               <span className="min-w-0 flex-1">
                 <span className="block text-[13px] font-semibold leading-tight">{item.label}</span>
-                <span className={`block text-[10px] font-medium leading-tight ${danger ? "text-error/70" : "text-muted"}`}>
+                <span className={`block text-[11px] font-medium leading-tight ${danger ? "text-error-fg/70" : "text-muted"}`}>
                   {item.hint}
                 </span>
               </span>
@@ -192,7 +192,7 @@ export function BookingContextMenu({
         })}
       </div>
 
-      <div className="border-t border-divider px-4 py-1.5 text-[9.5px] font-medium text-muted">
+      <div className="border-t border-divider px-4 py-1.5 text-[10px] font-medium text-muted">
         {t("contextMenuFooter")}
       </div>
     </div>,

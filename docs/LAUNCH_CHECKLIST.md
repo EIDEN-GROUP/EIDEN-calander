@@ -1,19 +1,19 @@
-# CALENDAR. — Launch checklist
+# CALENDAR. · Launch checklist
 **Phase 5 · Eiden Group · v1.0 RC**
 
 Use this before pointing the DNS record and after go-live. Everything reversible or auditable; nothing here leaves gaps.
 
 ## Pre-flight (before DNS cutover)
 - [ ] Production Supabase project created/linked; schema applied (0001–0008); demo seed **skipped** in prod
-- [ ] First admin created via `node scripts/create-admin.mjs --email makrich@eiden-group.com --name "Eiden Group"` — temp password delivered once, rotate immediately
+- [ ] First admin created via `node scripts/create-admin.mjs --email makrich@eiden-group.com --name "Eiden Group"`: temp password delivered once, rotate immediately
 - [ ] Vercel project connected to GitHub repo `EIDEN-GROUP/EIDEN-calander`; **root = repo root**; framework preset Next.js
 - [ ] Environment variables set in Vercel (Production + Preview):
   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_URL`,
   `SMTP_HOST/PORT/USER/PASSWORD`, `EMAIL_FROM`, `IMAP_*`, `MAILBOX_ALLOWED=makrich@eiden-group.com`,
   `CRON_SECRET`, `BUSINESS_PUBLIC_URL=https://calendar.eiden-group.com`
-- [ ] DNS: `calendar CNAME cname.vercel-dns.com` (apex `eiden-group.com` untouched — it's the public site)
+- [ ] DNS: `calendar CNAME cname.vercel-dns.com` (apex `eiden-group.com` untouched: it's the public site)
 - [ ] Preview deployment green end-to-end: login, conflict flow, CSV export, cron 401/200
-- [ ] Resend/Hostinger DKIM+SPF verified for outbound mail (Hostinger dashboard) — or accept deliverability limits
+- [ ] Hostinger DKIM+SPF verified for outbound mail (hPanel → Emails); otherwise deliverability limits are accepted
 - [ ] Uptime monitor pinging `https://calendar.eiden-group.com/login` every 5 min (the free-tier Supabase pauses when idle)
 - [ ] Cron `/api/cron/expire-requests` registered and returning 200 with the bearer token (hourly)
 - [ ] Backups: weekly `pg_dump` via `SUPABASE_DB_URL` stored off-machine (Google Drive / iCloud folder shared with admin)
@@ -35,8 +35,8 @@ Use this before pointing the DNS record and after go-live. Everything reversible
 - Service/SMTP keys: rotate in Vercel env → redeploy; Supabase service key: Settings → API → new key → update env → redeploy → revoke old
 
 ## Done in Phase 3/4 (before DNS cutover)
-- ✅ i18n EN/FR — full coverage, cookie-based (`locale` cookie + `profiles.locale`), ~1,600 keys, FR email templates
-- ✅ Mobile/PWA — manifest + maskable/apple icons, bottom nav, touch-friendly booking actions in the drawer
+- ✅ i18n EN/FR: full coverage, cookie-based (`locale` cookie + `profiles.locale`), ~1,600 keys, FR email templates
+- ✅ Mobile/PWA: manifest + maskable/apple icons, bottom nav, touch-friendly booking actions in the drawer
 - ✅ All Settings tabs persist live (General/Rooms/Team/Working Hours/Notifications/Localization/Categories/Audit/Data)
 - ✅ Email + Inbox live; notification preferences enforced server-side on every send
 - ✅ Audit trail via security-definer RPCs (0007), notification prefs + localization (0008)

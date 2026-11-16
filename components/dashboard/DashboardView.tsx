@@ -16,7 +16,7 @@ import {
 import { NowBarMark, Wordmark } from "@/components/brand/NowBar";
 import type { DashboardData } from "@/lib/dashboard-live";
 
-/* ---------------- demo fallback (fresh clone, no Supabase) ---------------- */
+/* demo fallback (fresh clone, no Supabase) */
 const DEMO = {
   todayLong: "Friday, 13 November 2026",
   firstName: "Marouane",
@@ -37,25 +37,25 @@ const DEMO = {
       { label: "Sun", date: 15, isToday: false, weekend: true },
     ],
     events: [
-      { day: 0, roomId: "room-1", time: "09:30", title: "Acme SARL — Board", tone: "blue" as const },
+      { day: 0, roomId: "room-1", time: "09:30", title: "Acme SARL: Board", tone: "blue" as const },
       { day: 0, roomId: "room-3", time: "14:00", title: "React Avancé S3", tone: "green" as const },
-      { day: 1, roomId: "room-2", time: "10:00", title: "Interview — Stagiaire", tone: "purple" as const },
-      { day: 1, roomId: "room-1", time: "15:30", title: "ONCF — Réservation", tone: "blue" as const },
+      { day: 1, roomId: "room-2", time: "10:00", title: "Interview: Stagiaire", tone: "purple" as const },
+      { day: 1, roomId: "room-1", time: "15:30", title: "ONCF: Réservation", tone: "blue" as const },
       { day: 2, roomId: "room-3", time: "09:00", title: "Formation Agile S1", tone: "green" as const },
-      { day: 2, roomId: "room-1", time: "13:00", title: "Marjane — Comité", tone: "blue" as const },
-      { day: 3, roomId: "room-2", time: "11:30", title: "Client call — Attijariwafa", tone: "purple" as const },
+      { day: 2, roomId: "room-1", time: "13:00", title: "Marjane: Comité", tone: "blue" as const },
+      { day: 3, roomId: "room-2", time: "11:30", title: "Client call: Attijariwafa", tone: "purple" as const },
       { day: 3, roomId: "room-3", time: "16:00", title: "React Avancé S4 · waitlist", tone: "amber" as const },
-      { day: 4, roomId: "room-1", time: "09:00", title: "Install — équipe", tone: "purple" as const },
-      { day: 5, roomId: "room-2", time: "10:30", title: "Coworking — libre", tone: "blue" as const },
+      { day: 4, roomId: "room-1", time: "09:00", title: "Install: équipe", tone: "purple" as const },
+      { day: 5, roomId: "room-2", time: "10:30", title: "Coworking: libre", tone: "blue" as const },
     ],
   },
   futureEvents: [
-    { day: "Today", time: "14:00 – 16:00", title: "React Avancé — Session 3", meta: "Formation · 14/20 seats", chip: "Today" },
-    { day: "Today", time: "17:30 – 18:15", title: "Revue produit — Équipe", meta: "Internal", chip: "Today" },
-    { day: "Tomorrow", time: "09:30 – 13:00", title: "Formation Agile — Module 1", meta: "Salle Formation · 18/20 seats", chip: "Tomorrow" },
+    { day: "Today", time: "14:00 – 16:00", title: "React Avancé: Session 3", meta: "Formation · 14/20 seats", chip: "Today" },
+    { day: "Today", time: "17:30 – 18:15", title: "Revue produit: Équipe", meta: "Internal", chip: "Today" },
+    { day: "Tomorrow", time: "09:30 – 13:00", title: "Formation Agile: Module 1", meta: "Salle Formation · 18/20 seats", chip: "Tomorrow" },
   ],
   plansInFlight: [
-    { title: "Open Salle Formation — March", tasks: "4/6 tasks", pct: 67 },
+    { title: "Open Salle Formation: March", tasks: "4/6 tasks", pct: 67 },
     { title: "Agadir second location", tasks: "2/5 tasks", pct: 40 },
     { title: "Website + booking funnel", tasks: "5/8 tasks", pct: 62 },
   ],
@@ -70,7 +70,7 @@ const PILL: Record<string, string> = {
   blue: "bg-tint-blue text-tint-fg-blue",
   green: "bg-tint-green text-tint-fg-green",
   purple: "bg-tint-purple text-tint-fg-purple",
-  amber: "bg-warning-tint text-[#a34d00] border border-dashed border-warning/50",
+  amber: "bg-warning-tint text-tint-fg-amber border border-dashed border-warning/50",
 };
 
 const hatch = {
@@ -78,10 +78,10 @@ const hatch = {
     "repeating-linear-gradient(-45deg, rgba(0,0,0,0.035) 0 6px, transparent 6px 12px)",
 };
 
-/* ---------------- view ---------------- */
+/* view */
 export function DashboardView({ data }: { data?: DashboardData | null }) {
   const t = useTranslations("dashboard");
-  // When live data exists, use it — otherwise the demo set above.
+  // When live data exists, use it: otherwise the demo set above.
   const todayLong = data?.todayLong ?? DEMO.todayLong;
   const firstName = data?.firstName ?? DEMO.firstName;
   const kpis = data?.kpis ?? DEMO.kpis;
@@ -96,7 +96,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
     { label: t("kpiTodayBookings"), value: String(kpis.todayBookings), delta: t("deltaLive"), up: true, tint: "bg-tint-blue text-electric" },
     { label: t("kpiWeekUtilization"), value: `${kpis.weekUtilization}%`, delta: t("deltaBookedHours"), up: true, tint: "bg-tint-green text-tint-fg-green" },
     { label: t("kpiFormationFillRate"), value: `${kpis.formationFillRate}%`, delta: t("deltaEnrolledSeats"), up: true, tint: "bg-tint-purple text-tint-fg-purple" },
-    { label: t("kpiPendingChangeRequests"), value: String(kpis.pendingChangeRequests), delta: kpis.pendingChangeRequests > 0 ? t("deltaAwaitingResponse") : t("deltaNothingPending"), up: false, tint: "bg-warning-tint text-[#a34d00]" },
+    { label: t("kpiPendingChangeRequests"), value: String(kpis.pendingChangeRequests), delta: kpis.pendingChangeRequests > 0 ? t("deltaAwaitingResponse") : t("deltaNothingPending"), up: false, tint: "bg-warning-tint text-tint-fg-amber" },
   ];
 
   return (
@@ -104,7 +104,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
       {/* Page header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.04em] text-obsidian sm:text-[32px]">
+          <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.05em] text-obsidian sm:text-[32px]">
             {t("greeting", { firstName })}
           </h1>
           <p className="mt-1 text-[14px] font-medium text-obsidian-light">{t("headerMeta", { today: todayLong })}</p>
@@ -123,9 +123,9 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
               <TrendingUp size={17} strokeWidth={2} aria-hidden="true" />
             </span>
             <p className="mt-3 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{kpi.label}</p>
-            <p className="mt-0.5 font-mono text-[26px] font-extrabold leading-none tracking-[-0.03em] text-obsidian tabular-nums">{kpi.value}</p>
-            <p className={`mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold ${kpi.up ? "text-success" : "text-warning"}`}>
-              {kpi.up ? <ArrowUpRight size={12} strokeWidth={2.6} /> : <BellRing size={12} strokeWidth={2.2} />}
+            <p className="mt-0.5 font-mono text-[26px] font-extrabold leading-none tracking-[-0.05em] text-obsidian tabular-nums">{kpi.value}</p>
+            <p className={`mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold ${kpi.up ? "text-tint-fg-green" : "text-tint-fg-amber"}`}>
+              {kpi.up ? <ArrowUpRight size={12} strokeWidth={2.4} aria-hidden="true" /> : <BellRing size={12} strokeWidth={2.2} aria-hidden="true" />}
               {kpi.delta}
             </p>
           </div>
@@ -134,7 +134,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
 
       {/* Hero: schedule grid + right rail */}
       <div className="mt-4 grid gap-4 xl:grid-cols-[1fr_340px]">
-        {/* ----- Schedule grid card ----- */}
+        {/* Schedule grid card */}
         <section aria-label={t("thisWeekLabel")} className="card overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-divider p-4 sm:p-5">
             <h2 className="text-[17px] font-bold tracking-[-0.02em] text-obsidian">{t("thisWeekRooms")}</h2>
@@ -142,7 +142,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
               <span className="chip bg-tint-green text-tint-fg-green">{t("chipFormation")}</span>
               <span className="chip bg-tint-blue text-tint-fg-blue">{t("chipRoomRental")}</span>
               <span className="chip bg-tint-purple text-tint-fg-purple">{t("chipInternal")}</span>
-              <span className="chip border border-dashed border-warning/60 bg-warning-tint text-[#a34d00]">{t("chipPending")}</span>
+              <span className="chip border border-dashed border-warning/60 bg-warning-tint text-tint-fg-amber">{t("chipPending")}</span>
             </div>
           </div>
 
@@ -162,7 +162,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
                         : "border-border bg-white text-obsidian"
                   }`}
                 >
-                  <span className={`text-[10px] font-bold uppercase tracking-[0.1em] ${today ? "text-white/85" : "text-muted"}`}>
+                  <span className={`text-[11px] font-bold uppercase tracking-[0.08em] ${today ? "text-white/85" : "text-muted"}`}>
                     {d.label}
                   </span>
                   <span className="mt-0.5 text-[17px] font-extrabold leading-none">{d.date}</span>
@@ -185,7 +185,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
                   <div key={room.id} className="grid grid-cols-[150px_repeat(7,1fr)] gap-1.5 border-b border-divider py-2 last:border-0">
                     <div className="flex flex-col justify-center pr-2">
                       <span className="text-[12px] font-bold leading-tight text-obsidian">{room.name}</span>
-                      <span className="text-[10px] font-medium text-muted">{room.location}</span>
+                      <span className="text-[11px] font-medium text-muted">{room.location}</span>
                     </div>
                     {days.map((d, dayIdx) => {
                       const weekend = d.weekend;
@@ -208,8 +208,8 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
                             {cellEvents.map((e, i) => (
                               <div
                                 key={i}
-                                title={`${e.time} — ${e.title}`}
-                                className={`truncate rounded-[6px] px-1.5 py-1 text-[9px] font-semibold leading-tight ${PILL[e.tone] ?? PILL.blue}`}
+                                title={`${e.time}: ${e.title}`}
+                                className={`truncate rounded-xs px-1.5 py-1 text-[10px] font-semibold leading-tight ${PILL[e.tone] ?? PILL.blue}`}
                               >
                                 <span className="font-bold">{e.time}</span> {e.title}
                               </div>
@@ -229,12 +229,12 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
               {data ? t("dataLiveFromDb") : t("dataPreviewDemo")}
             </p>
             <Link href="/calendar" className="inline-flex items-center gap-1 text-[12px] font-bold text-electric hover:text-electric-hover">
-              {t("openCalendar")} <ChevronRight size={14} strokeWidth={2.5} aria-hidden="true" />
+              {t("openCalendar")} <ChevronRight size={14} strokeWidth={2.4} aria-hidden="true" />
             </Link>
           </div>
         </section>
 
-        {/* ----- Right rail ----- */}
+        {/* Right rail */}
         <div className="flex flex-col gap-4">
           {/* Welcome card */}
           <section aria-label={t("welcomeLabel")} className="card relative overflow-hidden p-5">
@@ -243,7 +243,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
             </div>
             <div className="relative">
               <NowBarMark size={36} />
-              <h2 className="mt-3 text-[20px] font-extrabold leading-tight tracking-[-0.03em] text-obsidian">
+              <h2 className="mt-3 text-[20px] font-extrabold leading-tight tracking-[-0.05em] text-obsidian">
                 {t("welcomeBack")}
                 <br />
                 {firstName}
@@ -253,7 +253,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
               </p>
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <Link href="/calendar" className="btn btn-primary h-10 w-full gap-1.5 text-[12px]">
-                  <Plus size={15} strokeWidth={2.6} aria-hidden="true" /> {t("quickBooking")}
+                  <Plus size={15} strokeWidth={2.4} aria-hidden="true" /> {t("quickBooking")}
                 </Link>
                 <Link href="/formations" className="btn btn-secondary h-10 w-full gap-1.5 border border-border bg-white text-[12px]">
                   <GraduationCap size={15} strokeWidth={2} aria-hidden="true" /> {t("quickFormation")}
@@ -272,7 +272,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
           <section aria-label={t("pendingChangeRequestsLabel")} className="card p-5">
             <div className="flex items-center justify-between">
               <h3 className="text-[14px] font-bold text-obsidian">{t("changeRequestsTitle")}</h3>
-              <span className={`chip ${kpis.pendingChangeRequests > 0 ? "bg-warning-tint font-bold text-[#a34d00]" : "bg-success-tint text-tint-fg-green"}`}>
+              <span className={`chip ${kpis.pendingChangeRequests > 0 ? "bg-warning-tint font-bold text-tint-fg-amber" : "bg-success-tint text-tint-fg-green"}`}>
                 {kpis.pendingChangeRequests > 0 ? t("chipPendingCount", { count: kpis.pendingChangeRequests }) : t("allClear")}
               </span>
             </div>
@@ -281,7 +281,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
                 {t("noChangeRequests")}
               </p>
             ) : (
-              <Link href="/notifications" className="mt-3 block rounded-sm border border-warning/40 bg-warning-tint p-3 text-[12px] font-semibold text-[#a34d00] transition-colors hover:border-warning/70">
+              <Link href="/notifications" className="mt-3 block rounded-sm border border-warning/40 bg-warning-tint p-4 text-[12px] font-semibold text-tint-fg-amber transition-colors hover:border-warning/70">
                 {t("reviewRequests", { count: kpis.pendingChangeRequests })}
               </Link>
             )}
@@ -297,7 +297,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
                     {f.day === "Today" ? t("today").slice(0, 3).toUpperCase() : f.day.slice(0, 3).toUpperCase()}
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-bold text-obsidian">{f.title}</p>
+                    <p className="truncate text-[13px] font-bold text-obsidian" title={f.title}>{f.title}</p>
                     <p className="text-[11px] font-medium text-obsidian-light">{f.day} · {f.time.split(" – ")[0]}</p>
                   </div>
                 </li>
@@ -317,7 +317,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
         {/* Future events */}
         <section aria-label={t("futureEventsLabel")} className="card p-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-[15px] font-bold tracking-[-0.01em] text-obsidian">{t("futureEventsTitle")}</h3>
+            <h3 className="text-[15px] font-bold tracking-[-0.02em] text-obsidian">{t("futureEventsTitle")}</h3>
             <Link href="/calendar" className="text-[12px] font-bold text-electric hover:text-electric-hover">{t("viewAll")}</Link>
           </div>
           <ul className="mt-4 space-y-3">
@@ -325,14 +325,14 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
               <li key={i} className="rounded-md border border-border bg-white p-3.5 shadow-sm transition-shadow hover:shadow-md">
                 <div className="flex items-center gap-4">
                   <div className="flex flex-col items-center border-r border-divider pr-4">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted">{e.day}</span>
+                    <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{e.day}</span>
                     <span className="mt-1 text-[12px] font-extrabold tabular-nums text-obsidian">{e.time.split(" – ")[0]}</span>
-                    <span className="text-[10px] font-medium text-muted tabular-nums">{e.time.split(" – ")[1]}</span>
+                    <span className="text-[11px] font-medium text-muted tabular-nums">{e.time.split(" – ")[1]}</span>
                   </div>
                   <div className="min-w-0">
                     <p className="text-[13px] font-bold leading-snug text-obsidian">{e.title}</p>
                     <p className="mt-0.5 text-[11px] font-medium text-obsidian-light">{e.meta}</p>
-                    <span className="chip mt-1.5 bg-electric-tint text-[10px] font-bold text-electric">{e.chip}</span>
+                    <span className="chip mt-1.5 bg-electric-tint text-[11px] font-bold text-electric">{e.chip}</span>
                   </div>
                 </div>
               </li>
@@ -348,7 +348,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
         {/* Plans in flight */}
         <section aria-label={t("plansInFlightLabel")} className="card p-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-[15px] font-bold tracking-[-0.01em] text-obsidian">{t("plansInFlightTitle")}</h3>
+            <h3 className="text-[15px] font-bold tracking-[-0.02em] text-obsidian">{t("plansInFlightTitle")}</h3>
             <Link href="/plans" className="text-[12px] font-bold text-electric hover:text-electric-hover">{t("viewAll")}</Link>
           </div>
           <ul className="mt-4 space-y-4">
@@ -360,9 +360,9 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
                 </div>
                 <div className="mt-1.5 flex items-center gap-2">
                   <div className="h-2 flex-1 overflow-hidden rounded-pill bg-track" role="progressbar" aria-valuenow={p.pct} aria-valuemin={0} aria-valuemax={100} aria-label={p.title}>
-                    <div className="h-full rounded-pill bg-electric transition-all duration-500" style={{ width: `${p.pct}%` }} />
+                    <div className="h-full rounded-pill bg-electric transition-all duration-slower" style={{ width: `${p.pct}%` }} />
                   </div>
-                  <span className="whitespace-nowrap text-[10px] font-semibold text-muted tabular-nums">{p.tasks}</span>
+                  <span className="whitespace-nowrap text-[11px] font-semibold text-muted tabular-nums">{p.tasks}</span>
                 </div>
               </li>
             ))}
@@ -378,7 +378,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
         {/* Room utilization */}
         <section aria-label={t("roomUtilizationLabel")} className="card p-5">
           <div className="flex items-center justify-between">
-            <h3 className="text-[15px] font-bold tracking-[-0.01em] text-obsidian">{t("roomUtilizationTitle")}</h3>
+            <h3 className="text-[15px] font-bold tracking-[-0.02em] text-obsidian">{t("roomUtilizationTitle")}</h3>
             <BarChart3 size={16} className="text-muted" aria-hidden="true" />
           </div>
           <ul className="mt-4 space-y-4">
@@ -392,7 +392,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
                   <span className="font-mono text-[12px] font-bold text-obsidian-light tabular-nums">{u.pct}%</span>
                 </div>
                 <div className="mt-1.5 h-2.5 overflow-hidden rounded-pill bg-track">
-                  <div className="h-full rounded-pill bg-gradient-to-r from-electric to-[#3d8bff] transition-all duration-500" style={{ width: `${u.pct}%` }} />
+                  <div className="h-full rounded-pill bg-electric transition-all duration-slower" style={{ width: `${u.pct}%` }} />
                 </div>
               </li>
             ))}
@@ -412,7 +412,7 @@ export function DashboardView({ data }: { data?: DashboardData | null }) {
       {/* Wordmark footer */}
       <div className="mt-8 hidden items-center justify-center gap-3 opacity-60 lg:flex" aria-hidden="true">
         <Wordmark className="text-[15px]" />
-        <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted">Architecture for Time.</span>
+        <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted">Architecture for Time.</span>
       </div>
     </div>
   );

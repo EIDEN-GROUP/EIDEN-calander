@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Spark } from "./Spark";
 
 /**
- * StatTile — boardroom KPI tile: white card, caps label, huge mono number,
+ * StatTile: boardroom KPI tile: white card, caps label, huge mono number,
  * delta arrow vs previous period (toggleable) + deterministic sparkline.
  */
 export function StatTile({
@@ -38,7 +38,7 @@ export function StatTile({
 }) {
   const t = useTranslations("reports");
   const DeltaIcon = trend === "up" ? ArrowUpRight : ArrowDownRight;
-  const deltaTone = trend === "up" ? "text-success" : "text-error";
+  const deltaTone = trend === "up" ? "text-tint-fg-green" : "text-error-fg";
 
   return (
     <div className="card flex flex-col justify-between gap-3 p-4 sm:p-5">
@@ -57,7 +57,7 @@ export function StatTile({
         </p>
         <p className="mt-1 font-mono text-[26px] font-bold leading-none tracking-[-0.02em] text-obsidian tabular-nums sm:text-[28px]">
           {prefix && (
-            <span className="mr-1 align-baseline text-[13px] font-bold text-muted">
+            <span className="mr-1 align-baseline text-[12px] font-bold text-muted">
               {prefix}
             </span>
           )}
@@ -75,7 +75,7 @@ export function StatTile({
             <p
               className={`inline-flex items-center gap-0.5 text-[11px] font-semibold ${deltaTone}`}
             >
-              <DeltaIcon size={12} strokeWidth={2.6} aria-hidden="true" />
+              <DeltaIcon size={12} strokeWidth={2.4} aria-hidden="true" />
               <span className="font-mono tabular-nums">{delta}</span>
               <span className="ml-1 font-medium text-muted">{t("vsPrevPeriodShort")}</span>
             </p>

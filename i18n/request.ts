@@ -3,7 +3,7 @@ import { getRequestConfig } from "next-intl/server";
 
 /**
  * Locale is per-browser, stored in the `locale` cookie ("en" | "fr").
- * No route prefixes — every existing deep link keeps working; emails and
+ * No route prefixes: every existing deep link keeps working; emails and
  * notification deep links are locale-agnostic. The cookie is set by
  * setLocaleAction from anywhere the user can switch language.
  */

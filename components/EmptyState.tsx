@@ -17,7 +17,7 @@ export function EmptyState({
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center rounded-md border border-border bg-white px-6 py-16 text-center shadow-sm">
       <NowBarMark size={56} className="opacity-90" />
-      <h1 className="mt-6 text-[26px] font-extrabold tracking-[-0.04em] text-obsidian">
+      <h1 className="mt-6 text-[28px] font-extrabold tracking-[-0.05em] text-obsidian">
         {title}
       </h1>
       <p className="mt-2 max-w-md text-[15px] leading-snug text-obsidian-light">{description}</p>

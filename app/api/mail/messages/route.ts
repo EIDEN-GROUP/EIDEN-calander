@@ -1,11 +1,11 @@
 /**
  * GET /api/mail/messages?folder=INBOX|Sent&q=...
  *
- * Returns the last 20 messages (date desc) — UIDs, envelope data, flags and a
+ * Returns the last 20 messages (date desc): UIDs, envelope data, flags and a
  * bounded ~120-char plain-text preview via partial BODY.PEEK. Full bodies are
  * never fetched here.
  *
- * Search (`q`, max 120 chars): IMAP SEARCH (subject/from CONTAINS) — best
+ * Search (`q`, max 120 chars): IMAP SEARCH (subject/from CONTAINS): best
  * effort. When the server rejects the search, falls back to a client-side
  * case-insensitive filter over the 100 most recent summaries and reports
  * `search: { source: "fallback" }`.
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 
   const mailbox = await Mailbox.create();
   if (!mailbox) {
-    return jsonError(502, "IMAP_UNAVAILABLE", "Could not reach the mailbox — check host, port and network.");
+    return jsonError(502, "IMAP_UNAVAILABLE", "Could not reach the mailbox: check host, port and network.");
   }
   try {
     if (q) {
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
         const wanted = new Set(uids);
         const byUid = new Map(recent.map((m) => [m.uid, m]));
         const messages = uids.map((uid) => byUid.get(uid)).filter((m): m is MailMessageSummary => Boolean(m));
-        // Rare case: matches older than the last 100 — filter instead of dropping.
+        // Rare case: matches older than the last 100: filter instead of dropping.
         const merged = messages.length > 0 ? messages : recent.filter((m) => wanted.has(m.uid));
         return jsonOk({ demo: false, folder, messages: merged, search: { source: "imap", q } });
       }

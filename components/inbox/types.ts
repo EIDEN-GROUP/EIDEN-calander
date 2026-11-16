@@ -1,6 +1,6 @@
 /**
  * Client-side mirror of the mail API payloads (JSON over the wire).
- * lib/mail/* is server-only and cannot be imported from client components —
+ * lib/mail/* is server-only and cannot be imported from client components;
  * keep these types in sync with lib/mail/imap.ts.
  */
 export type MailFolder = "INBOX" | "Sent";

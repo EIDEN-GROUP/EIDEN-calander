@@ -44,7 +44,7 @@ export function NavRail() {
       <Link
         href="/dashboard"
         aria-label={t("brandHome")}
-        className="flex h-14 w-14 items-center justify-center rounded-md transition-transform duration-200 hover:scale-105"
+        className="flex h-14 w-14 items-center justify-center rounded-md transition-transform duration-base hover:scale-105"
       >
         <NowBarMark size={44} title="CALENDAR." />
       </Link>

@@ -67,7 +67,7 @@ const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 export function GeneralView({ initial = null, live = false }: { initial?: GeneralInitial | null; live?: boolean }) {
   const t = useTranslations("settings");
   const router = useRouter();
-  const { toasts, push } = useToast();
+  const { toasts, leaving, push } = useToast();
 
   const [businessName, setBusinessName] = useState(initial?.businessName ?? "Eiden Group");
   const [legalName, setLegalName] = useState(initial?.legalName ?? "Eiden Group SARL");
@@ -326,7 +326,7 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
                       className="h-16 w-16 rounded-sm border border-border bg-white object-contain p-1.5"
                     />
                     <div className="text-left">
-                      <p className="max-w-[220px] truncate font-mono text-[12px] font-semibold text-obsidian">{logo.name}</p>
+                      <p title={logo.name} className="max-w-[220px] truncate font-mono text-[12px] font-semibold text-obsidian">{logo.name}</p>
                       <p className="mt-0.5 text-[11px] font-medium text-muted">{live ? t("logoLiveNote") : t("logoDemoNote")}</p>
                     </div>
                   </div>
@@ -353,7 +353,7 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
             </div>
             <p className="mt-1.5 text-[11px] font-medium leading-snug text-muted">{t("logoFormatsBefore")} <code>&lt;img&gt;</code> {t("logoFormatsAfter")}</p>
             {logoError ? (
-              <p role="alert" className="mt-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-error">
+              <p role="alert" className="mt-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-error-fg">
                 <CircleExclamationPoint size={13} strokeWidth={2.2} aria-hidden="true" />
                 {logoError}
               </p>
@@ -376,10 +376,10 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
             <div className="flex items-center gap-3">
               <NowBarMark size={44} />
               <div>
-                <p className="text-[17px] font-extrabold leading-none tracking-[-0.04em] text-obsidian">
+                <p className="text-[17px] font-extrabold leading-none tracking-[-0.02em] text-obsidian">
                   CALENDAR<span className="text-electric">.</span>
                 </p>
-                <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.16em] text-muted">by Eiden Group</p>
+                <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted">by Eiden Group</p>
               </div>
             </div>
             <p className="mt-3 text-[13px] font-semibold leading-snug text-obsidian-light">Architecture for Time.</p>
@@ -393,7 +393,7 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
               ].map(({ term, value }) => (
                 <div key={term} className="grid grid-cols-[104px_1fr] items-baseline gap-3 py-2.5">
                   <dt className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{term}</dt>
-                  <dd className="min-w-0 truncate font-mono text-[12px] font-semibold text-obsidian">{value}</dd>
+                  <dd title={value} className="min-w-0 truncate font-mono text-[12px] font-semibold text-obsidian">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -415,7 +415,7 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
         </aside>
       </div>
 
-      <ToastViewport toasts={toasts} />
+      <ToastViewport toasts={toasts} leaving={leaving} />
     </div>
   );
 }

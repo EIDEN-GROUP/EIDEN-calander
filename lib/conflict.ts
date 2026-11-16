@@ -1,5 +1,5 @@
 /**
- * CALENDAR. — double-booking detection (pure, unit-tested).
+ * CALENDAR. · double-booking detection (pure, unit-tested).
  * The DB trigger `guard_booking_overlap()` is the seatbelt; this module is the UX layer.
  */
 

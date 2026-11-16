@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 /**
  * Persist the viewer's locale choice: the render cookie (source of truth
  * for every request) + the profile row (so the choice survives devices and
- * browser wipes). Cookie first — the profile sync is best-effort.
+ * browser wipes). Cookie first: the profile sync is best-effort.
  */
 export async function setLocaleAction(raw: unknown): Promise<{ ok: true; locale: "en" | "fr" }> {
   const locale = raw === "fr" ? "fr" : "en";

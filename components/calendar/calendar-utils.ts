@@ -1,5 +1,5 @@
 /**
- * CALENDAR. — shared helpers for the calendar views (client-safe).
+ * CALENDAR. · shared helpers for the calendar views (client-safe).
  * Pure functions; safe to use from both server and client components.
  */
 
@@ -8,7 +8,7 @@ import { appLocaleTag } from "@/lib/intl-locale";
 
 export type CalendarView = "day" | "week" | "month" | "agenda";
 
-/** Monday-first weekday keys — labels live in messages/*.json (namespace "calendar"). */
+/** Monday-first weekday keys: labels live in messages/*.json (namespace "calendar"). */
 export const WEEKDAY_SHORT_KEYS = [
   "weekdayShortMon",
   "weekdayShortTue",
@@ -170,7 +170,7 @@ export function monthMatrix(anchor: Date): Date[][] {
   return weeks;
 }
 
-/* ---------------- lookups & tints ---------------- */
+/* lookups & tints */
 
 export interface Lookup {
   roomById: Map<string, RoomRow>;
@@ -239,9 +239,9 @@ export function tintFor(color: string | undefined): {
 
 /** Pending-conflict bookings always render with a dashed amber treatment. */
 export const PENDING_BLOCK =
-  "border border-dashed border-warning bg-warning-tint text-[#a34d00]";
+  "border border-dashed border-warning bg-warning-tint text-tint-fg-amber";
 export const PENDING_CHIP =
-  "border border-dashed border-warning/70 bg-warning-tint text-[#a34d00]";
+  "border border-dashed border-warning/70 bg-warning-tint text-tint-fg-amber";
 
 export function bookingTint(
   booking: BookingRow,

@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
 } from "react";
@@ -39,6 +40,7 @@ import {
 import { BookingContextMenu } from "@/components/bookings/BookingContextMenu";
 import { PostponeModal } from "@/components/bookings/PostponeModal";
 import { Modal } from "@/components/formations/Modal";
+import { CALENDAR_NAV_EVENT, NEW_BOOKING_EVENT, consumeNewBookingSignal } from "@/components/keyboard/registry";
 import { cancelBookingAction, pauseBookingAction } from "@/app/actions/bookings";
 import { Toast, type ToastData } from "@/components/bookings/Toast";
 import { useTranslations, useLocale } from "next-intl";
@@ -59,7 +61,7 @@ interface DrawerState {
   key: number;
 }
 
-export function CalendarClient({ serverNow, data, prefillClientId = null }: { serverNow: string; data: CalendarData; prefillClientId?: string | null }) {
+export function CalendarClient({ serverNow, data, prefillClientId = null, autoNew = false }: { serverNow: string; data: CalendarData; prefillClientId?: string | null; autoNew?: boolean }) {
   const t = useTranslations("calendar");
   const locale = useLocale();
   const intlLocale = appLocaleTag(locale);
@@ -76,13 +78,23 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; booking: BookingRow } | null>(null);
   const [postponeFor, setPostponeFor] = useState<BookingRow | null>(null);
   const [removeFor, setRemoveFor] = useState<BookingRow | null>(null);
-  // Deep link: /calendar?client=<id> — open the create drawer prefilled.
+  // Deep link: /calendar?client=<id>: open the create drawer prefilled.
   useEffect(() => {
     if (!prefillClientId) return;
     Promise.resolve().then(() => {
       setDrawer({ mode: "create", key: Date.now(), clientId: prefillClientId });
     });
   }, [prefillClientId]);
+  // Deep links: /calendar?new=1 (bookmarkable) or a ⌘N signal from another page.
+  const autoNewOpened = useRef(false);
+  useEffect(() => {
+    if (autoNewOpened.current) return;
+    if (!autoNew && !consumeNewBookingSignal()) return;
+    autoNewOpened.current = true;
+    Promise.resolve().then(() => {
+      setDrawer({ mode: "create", key: Date.now() });
+    });
+  }, [autoNew]);
   const [toast, setToast] = useState<ToastData | null>(null);
 
   const lookup = useMemo(
@@ -134,6 +146,28 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
     else if (view === "agenda") setAnchor((d) => addDays(d, dir * 14));
     else setAnchor((d) => addMonths(d, dir));
   };
+
+  // Global keyboard shortcuts bridge: the KeyboardManager lives in the app
+  // layout, so it talks to this view through window events.
+  const stepRef = useRef(step);
+  useEffect(() => {
+    stepRef.current = step;
+  });
+  useEffect(() => {
+    const onNav = (event: Event) => {
+      const dir = (event as CustomEvent<number>).detail === -1 ? -1 : 1;
+      stepRef.current(dir);
+    };
+    const onNewBooking = () => {
+      setDrawer({ mode: "create", key: Date.now() });
+    };
+    window.addEventListener(CALENDAR_NAV_EVENT, onNav);
+    window.addEventListener(NEW_BOOKING_EVENT, onNewBooking);
+    return () => {
+      window.removeEventListener(CALENDAR_NAV_EVENT, onNav);
+      window.removeEventListener(NEW_BOOKING_EVENT, onNewBooking);
+    };
+  }, []);
 
   const openCreate = (initial?: { startsAt: string; endsAt: string }) => {
     setDrawer({ mode: "create", initial: initial ?? null, key: Date.now() });
@@ -277,7 +311,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
       {/* Page header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.04em] text-obsidian sm:text-[32px]">
+          <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.05em] text-obsidian sm:text-[32px]">
             {t("title")}
           </h1>
           <p className="mt-1 text-[14px] font-medium text-obsidian-light">
@@ -286,7 +320,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {!data.live && (
-            <span className="chip border border-warning/50 bg-warning-tint text-[11px] font-bold text-[#a34d00]">
+            <span className="chip border border-warning/50 bg-warning-tint text-[11px] font-bold text-tint-fg-amber">
               {t("offlinePreview")}
             </span>
           )}
@@ -294,7 +328,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
             <button
               type="button"
               onClick={() => openView(pendingConflicts[0])}
-              className="chip border border-dashed border-warning/70 bg-warning-tint !px-3 !py-1.5 text-[12px] font-bold text-[#a34d00] transition-all hover:-translate-y-px"
+              className="chip border border-dashed border-warning/70 bg-warning-tint !px-3 !py-1.5 text-[12px] font-bold text-tint-fg-amber transition-all hover:-translate-y-px"
             >
               <TriangleAlert size={13} strokeWidth={2.4} aria-hidden="true" />
               {t("pendingConflicts", { count: pendingConflicts.length })}
@@ -324,7 +358,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
             onKeyDown={onSearchKeyDown}
             placeholder={t("searchPlaceholder")}
             aria-label={t("searchAriaLabel")}
-            className="h-11 w-full rounded-pill border border-border bg-white pl-11 pr-10 text-[14px] text-obsidian outline-none transition-shadow placeholder:text-black/30 focus:border-electric/40 focus:shadow-[0_0_0_4px_var(--color-electric-tint)]"
+            className="h-11 w-full rounded-pill border border-border bg-white pl-11 pr-10 text-[14px] text-obsidian outline-none transition-shadow placeholder:text-black/50 focus:border-electric/40 focus:shadow-[0_0_0_4px_var(--color-electric-tint)]"
           />
           {query && (
             <button
@@ -428,26 +462,26 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
 
         {/* Legend */}
         <div
-          className="ml-auto hidden items-center gap-3 text-[10px] font-semibold text-muted lg:flex"
+          className="ml-auto hidden items-center gap-3 text-[11px] font-semibold text-muted lg:flex"
           aria-hidden="true"
         >
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-[4px] bg-tint-blue ring-1 ring-electric/30" /> {t("legendRoom")}
+            <span className="h-2.5 w-2.5 rounded-xs bg-tint-blue ring-1 ring-electric/30" /> {t("legendRoom")}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-[4px] bg-tint-green ring-1 ring-[#248a3d]/30" /> {t("legendFormation")}
+            <span className="h-2.5 w-2.5 rounded-xs bg-tint-green ring-1 ring-[#248a3d]/30" /> {t("legendFormation")}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-[4px] bg-tint-purple ring-1 ring-[#5e5ce6]/30" /> {t("legendEvent")}
+            <span className="h-2.5 w-2.5 rounded-xs bg-tint-purple ring-1 ring-[#5e5ce6]/30" /> {t("legendEvent")}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-[4px] border border-dashed border-warning bg-warning-tint" /> {t("legendPending")}
+            <span className="h-2.5 w-2.5 rounded-xs border border-dashed border-warning bg-warning-tint" /> {t("legendPending")}
           </span>
         </div>
       </div>
 
-      {/* Views */}
-      <div className="mt-4">
+      {/* Views: fade+rise crossfade on Day/Week/Month/Agenda switch */}
+      <div key={view} className="view-enter mt-4">
         {view === "week" && (
           <TimeGrid
             days={weekDays}
@@ -589,7 +623,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
   );
 }
 
-/* ---------------- filter select (native, styled) ---------------- */
+/* filter select (native, styled) */
 
 function FilterSelect({
   label,

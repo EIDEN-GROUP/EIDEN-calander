@@ -10,7 +10,7 @@ import type { ActionResult } from "@/lib/types/db";
 import { logAudit } from "@/lib/audit";
 
 function notConfigured<T>(): ActionResult<T> {
-  return { ok: false, error: { code: "not_configured", message: "Supabase isn't configured — set .env." } };
+  return { ok: false, error: { code: "not_configured", message: "Supabase isn't configured: set .env." } };
 }
 function fail(code: string, message: string): ActionResult<never> {
   return { ok: false, error: { code, message } };
@@ -20,7 +20,7 @@ function failUnexpected(err: unknown): ActionResult<never> {
   return { ok: false, error: { code: "unexpected", message: "Something went wrong. Please try again." } };
 }
 
-/* ---------------- Business profile ---------------- */
+/* Business profile */
 export async function updateBusinessProfileAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
   try {
     const admin = await requireAdmin();
@@ -184,7 +184,7 @@ export async function updateBusinessLogoAction(raw: unknown): Promise<ActionResu
   }
 }
 
-/* ---------------- Working hours (7 rows) + availability prefs ---------------- */
+/* Working hours (7 rows) + availability prefs */
 const workingHoursInput = z.object({
   weekdays: z.array(z.object({
     weekday: z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"]),
@@ -230,7 +230,7 @@ export async function updateWorkingHoursAction(raw: unknown): Promise<ActionResu
   }
 }
 
-/* ---------------- Rooms ---------------- */
+/* Rooms */
 export async function createRoomAction(raw: unknown): Promise<ActionResult<{ roomId: string }>> {
   try {
     await requireAdmin();
@@ -277,7 +277,7 @@ export async function toggleRoomActiveAction(raw: unknown): Promise<ActionResult
   }
 }
 
-/* ---------------- Categories ---------------- */
+/* Categories */
 const TINTS = ["blue", "green", "purple", "amber", "teal", "rose"] as const;
 
 export async function createCategoryAction(raw: unknown): Promise<ActionResult<{ categoryId: string }>> {
@@ -308,7 +308,7 @@ export async function createCategoryAction(raw: unknown): Promise<ActionResult<{
   }
 }
 
-/* ---------------- Team users (service-role for auth.admin) ---------------- */
+/* Team users (service-role for auth.admin) */
 export async function createTeamUserAction(raw: unknown): Promise<ActionResult<{ userId: string; tempPassword: string }>> {
   try {
     await requireAdmin();
@@ -319,7 +319,7 @@ export async function createTeamUserAction(raw: unknown): Promise<ActionResult<{
     }).safeParse(raw);
     if (!parsed.success) return fail("validation", parsed.error.issues[0]?.message ?? "Invalid input");
     const { fullName, email, role } = parsed.data;
-    const service = createServiceClient(); // throws outside configured env — caught below
+    const service = createServiceClient(); // throws outside configured env: caught below
     const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*";
     const tempPassword = Array.from(crypto.getRandomValues(new Uint32Array(14)))
       .map((n) => alphabet[n % alphabet.length]).join("");
@@ -357,7 +357,7 @@ export async function createTeamUserAction(raw: unknown): Promise<ActionResult<{
       const { welcomeTempPassword } = await import("@/lib/email/templates");
       const { isTransactionalEnabled } = await import("@/lib/email/notify");
       if (!supabase || !(await isTransactionalEnabled(supabase, "welcome"))) {
-        console.log("[settings] welcome email — disabled in Settings → Notifications, skipping");
+        console.log("[settings] welcome email: disabled in Settings → Notifications, skipping");
       } else {
         const tpl = welcomeTempPassword({ name: fullName, email, tempPassword, loginUrl: "https://calendar.eiden-group.com/login", locale: defaultLocale });
         await sendMail({ to: email, subject: tpl.subject, html: tpl.html, text: tpl.text });
@@ -405,7 +405,7 @@ export async function setTeamUserActiveAction(raw: unknown): Promise<ActionResul
   }
 }
 
-/* ---------------- Mail: SMTP/IMAP connection test (no secrets to client) ---------------- */
+/* Mail: SMTP/IMAP connection test (no secrets to client) */
 export async function testMailConnectionAction(raw: unknown): Promise<ActionResult<{ protocol: "smtp" | "imap"; ok: boolean; latencyMs?: number; error?: string }>> {
   try {
     await requireAdmin();
@@ -433,7 +433,7 @@ export async function testMailConnectionAction(raw: unknown): Promise<ActionResu
       }
     }
 
-    // IMAP — light probe via imapflow without touching mailbox data
+    // IMAP: light probe via imapflow without touching mailbox data
     const { IMAP_HOST, IMAP_PORT, IMAP_USER, IMAP_PASSWORD } = process.env;
     if (!IMAP_HOST || !IMAP_USER || !IMAP_PASSWORD) {
       return { ok: true, data: { protocol: "imap", ok: false, error: "IMAP is not configured in this environment (IMAP_HOST/USER/PASSWORD)." } };
@@ -457,7 +457,7 @@ export async function testMailConnectionAction(raw: unknown): Promise<ActionResu
   }
 }
 
-/* ---------------- Audit log (admin, read) ---------------- */
+/* Audit log (admin, read) */
 export async function listAuditLogAction(filters: {
   actorId?: string | null;
   action?: string | null;
@@ -488,7 +488,7 @@ export async function listAuditLogAction(filters: {
   }
 }
 
-/** Update a team member (name, role, phone) — admin only. */
+/** Update a team member (name, role, phone): admin only. */
 export async function updateTeamUserAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
   try {
     await requireAdmin();
@@ -522,7 +522,7 @@ export async function updateTeamUserAction(raw: unknown): Promise<ActionResult<{
   }
 }
 
-/** Update a room's amenities / notes / rate / capacity / name — admin only. */
+/** Update a room's amenities / notes / rate / capacity / name: admin only. */
 export async function updateRoomAction(raw: unknown): Promise<ActionResult<{ ok: true }>> {
   try {
     await requireAdmin();
@@ -619,7 +619,7 @@ export async function deleteCategoryAction(raw: unknown): Promise<ActionResult<{
     if (!supabase) return notConfigured();
     const { data: cat } = await supabase.from("categories").select("is_system,name_en").eq("id", parsed.data.categoryId).single();
     if (!cat) return fail("not_found", "Category not found.");
-    if (cat.is_system) return fail("forbidden", "System categories cannot be deleted — rename them instead.");
+    if (cat.is_system) return fail("forbidden", "System categories cannot be deleted: rename them instead.");
     const { error } = await supabase.from("categories").delete().eq("id", parsed.data.categoryId);
     if (error) throw error;
     await logAudit(supabase, {action: "category.delete", entityType: "category", entityId: parsed.data.categoryId, meta: { name_en: cat.name_en }});

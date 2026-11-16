@@ -32,7 +32,7 @@ export async function GET(request: Request) {
 
   const mailbox = await Mailbox.create();
   if (!mailbox) {
-    return jsonError(502, "IMAP_UNAVAILABLE", "Could not reach the mailbox — check host, port and network.");
+    return jsonError(502, "IMAP_UNAVAILABLE", "Could not reach the mailbox: check host, port and network.");
   }
   try {
     const message = await mailbox.fetchMessage(folder, uid);
@@ -72,12 +72,12 @@ export async function POST(request: Request) {
 
   const mailbox = await Mailbox.create();
   if (!mailbox) {
-    return jsonError(502, "IMAP_UNAVAILABLE", "Could not reach the mailbox — check host, port and network.");
+    return jsonError(502, "IMAP_UNAVAILABLE", "Could not reach the mailbox: check host, port and network.");
   }
   try {
     const ok = await mailbox.setSeen(folder, uid, seen);
     if (!ok) {
-      return jsonError(502, "IMAP_UNKNOWN", "The mailbox refused the flag change — see server logs.");
+      return jsonError(502, "IMAP_UNKNOWN", "The mailbox refused the flag change: see server logs.");
     }
     return jsonOk({ demo: false, uid, folder, seen });
   } catch (err) {

@@ -51,7 +51,7 @@ export function NotificationsView({
 }) {
   const t = useTranslations("settings");
   const router = useRouter();
-  const { toasts, push } = useToast();
+  const { toasts, leaving, push } = useToast();
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [prefs, setPrefs] = useState<Record<TransactionalKey, boolean>>(() => {
     const base = Object.fromEntries(TRANSACTIONAL.map((t) => [t.key, true])) as Record<TransactionalKey, boolean>;
@@ -142,14 +142,14 @@ export function NotificationsView({
             </ul>
           </section>
 
-          {/* Digests — ships with v1.1; preview shows the planned contents */}
+          {/* Digests: ships with v1.1; preview shows the planned contents */}
           <section className="card overflow-hidden opacity-90" aria-labelledby="digest-heading">
             <div className="flex items-center gap-2.5 border-b border-divider px-4 py-3.5 sm:px-5">
               <span className="flex h-8 w-8 items-center justify-center rounded-sm bg-tint-green text-tint-fg-green">
                 <Inbox size={16} strokeWidth={2} aria-hidden="true" />
               </span>
               <h2 id="digest-heading" className="text-[15px] font-extrabold text-obsidian">{t("digestsHeading")}</h2>
-              <span className="ml-auto inline-flex items-center rounded-pill border border-border bg-canvas px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-muted">v1.1</span>
+              <span className="ml-auto inline-flex items-center rounded-pill border border-border bg-canvas px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-muted">v1.1</span>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-5">
               <div className="min-w-0">
@@ -175,7 +175,7 @@ export function NotificationsView({
                 {testSending ? t("sending") : t("sendTestToMe")}
               </button>
               {testResult ? (
-                <p role="status" aria-live="polite" className={`flex items-center gap-1.5 text-[12px] font-semibold ${testResult.ok ? "text-tint-fg-green" : "text-tint-fg-red"}`}>
+                <p role="status" aria-live="polite" className={`flex items-center gap-1.5 text-[12px] font-semibold ${testResult.ok ? "text-tint-fg-green" : "text-error-fg"}`}>
                   <CircleCheck size={14} strokeWidth={2.4} aria-hidden="true" />
                   {testResult.message}
                 </p>
@@ -191,7 +191,7 @@ export function NotificationsView({
 
         <aside className="space-y-4">
           <div className="card p-5">
-            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">{t("emailOnlyHeading")}</h2>
+            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-muted">{t("emailOnlyHeading")}</h2>
             <ul className="mt-3 space-y-2.5 text-[12px] font-medium leading-snug text-obsidian-light">
               <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />{t("whatsappSmsNote")}</li>
               <li className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />{t("pushNotificationsNote")}</li>
@@ -199,7 +199,7 @@ export function NotificationsView({
             </ul>
           </div>
           <div className="card p-5">
-            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">{t("deliverabilityHeading")}</h2>
+            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-muted">{t("deliverabilityHeading")}</h2>
             <p className="mt-2 text-[12px] font-medium leading-snug text-obsidian-light">
               {t("deliverabilityNote")}
             </p>
@@ -231,14 +231,14 @@ export function NotificationsView({
               </span>
               <span className="min-w-0">
                 <span className="text-[12px] font-bold text-obsidian"><span className="font-mono text-muted">{String(index + 1).padStart(2, "0")}</span> · {t(titleKey)}</span>
-                <span className="mt-0.5 block font-mono text-[10px] leading-relaxed text-muted">{t(sampleKey)}</span>
+                <span className="mt-0.5 block font-mono text-[11px] leading-relaxed text-muted">{t(sampleKey)}</span>
               </span>
             </li>
           ))}
         </ol>
       </Modal>
 
-      <ToastViewport toasts={toasts} />
+      <ToastViewport toasts={toasts} leaving={leaving} />
     </div>
   );
 }

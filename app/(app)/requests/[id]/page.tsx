@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("requests");
   return { title: t("detailTitle") };
 }
-// Reads live data at request time — block prerender.
+// Reads live data at request time: block prerender.
 export const instant = false;
 
 async function loadLiveRequest(

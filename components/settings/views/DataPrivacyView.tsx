@@ -48,7 +48,7 @@ export function DataPrivacyView({
 }) {
   const t = useTranslations("settings");
   const router = useRouter();
-  const { toasts, push } = useToast();
+  const { toasts, leaving, push } = useToast();
   const [anonymizeOpen, setAnonymizeOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [query, setQuery] = useState("");
@@ -148,7 +148,7 @@ export function DataPrivacyView({
           {/* Danger zone */}
           <section aria-labelledby="danger-heading" className="card border border-error/50">
             <div className="flex items-center gap-2.5 border-b border-divider px-5 py-4">
-              <span className="flex h-9 w-9 items-center justify-center rounded-sm bg-error-tint text-error">
+              <span className="flex h-9 w-9 items-center justify-center rounded-sm bg-error-tint text-error-fg">
                 <TriangleExclamationPoint size={18} strokeWidth={2} aria-hidden="true" />
               </span>
               <div>
@@ -179,7 +179,7 @@ export function DataPrivacyView({
                 <button
                   type="button"
                   onClick={openAnonymize}
-                  className="inline-flex h-10 items-center gap-2 rounded-pill border border-error/50 bg-white px-4 text-[13px] font-semibold text-error transition-colors hover:bg-error-tint"
+                  className="inline-flex h-10 items-center gap-2 rounded-pill border border-error/50 bg-white px-4 text-[13px] font-semibold text-error-fg transition-colors hover:bg-error-tint"
                 >
                   <UserRoundX size={15} strokeWidth={2.1} aria-hidden="true" />
                   {t("anonymizeClientButton")}
@@ -204,7 +204,7 @@ export function DataPrivacyView({
                     </li>
                   ))}
                 </ul>
-                <p className="mt-2 text-[10px] font-medium leading-snug text-muted">{t("retentionNote")}</p>
+                <p className="mt-2 text-[11px] font-medium leading-snug text-muted">{t("retentionNote")}</p>
               </div>
 
               {/* Privacy contact */}
@@ -229,7 +229,7 @@ export function DataPrivacyView({
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-left text-[13px]">
                 <thead>
-                  <tr className="border-b border-border text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
+                  <tr className="border-b border-border text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                     <th scope="col" className="px-4 py-2.5 sm:px-5">{t("colClient")}</th>
                     <th scope="col" className="px-3 py-2.5">{t("colContact")}</th>
                     <th scope="col" className="px-3 py-2.5">{t("colCity")}</th>
@@ -243,7 +243,7 @@ export function DataPrivacyView({
                       <tr key={client.id} className="transition-colors hover:bg-canvas/60">
                         <td className="px-4 py-2.5 sm:px-5">
                           <div className="flex items-center gap-2.5">
-                            <span aria-hidden="true" className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-pill text-[10px] font-extrabold ${redacted ? "bg-canvas text-muted" : "bg-tint-blue text-tint-fg-blue"}`}>
+                            <span aria-hidden="true" className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-pill text-[11px] font-extrabold ${redacted ? "bg-canvas text-muted" : "bg-tint-blue text-tint-fg-blue"}`}>
                               {redacted ? "··" : initials(client.full_name)}
                             </span>
                             <span className={redacted ? "font-mono font-semibold text-muted" : "font-semibold text-obsidian"}>
@@ -257,7 +257,7 @@ export function DataPrivacyView({
                         <td className="px-3 py-2.5 text-[12px] font-medium text-obsidian-light">{redacted ? "•••" : client.city ?? "—"}</td>
                         <td className="px-4 py-2.5 text-right">
                           {redacted ? (
-                            <span className="chip bg-error-tint text-error">{t("anonymizedChip")}</span>
+                            <span className="chip bg-error-tint text-error-fg">{t("anonymizedChip")}</span>
                           ) : (
                             <span className="chip bg-canvas text-muted">{client.status}</span>
                           )}
@@ -276,7 +276,7 @@ export function DataPrivacyView({
 
         <aside className="space-y-4">
           <div className="card p-5">
-            <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">
+            <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase tracking-[0.08em] text-muted">
               <FileBraces size={14} strokeWidth={2.2} aria-hidden="true" />
               {t("beforeYouExportHeading")}
             </h2>
@@ -287,7 +287,7 @@ export function DataPrivacyView({
             </ul>
           </div>
           <div className="card p-5">
-            <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">
+            <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase tracking-[0.08em] text-muted">
               <ShieldCheck size={14} strokeWidth={2.2} aria-hidden="true" />
               {t("whatAnonymizationDoesHeading")}
             </h2>
@@ -358,14 +358,14 @@ export function DataPrivacyView({
                         isSelected ? "border-error/50 bg-error-tint ring-1 ring-error/40" : "border-border bg-white hover:bg-canvas"
                       }`}
                     >
-                      <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-canvas text-[10px] font-extrabold text-obsidian-light">
+                      <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-pill bg-canvas text-[11px] font-extrabold text-obsidian-light">
                         {redacted ? "··" : initials(client.full_name)}
                       </span>
                       <span className="min-w-0">
-                        <span className="block truncate text-[12px] font-bold text-obsidian">{redacted ? "▓▓▓▓▓▓ ▓▓▓▓▓▓" : client.full_name}</span>
-                        <span className="block truncate font-mono text-[10px] text-muted">{redacted ? "redacted@redacted.invalid" : client.email ?? "—"}</span>
+                        <span title={redacted ? undefined : client.full_name} className="block truncate text-[12px] font-bold text-obsidian">{redacted ? "▓▓▓▓▓▓ ▓▓▓▓▓▓" : client.full_name}</span>
+                        <span className="block truncate font-mono text-[11px] text-muted" title={redacted ? undefined : client.email ?? undefined}>{redacted ? "redacted@redacted.invalid" : client.email ?? "—"}</span>
                       </span>
-                      {redacted ? <span className="chip ml-auto shrink-0 bg-error-tint text-error">{t("anonymizedChip")}</span> : null}
+                      {redacted ? <span className="chip ml-auto shrink-0 bg-error-tint text-error-fg">{t("anonymizedChip")}</span> : null}
                     </button>
                   </li>
                 );
@@ -401,7 +401,7 @@ export function DataPrivacyView({
         </form>
       </Modal>
 
-      <ToastViewport toasts={toasts} />
+      <ToastViewport toasts={toasts} leaving={leaving} />
     </div>
   );
 }

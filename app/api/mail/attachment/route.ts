@@ -54,7 +54,7 @@ export async function GET(request: Request) {
 
   const mailbox = await Mailbox.create();
   if (!mailbox) {
-    return jsonError(502, "IMAP_UNAVAILABLE", "Could not reach the mailbox — check host, port and network.");
+    return jsonError(502, "IMAP_UNAVAILABLE", "Could not reach the mailbox: check host, port and network.");
   }
   try {
     const result = await mailbox.downloadAttachment(folder, uid, part);

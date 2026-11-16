@@ -1,7 +1,8 @@
+import "server-only";
 import { createClient as createSbClient } from "@supabase/supabase-js";
 
 /**
- * SERVICE-ROLE Supabase client — SERVER ONLY.
+ * SERVICE-ROLE Supabase client: SERVER ONLY.
  * Bypasses RLS. Use exclusively in server actions / scripts for
  * administrative operations (user provisioning, webhooks, cron).
  * Never import from client components. Never expose to the browser.

@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Check, CheckCheck, Loader2 } from "lucide-react";
 import { markAllNotificationsReadAction, markNotificationReadAction } from "@/app/actions/notifications";
 
-/** Inline "mark read" control — one per notification, or "mark all" without props. */
+/** Inline "mark read" control: one per notification, or "mark all" without props. */
 export function MarkReadIsland({ id }: { id?: string }) {
   const router = useRouter();
   const t = useTranslations("notifications");

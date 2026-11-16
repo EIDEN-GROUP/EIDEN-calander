@@ -8,22 +8,23 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("calendar");
   return { title: t("metaTitle") };
 }
-// Reads live data at request time — block prerender.
+// Reads live data at request time: block prerender.
 export const instant = false;
 
 export default async function CalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ client?: string }>;
+  searchParams: Promise<{ client?: string; new?: string }>;
 }) {
   await connection();
-  const { client } = await searchParams;
+  const { client, new: autoNew } = await searchParams;
   const data = await loadCalendarData();
   return (
     <CalendarClient
       serverNow={new Date().toISOString()}
       data={data}
       prefillClientId={client ?? null}
+      autoNew={autoNew === "1"}
     />
   );
 }

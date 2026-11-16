@@ -1,5 +1,5 @@
 /**
- * Client view-model helpers — shared by the list and the detail page.
+ * Client view-model helpers: shared by the list and the detail page.
  */
 
 import { getDemoBookings } from "@/lib/demo-data";
@@ -13,7 +13,7 @@ export type ClientSort = "recent" | "name-asc" | "name-desc";
 /**
  * "Latest booking" for a client: the demo booking nearest to today by
  * absolute distance; degrades to a deterministic pseudo-activity date when
- * the client has no bookings (stable across renders — hash of the id).
+ * the client has no bookings (stable across renders: hash of the id).
  */
 export function latestBookingFor(
   clientId: string,

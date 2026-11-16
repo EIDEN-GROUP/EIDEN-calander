@@ -1,8 +1,8 @@
 /**
- * CALENDAR. — DEMO DATA (preview mode).
+ * CALENDAR. · DEMO DATA (preview mode).
  * Used when Supabase isn't configured yet (.env missing). Every entity is
  * clearly labelled DEMO. Nothing here ships to production when a real
- * project is connected — pages prefer live data and fall back to this.
+ * project is connected: pages prefer live data and fall back to this.
  */
 
 import type {
@@ -48,24 +48,24 @@ function at(dayOffset: number, hour: number, minute = 0): string {
 /** Demo bookings around the current week. Ids stable. */
 export function getDemoBookings(): BookingRow[] {
   return [
-    { id: "bk-1", type: "standard", title: "Acme SARL — Board meeting", category_id: "cat-room-rental", room_id: "room-grande", client_id: "cli-1", created_by: "demo-admin", starts_at: at(-1, 9, 30), ends_at: at(-1, 11, 0), status: "completed", price: 675, notes: null },
-    { id: "bk-2", type: "formation", title: "React Avancé — Session 3", category_id: "cat-formation", room_id: "room-formation", client_id: null, created_by: "demo-admin", starts_at: at(0, 14, 0), ends_at: at(0, 17, 0), status: "confirmed", price: null, notes: null },
-    { id: "bk-3", type: "standard", title: "Attijariwafa — Events booth", category_id: "cat-room-rental", room_id: "room-petite", client_id: "cli-2", created_by: "demo-staff", starts_at: at(0, 16, 0), ends_at: at(0, 18, 0), status: "confirmed", price: 500, notes: null },
-    { id: "bk-4", type: "standard", title: "Marjane — Quarterly committee", category_id: "cat-room-rental", room_id: "room-grande", client_id: "cli-4", created_by: "demo-staff", starts_at: at(1, 15, 30), ends_at: at(1, 17, 0), status: "confirmed", price: 675, notes: "They bring own coffee 😄" },
-    { id: "bk-5", type: "formation", title: "Formation Agile — Module 1", category_id: "cat-formation", room_id: "room-formation", client_id: null, created_by: "demo-admin", starts_at: at(1, 9, 30), ends_at: at(1, 13, 0), status: "confirmed", price: null, notes: null },
-    { id: "bk-6", type: "standard", title: "ONCF — Steering committee", category_id: "cat-room-rental", room_id: "room-grande", client_id: "cli-6", created_by: "demo-admin", starts_at: at(3, 14, 0), ends_at: at(3, 16, 0), status: "confirmed", price: 900, notes: null },
-    { id: "bk-7", type: "standard", title: "ONCF — Follow-up (overlap demo)", category_id: "cat-room-rental", room_id: "room-grande", client_id: "cli-6", created_by: "demo-staff", starts_at: at(3, 15, 0), ends_at: at(3, 17, 0), status: "pending_conflict", price: 900, notes: "Awaiting move of ONCF steering committee" },
-    { id: "bk-8", type: "standard", title: "Revue produit — Équipe", category_id: "cat-event", room_id: "room-petite", client_id: null, created_by: "demo-admin", starts_at: at(0, 17, 30), ends_at: at(0, 18, 15), status: "confirmed", price: null, notes: null },
-    { id: "bk-9", type: "standard", title: "Coworking — drop-in (DEMO)", category_id: "cat-event", room_id: "room-petite", client_id: null, created_by: "demo-staff", starts_at: at(5, 10, 30), ends_at: at(5, 12, 0), status: "confirmed", price: null, notes: null },
-    { id: "bk-10", type: "standard", title: "Acme SARL — Audit review", category_id: "cat-room-rental", room_id: "room-grande", client_id: "cli-1", created_by: "demo-admin", starts_at: at(2, 9, 0), ends_at: at(2, 11, 0), status: "confirmed", price: 900, notes: null },
-    { id: "bk-11", type: "formation", title: "React Avancé — Session 4", category_id: "cat-formation", room_id: "room-formation", client_id: null, created_by: "demo-admin", starts_at: at(4, 14, 0), ends_at: at(4, 17, 0), status: "confirmed", price: null, notes: "Full — waitlist active" },
-    { id: "bk-12", type: "standard", title: "Salma — coaching", category_id: "cat-event", room_id: null, client_id: "cli-3", created_by: "demo-admin", starts_at: at(2, 16, 0), ends_at: at(2, 17, 0), status: "confirmed", price: null, notes: "Client's site" },
+    { id: "bk-1", type: "standard", title: "Acme SARL · Board meeting", category_id: "cat-room-rental", room_id: "room-grande", client_id: "cli-1", created_by: "demo-admin", starts_at: at(-1, 9, 30), ends_at: at(-1, 11, 0), status: "completed", price: 675, notes: null },
+    { id: "bk-2", type: "formation", title: "React Avancé · Session 3", category_id: "cat-formation", room_id: "room-formation", client_id: null, created_by: "demo-admin", starts_at: at(0, 14, 0), ends_at: at(0, 17, 0), status: "confirmed", price: null, notes: null },
+    { id: "bk-3", type: "standard", title: "Attijariwafa · Events booth", category_id: "cat-room-rental", room_id: "room-petite", client_id: "cli-2", created_by: "demo-staff", starts_at: at(0, 16, 0), ends_at: at(0, 18, 0), status: "confirmed", price: 500, notes: null },
+    { id: "bk-4", type: "standard", title: "Marjane · Quarterly committee", category_id: "cat-room-rental", room_id: "room-grande", client_id: "cli-4", created_by: "demo-staff", starts_at: at(1, 15, 30), ends_at: at(1, 17, 0), status: "confirmed", price: 675, notes: "They bring own coffee" },
+    { id: "bk-5", type: "formation", title: "Formation Agile · Module 1", category_id: "cat-formation", room_id: "room-formation", client_id: null, created_by: "demo-admin", starts_at: at(1, 9, 30), ends_at: at(1, 13, 0), status: "confirmed", price: null, notes: null },
+    { id: "bk-6", type: "standard", title: "ONCF · Steering committee", category_id: "cat-room-rental", room_id: "room-grande", client_id: "cli-6", created_by: "demo-admin", starts_at: at(3, 14, 0), ends_at: at(3, 16, 0), status: "confirmed", price: 900, notes: null },
+    { id: "bk-7", type: "standard", title: "ONCF · Follow-up (overlap demo)", category_id: "cat-room-rental", room_id: "room-grande", client_id: "cli-6", created_by: "demo-staff", starts_at: at(3, 15, 0), ends_at: at(3, 17, 0), status: "pending_conflict", price: 900, notes: "Awaiting move of ONCF steering committee" },
+    { id: "bk-8", type: "standard", title: "Revue produit · Équipe", category_id: "cat-event", room_id: "room-petite", client_id: null, created_by: "demo-admin", starts_at: at(0, 17, 30), ends_at: at(0, 18, 15), status: "confirmed", price: null, notes: null },
+    { id: "bk-9", type: "standard", title: "Coworking · drop-in (DEMO)", category_id: "cat-event", room_id: "room-petite", client_id: null, created_by: "demo-staff", starts_at: at(5, 10, 30), ends_at: at(5, 12, 0), status: "confirmed", price: null, notes: null },
+    { id: "bk-10", type: "standard", title: "Acme SARL · Audit review", category_id: "cat-room-rental", room_id: "room-grande", client_id: "cli-1", created_by: "demo-admin", starts_at: at(2, 9, 0), ends_at: at(2, 11, 0), status: "confirmed", price: 900, notes: null },
+    { id: "bk-11", type: "formation", title: "React Avancé · Session 4", category_id: "cat-formation", room_id: "room-formation", client_id: null, created_by: "demo-admin", starts_at: at(4, 14, 0), ends_at: at(4, 17, 0), status: "confirmed", price: null, notes: "Full: waitlist active" },
+    { id: "bk-12", type: "standard", title: "Salma · coaching", category_id: "cat-event", room_id: null, client_id: "cli-3", created_by: "demo-admin", starts_at: at(2, 16, 0), ends_at: at(2, 17, 0), status: "confirmed", price: null, notes: "Client's site" },
   ];
 }
 
 export const DEMO_FORMATIONS: FormationRow[] = [
   { booking_id: "bk-2", capacity: 20, description: "Hooks, RSC, data fetching, testing. Hands-on, bring your laptop.", price_label: 1200, status: "open" },
-  { booking_id: "bk-5", capacity: 20, description: "Scrum, Kanban, retros — certification prep.", price_label: 900, status: "open" },
+  { booking_id: "bk-5", capacity: 20, description: "Scrum, Kanban, retros; certification prep.", price_label: 900, status: "open" },
   { booking_id: "bk-11", capacity: 20, description: "Advanced patterns, performance, caching.", price_label: 1200, status: "full" },
 ];
 
@@ -92,7 +92,7 @@ export function getDemoParticipants(bookingId: string): FormationParticipantRow[
 }
 
 export const DEMO_PLANS: PlanRow[] = [
-  { id: "plan-1", title: "Open Salle Formation — March", description: "Equip and launch the training room.", owner_id: "demo-admin", status: "active", priority: "high", start_date: at(-30, 0).slice(0, 10), target_date: at(45, 0).slice(0, 10), progress: 67, target_date_marker: true },
+  { id: "plan-1", title: "Open Salle Formation · March", description: "Equip and launch the training room.", owner_id: "demo-admin", status: "active", priority: "high", start_date: at(-30, 0).slice(0, 10), target_date: at(45, 0).slice(0, 10), progress: 67, target_date_marker: true },
   { id: "plan-2", title: "Agadir second location", description: "Negotiate lease, fit-out, hiring.", owner_id: "demo-admin", status: "planning", priority: "medium", start_date: null, target_date: at(120, 0).slice(0, 10), progress: 40, target_date_marker: true },
   { id: "plan-3", title: "Website + booking funnel", description: "Public site with lead capture.", owner_id: "demo-staff", status: "active", priority: "medium", start_date: at(-14, 0).slice(0, 10), target_date: at(30, 0).slice(0, 10), progress: 62, target_date_marker: false },
 ];
@@ -108,12 +108,12 @@ export const DEMO_PLAN_TASKS: PlanTaskRow[] = [
 ];
 
 export const DEMO_NOTIFICATIONS = [
-  { id: "n-1", user_id: "me", type: "change_request_received", title: "Yasmine asked to move Salle Grande", body: "Booking #ONCF — Tue 14:00 → she suggests 16:30", link: "/requests/demo", entity_id: null, read_at: null, created_at: at(0, 8, 15) },
-  { id: "n-2", user_id: "me", type: "booking_created", title: "Formation Agile — Module 1 confirmed", body: "Tomorrow 09:30 · Salle Formation", link: "/calendar", entity_id: null, read_at: null, created_at: at(0, 7, 40) },
-  { id: "n-3", user_id: "me", type: "formation_reminder", title: "React Avancé S4 is full", body: "20/20 — waitlist active (1 waiting)", link: "/formations/bk-11", entity_id: "bk-11", read_at: at(0, 9), created_at: at(-1, 18, 0) },
+  { id: "n-1", user_id: "me", type: "change_request_received", title: "Yasmine asked to move Salle Grande", body: "Booking #ONCF · Tue 14:00 → she suggests 16:30", link: "/requests/demo", entity_id: null, read_at: null, created_at: at(0, 8, 15) },
+  { id: "n-2", user_id: "me", type: "booking_created", title: "Formation Agile · Module 1 confirmed", body: "Tomorrow 09:30 · Salle Formation", link: "/calendar", entity_id: null, read_at: null, created_at: at(0, 7, 40) },
+  { id: "n-3", user_id: "me", type: "formation_reminder", title: "React Avancé S4 is full", body: "20/20 · waitlist active (1 waiting)", link: "/formations/bk-11", entity_id: "bk-11", read_at: at(0, 9), created_at: at(-1, 18, 0) },
 ];
 
 export const DEMO_CHANGE_REQUESTS = [
   { id: "cr-1", new_booking_id: "bk-7", conflicting_booking_id: "bk-6", requested_by: "demo-staff", assigned_to: "demo-admin", message: "Could we move ONCF steering to 16:30? Our slot must stay 14:00 for the client.", suggested_slots: [{ starts_at: at(3, 16, 30), ends_at: at(3, 18, 30) }], status: "pending" as const, response_message: null, created_at: at(0, 8, 10), expires_at: at(3, 0) },
-  { id: "cr-2", new_booking_id: "bk-3", conflicting_booking_id: "bk-2", requested_by: "demo-admin", assigned_to: "demo-admin", message: "Client wants Petite for the expo booth — can React S3 start 15:00 instead?", suggested_slots: [{ starts_at: at(0, 15, 0), ends_at: at(0, 18, 0) }], status: "approved" as const, response_message: "Moved to 15:00, done ✅", created_at: at(-1, 12), expires_at: at(2, 0) },
+  { id: "cr-2", new_booking_id: "bk-3", conflicting_booking_id: "bk-2", requested_by: "demo-admin", assigned_to: "demo-admin", message: "Client wants Petite for the expo booth. Can React S3 start 15:00 instead?", suggested_slots: [{ starts_at: at(0, 15, 0), ends_at: at(0, 18, 0) }], status: "approved" as const, response_message: "Moved to 15:00, done.", created_at: at(-1, 12), expires_at: at(2, 0) },
 ];

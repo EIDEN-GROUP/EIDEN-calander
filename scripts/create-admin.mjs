@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /**
- * create-admin.mjs — bootstrap the first admin user for CALENDAR.
- * ===============================================================
+ * create-admin.mjs: bootstrap the first admin user for CALENDAR.
  * Creates a Supabase Auth user with email + password (email_confirm: true)
  * and upserts the matching public.profiles row (role = 'admin',
  * must_change_password = true, so the app forces a password change on
@@ -12,9 +11,9 @@
  *
  * ENVIRONMENT (read from process.env; if missing, a manual fallback parser
  * reads .env.local then .env from the current working directory):
- *   SUPABASE_URL               — e.g. https://<project-ref>.supabase.co
+ *   SUPABASE_URL              : e.g. https://<project-ref>.supabase.co
  *                                (falls back to NEXT_PUBLIC_SUPABASE_URL)
- *   SUPABASE_SERVICE_ROLE_KEY  — service role key, NOT the anon key
+ *   SUPABASE_SERVICE_ROLE_KEY : service role key, NOT the anon key
  *
  * EXAMPLES:
  *   # auto-generate a strong 16-char password (printed once below):
@@ -40,9 +39,7 @@ import { randomInt } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-// ---------------------------------------------------------------------------
 // env loading: process.env first, then manual parse of .env.local / .env
-// ---------------------------------------------------------------------------
 function parseEnvFile(filePath) {
   const out = {};
   const raw = readFileSync(filePath, 'utf8');
@@ -82,9 +79,7 @@ function loadEnv() {
   return merged;
 }
 
-// ---------------------------------------------------------------------------
 // args
-// ---------------------------------------------------------------------------
 function parseArgs(argv) {
   const args = {};
   for (let i = 0; i < argv.length; i += 1) {
@@ -120,9 +115,7 @@ function fail(msg) {
   process.exit(1);
 }
 
-// ---------------------------------------------------------------------------
 // main
-// ---------------------------------------------------------------------------
 async function main() {
   let args;
   try {
@@ -158,7 +151,7 @@ async function main() {
     fail('SUPABASE_URL is not set (and NEXT_PUBLIC_SUPABASE_URL is not set either). Check your environment or .env.local.');
   }
   if (!serviceRoleKey) {
-    fail('SUPABASE_SERVICE_ROLE_KEY is not set. This key is server-only — find it in Supabase Dashboard → Project Settings → API → service_role.');
+    fail('SUPABASE_SERVICE_ROLE_KEY is not set. This key is server-only: find it in Supabase Dashboard → Project Settings → API → service_role.');
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
@@ -168,8 +161,8 @@ async function main() {
     },
   });
 
-  // --- idempotency check: an existing profile with this email means the
-  //     admin was already bootstrapped (or the account exists) — do nothing.
+  // idempotency check: an existing profile with this email means the
+  // admin was already bootstrapped (or the account exists): do nothing.
   const { data: existing, error: lookupError } = await supabase
     .from('profiles')
     .select('id, email, role')
@@ -185,7 +178,7 @@ async function main() {
     process.exit(1);
   }
 
-  // --- create the auth user
+  // create the auth user
   const { data: created, error: createError } = await supabase.auth.admin.createUser({
     email,
     password,
@@ -203,10 +196,10 @@ async function main() {
 
   const userId = created?.user?.id;
   if (!userId) {
-    fail('auth.admin.createUser returned no user id — aborting.');
+    fail('auth.admin.createUser returned no user id: aborting.');
   }
 
-  // --- upsert the profile row (id = auth user id, role admin, temp password flow)
+  // upsert the profile row (id = auth user id, role admin, temp password flow)
   const { error: profileError } = await supabase
     .from('profiles')
     .upsert(
@@ -230,10 +223,10 @@ async function main() {
     );
   }
 
-  // --- done: print credentials ONCE
+  // done: print credentials ONCE
   console.log('');
   console.log('============================================================');
-  console.log('  CALENDAR. — admin account created');
+  console.log('  CALENDAR. · admin account created');
   console.log('============================================================');
   console.log(`  Email:                ${email}`);
   console.log(`  Temporary password:   ${password}`);

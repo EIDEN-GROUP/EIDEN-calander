@@ -1,5 +1,5 @@
 /**
- * http.ts — shared helpers for /api/mail/* route handlers (SERVER-ONLY).
+ * http.ts: shared helpers for /api/mail/* route handlers (SERVER-ONLY).
  * Centralizes the auth rule and the demo-mode fallback so every route
  * behaves identically:
  *
@@ -48,7 +48,7 @@ export async function authorizeMail(): Promise<MailAccess | NextResponse> {
   try {
     profile = await getSessionProfile();
   } catch {
-    profile = null; // auth backend unreachable — treat as signed out
+    profile = null; // auth backend unreachable: treat as signed out
   }
   if (!profile && !demo) return unauthorized();
   return { profile, demo };
@@ -70,7 +70,7 @@ export function parseUid(raw: string | null): number | null {
   return n;
 }
 
-/** Body part identifiers: "2", "1.3", … — digits and dots only. */
+/** Body part identifiers: "2", "1.3", …: digits and dots only. */
 export function parsePart(raw: string | null): string | null {
   if (raw == null) return null;
   return /^\d{1,3}(\.\d{1,3}){0,4}$/.test(raw) ? raw : null;

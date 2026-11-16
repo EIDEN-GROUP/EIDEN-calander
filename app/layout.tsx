@@ -6,11 +6,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "CALENDAR. — Architecture for Time.",
+    default: "CALENDAR. · Architecture for Time.",
     template: "%s · CALENDAR.",
   },
   description:
-    "CALENDAR. is Eiden Group's internal scheduling system — meeting rooms, formations and clients, engineered for clarity. Architecture for Time.",
+    "CALENDAR. is Eiden Group's internal scheduling system: meeting rooms, formations and clients, engineered for clarity. Architecture for Time.",
   metadataBase: new URL("https://calendar.eiden-group.com"),
   applicationName: "CALENDAR.",
   appleWebApp: { capable: true, title: "CALENDAR.", statusBarStyle: "default" },
@@ -26,7 +26,7 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  // Entire app is per-user/per-request — block prerender so cookie-based
+  // Entire app is per-user/per-request: block prerender so cookie-based
   // locale reads are legal everywhere (Cache Components mode).
   await connection();
   const locale = await getLocale();

@@ -90,7 +90,7 @@ export default function ResetPasswordClient() {
           {done ? (
             <div role="status" className="mt-5">
               <div className="flex h-12 w-12 items-center justify-center rounded-pill bg-success-tint">
-                <CheckCircle2 size={24} className="text-success" strokeWidth={1.8} aria-hidden="true" />
+                <CheckCircle2 size={24} className="text-tint-fg-green" strokeWidth={1.8} aria-hidden="true" />
               </div>
               <h1 className="mt-4 text-[26px] font-extrabold tracking-[-0.04em] text-obsidian">
                 {t("updated")}
@@ -107,7 +107,7 @@ export default function ResetPasswordClient() {
           ) : sessionMissing ? (
             <div role="alert" className="mt-5">
               <div className="flex h-12 w-12 items-center justify-center rounded-pill bg-warning-tint">
-                <KeyRound size={24} className="text-warning" strokeWidth={1.8} aria-hidden="true" />
+                <KeyRound size={24} className="text-tint-fg-amber" strokeWidth={1.8} aria-hidden="true" />
               </div>
               <h1 className="mt-4 text-[22px] font-extrabold tracking-[-0.04em] text-obsidian">
                 {t("expired")}
@@ -152,7 +152,7 @@ export default function ResetPasswordClient() {
                   </button>
                 </div>
                 {password && (
-                  <p className={`mt-2 text-[12px] font-semibold ${strongEnough ? "text-success" : "text-warning"}`}>
+                  <p className={`mt-2 text-[12px] font-semibold ${strongEnough ? "text-tint-fg-green" : "text-tint-fg-amber"}`}>
                     {strongEnough ? t("strongEnough") : t("needStrong")}
                   </p>
                 )}

@@ -9,7 +9,7 @@ const FOCUSABLE =
  * Focus-trap-lite for dialogs/drawers (brand a11y bar).
  * - Moves focus into the panel on mount (first focusable or the panel itself)
  * - Wraps Tab / Shift+Tab inside the panel
- * - Escape calls `onClose` (unless `enabled` is false — e.g. a child modal is open)
+ * - Escape calls `onClose` (unless `enabled` is false: e.g. a child modal is open)
  * - Restores focus to the previously focused element on unmount
  * - Locks body scroll
  *
@@ -38,7 +38,7 @@ export function useModalA11y(
       );
 
     // If something inside the panel already holds focus (e.g. autoFocus on the
-    // first field), keep it — otherwise focus the first focusable element.
+    // first field), keep it: otherwise focus the first focusable element.
     const active = document.activeElement as HTMLElement | null;
     if (!active || !panel.contains(active)) {
       const first = focusables()[0];

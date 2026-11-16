@@ -39,7 +39,7 @@ export async function getSessionProfile(): Promise<ProfileRow | null> {
   return data as ProfileRow;
 }
 
-/** Like getSessionProfile but throws — for server actions that must have a user. */
+/** Like getSessionProfile but throws: for server actions that must have a user. */
 export async function requireUser(): Promise<ProfileRow> {
   const profile = await getSessionProfile();
   if (!profile) throw new AuthError();

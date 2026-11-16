@@ -1,5 +1,5 @@
 /**
- * Formations — live view-model loader (server-only).
+ * Formations: live view-model loader (server-only).
  * Returns FormationVM[] ready for the client, or null when unconfigured/error.
  */
 import "server-only";

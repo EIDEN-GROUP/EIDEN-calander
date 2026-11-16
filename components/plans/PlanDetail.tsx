@@ -131,7 +131,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
     [commitPlans, id, live, router],
   );
 
-  /* ---------- task mutations ---------- */
+  /* task mutations */
 
   const toggleTask = (task: PlanTaskRow) => {
     const nextDone = task.status !== "done";
@@ -283,7 +283,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
     });
   };
 
-  /* ---------- render ---------- */
+  /* render */
 
   // Not-found (client navigation to an unknown id) vs. hydration skeleton.
   if (!plan) {
@@ -298,7 +298,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
     }
     return (
       <div className="mx-auto flex max-w-lg flex-col items-center rounded-md border border-border bg-white px-6 py-16 text-center shadow-sm">
-        <CircleAlert size={28} strokeWidth={1.8} className="text-warning" aria-hidden="true" />
+        <CircleAlert size={28} strokeWidth={1.8} className="text-tint-fg-amber" aria-hidden="true" />
         <h1 className="mt-4 text-[22px] font-extrabold tracking-[-0.02em] text-obsidian">
           {t("notFoundTitle")}
         </h1>
@@ -326,7 +326,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
           {t("title")}
         </Link>
         <ChevronRight size={12} strokeWidth={2.4} aria-hidden="true" />
-        <span aria-current="page" className="max-w-[60%] truncate text-obsidian">
+        <span aria-current="page" title={plan.title} className="max-w-[60%] truncate text-obsidian">
           {plan.title}
         </span>
       </nav>
@@ -340,7 +340,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
               <div className="min-w-0 flex-1 basis-72">
                 <h1
                   id="plan-title"
-                  className="text-[22px] font-extrabold leading-tight tracking-[-0.03em] text-obsidian sm:text-[27px]"
+                  className="text-[28px] font-extrabold leading-tight tracking-[-0.05em] text-obsidian sm:text-[32px]"
                 >
                   {plan.title}
                 </h1>
@@ -369,12 +369,12 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                         <span className="ml-1.5 font-sans font-bold text-electric">({relTarget})</span>
                       )}
                       {overdueTarget && (
-                        <span className="ml-1.5 inline-flex items-center gap-1 rounded-pill bg-error-tint px-2 py-0.5 align-middle font-sans text-[10px] font-bold uppercase tracking-wide text-error">
+                        <span className="ml-1.5 inline-flex items-center gap-1 rounded-pill bg-error-tint px-2 py-0.5 align-middle font-sans text-[11px] font-bold uppercase tracking-wide text-error-fg">
                           {t("overdue")}
                         </span>
                       )}
                       {!overdueTarget && targetIsPast && plan.status === "completed" && (
-                        <span className="ml-1.5 font-sans font-bold text-success">{t("closed")}</span>
+                        <span className="ml-1.5 font-sans font-bold text-tint-fg-green">{t("closed")}</span>
                       )}
                     </dd>
                   </div>
@@ -389,7 +389,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                   stroke={11}
                   label={t("completionFor", { title: plan.title })}
                 />
-                <p className="text-[10px] font-bold uppercase tracking-[0.09em] text-muted">
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                   {t("derivedFromTasks")}
                 </p>
                 <div className="mt-2 border-t border-divider pt-2.5">
@@ -402,7 +402,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                 </div>
               </div>
             </div>
-            <p className="mt-4 border-t border-divider pt-4 text-[13.5px] font-medium leading-relaxed text-obsidian-light">
+            <p className="mt-4 border-t border-divider pt-4 text-[13px] font-medium leading-relaxed text-obsidian-light">
               {plan.description ?? t("noDescription")}
             </p>
           </section>
@@ -412,7 +412,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2
                 id="tasks-heading"
-                className="flex items-center gap-2.5 text-[16px] font-bold tracking-[-0.01em] text-obsidian"
+                className="flex items-center gap-2.5 text-[16px] font-bold tracking-[-0.02em] text-obsidian"
               >
                 {t("tasksHeading")}
                 <span className="rounded-pill bg-track px-2.5 py-0.5 font-mono text-[11px] font-bold text-obsidian-light tabular-nums">
@@ -464,7 +464,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                 disabled={!draft.trim()}
                 className="btn btn-primary h-10 px-4 text-[13px] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Plus size={15} strokeWidth={2.6} aria-hidden="true" />
+                <Plus size={15} strokeWidth={2.4} aria-hidden="true" />
                 {t("add")}
               </button>
             </form>
@@ -542,18 +542,18 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                       aria-checked={isDone}
                       aria-label={isDone ? t("markTaskNotDone", { title: task.title }) : t("markTaskDone", { title: task.title })}
                       onClick={() => toggleTask(task)}
-                      className={`grid h-5 w-5 shrink-0 place-items-center rounded-[6px] border transition-all duration-150 ${
+                      className={`grid h-5 w-5 shrink-0 place-items-center rounded-xs border transition-all duration-fast ${
                         isDone
                           ? "border-electric bg-electric"
                           : "border-black/15 bg-white hover:border-electric"
                       }`}
                     >
-                      {isDone && <Check size={12} strokeWidth={3.2} className="text-white" aria-hidden="true" />}
+                      {isDone && <Check size={12} strokeWidth={2.4} className="text-white" aria-hidden="true" />}
                     </button>
 
                     {/* Title */}
                     <span
-                      className={`min-w-0 flex-1 text-[13.5px] font-medium leading-snug transition-colors duration-150 ${
+                      className={`min-w-0 flex-1 text-[13px] font-medium leading-snug transition-colors duration-fast ${
                         isDone ? "text-muted line-through decoration-muted/70" : "text-obsidian"
                       }`}
                       title={task.completed_at ? t("completedOn", { date: formatFullDate(task.completed_at, dateLocale) }) : undefined}
@@ -564,7 +564,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                     {/* Assignee */}
                     <span className="hidden shrink-0 items-center gap-1.5 md:inline-flex" title={t("assigneeTitle", { name: assignee.name })}>
                       <AvatarInitials id={task.assignee_id} size={20} unassignedLabel={t("unassigned")} />
-                      <span className="max-w-[72px] truncate text-[11px] font-semibold text-obsidian-light">
+                      <span className="max-w-[72px] truncate text-[11px] font-semibold text-obsidian-light" title={assignee.name}>
                         {assignee.name}
                       </span>
                     </span>
@@ -572,11 +572,11 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                     {/* Due date */}
                     {task.due_date && (
                       <span
-                        className={`shrink-0 whitespace-nowrap rounded-pill px-2 py-0.5 font-mono text-[10px] font-semibold tabular-nums ${
-                          taskOverdue ? "inline-flex items-center gap-1 bg-error-tint text-error" : "text-obsidian-light"
+                        className={`shrink-0 whitespace-nowrap rounded-pill px-2 py-0.5 font-mono text-[11px] font-semibold tabular-nums ${
+                          taskOverdue ? "inline-flex items-center gap-1 bg-error-tint text-error-fg" : "text-obsidian-light"
                         }`}
                       >
-                        {taskOverdue && <CircleAlert size={10} strokeWidth={2.6} aria-hidden="true" />}
+                        {taskOverdue && <CircleAlert size={10} strokeWidth={2.4} aria-hidden="true" />}
                         {formatShortDate(task.due_date, dateLocale)}
                         {taskOverdue && <span className="font-sans font-bold uppercase">· {t("overdue")}</span>}
                       </span>
@@ -588,7 +588,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                       onClick={() => cycleStatus(task)}
                       aria-label={t("statusCycleAria", { current: pillLabel, next: nextTaskLabel })}
                       title={t("cycleTitle")}
-                      className={`shrink-0 whitespace-nowrap rounded-pill px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition-transform hover:scale-[1.04] ${pillClass}`}
+                      className={`shrink-0 whitespace-nowrap rounded-pill px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide transition-transform hover:scale-[1.04] ${pillClass}`}
                     >
                       {pillLabel}
                     </button>
@@ -601,19 +601,19 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                           if (e.key === "Escape") setConfirmDeleteId(null);
                         }}
                       >
-                        <span className="text-[10.5px] font-bold text-error">{t("deleteConfirm")}</span>
+                        <span className="text-[11px] font-bold text-error-fg">{t("deleteConfirm")}</span>
                         <button
                           type="button"
                           ref={(el) => el?.focus()}
                           onClick={() => deleteTask(task.id)}
-                          className="rounded-pill bg-error px-2 py-0.5 text-[10.5px] font-bold text-white transition-opacity hover:opacity-90"
+                          className="rounded-pill bg-error px-2 py-0.5 text-[11px] font-bold text-white transition-opacity hover:opacity-90"
                         >
                           {t("yes")}
                         </button>
                         <button
                           type="button"
                           onClick={() => setConfirmDeleteId(null)}
-                          className="rounded-pill px-2 py-0.5 text-[10.5px] font-bold text-obsidian-light transition-colors hover:bg-white"
+                          className="rounded-pill px-2 py-0.5 text-[11px] font-bold text-obsidian-light transition-colors hover:bg-white"
                         >
                           {t("no")}
                         </button>
@@ -623,7 +623,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                         type="button"
                         onClick={() => setConfirmDeleteId(task.id)}
                         aria-label={t("deleteTask", { title: task.title })}
-                        className="shrink-0 rounded-pill p-1.5 text-muted transition-colors hover:bg-error-tint hover:text-error"
+                        className="shrink-0 rounded-pill p-1.5 text-muted transition-colors hover:bg-error-tint hover:text-error-fg"
                       >
                         <Trash2 size={14} strokeWidth={2} aria-hidden="true" />
                       </button>
@@ -633,7 +633,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
               })}
               {visibleTasks.length === 0 && (
                 <li className="flex flex-col items-center gap-2 py-8 text-center">
-                  <CheckCircle2 size={22} strokeWidth={1.8} className="text-success" aria-hidden="true" />
+                  <CheckCircle2 size={22} strokeWidth={1.8} className="text-tint-fg-green" aria-hidden="true" />
                   <p className="text-[13px] font-semibold text-obsidian-light">{t("noTasksYet")}</p>
                 </li>
               )}
@@ -647,15 +647,20 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
           <section className="card p-5" aria-labelledby="activity-heading">
             <h2
               id="activity-heading"
-              className="flex items-center gap-2 text-[15px] font-bold tracking-[-0.01em] text-obsidian"
+              className="flex items-center gap-2 text-[15px] font-bold tracking-[-0.02em] text-obsidian"
             >
               <Activity size={16} strokeWidth={2} className="text-muted" aria-hidden="true" />
               {t("activityHeading")}
             </h2>
+            {live ? (
+              <p className="mt-4 text-[12px] font-medium leading-snug text-muted">
+                {t("activityNoteLive")}
+              </p>
+            ) : (
             <ol className="relative mt-4 space-y-4 border-l border-divider pl-5">
               {[
                 {
-                  icon: <CheckCircle2 size={14} strokeWidth={2.2} className="text-success" aria-hidden="true" />,
+                  icon: <CheckCircle2 size={14} strokeWidth={2.2} className="text-tint-fg-green" aria-hidden="true" />,
                   body: (
                     <>
                       <b className="font-bold text-obsidian">Yasmine</b> completed{" "}
@@ -675,7 +680,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                   time: `${t("yesterday")} · 17:40`,
                 },
                 {
-                  icon: <Flag size={14} strokeWidth={2.2} className="text-warning" aria-hidden="true" />,
+                  icon: <Flag size={14} strokeWidth={2.2} className="text-tint-fg-amber" aria-hidden="true" />,
                   body: (
                     <>
                       <b className="font-bold text-obsidian">Karim</b> moved the target date by two
@@ -702,22 +707,25 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
                     {entry.icon}
                   </span>
                   <p className="text-[12px] leading-snug text-obsidian-light">{entry.body}</p>
-                  <p className="mt-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.08em] text-muted tabular-nums">
+                  <p className="mt-0.5 font-mono text-[11px] font-semibold uppercase tracking-[0.08em] text-muted tabular-nums">
                     {entry.time}
                   </p>
                 </li>
               ))}
             </ol>
-            <p className="mt-4 border-t border-divider pt-3 text-[10.5px] font-medium text-muted">
-              {t("demoTimelineNote")}
-            </p>
+            )}
+            {!live && (
+              <p className="mt-4 border-t border-divider pt-3 text-[11px] font-medium text-muted">
+                {t("demoTimelineNote")}
+              </p>
+            )}
           </section>
 
           {/* Plan facts */}
           <section className="card p-5" aria-labelledby="facts-heading">
             <h2
               id="facts-heading"
-              className="text-[11px] font-bold uppercase tracking-[0.09em] text-muted"
+              className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted"
             >
               {t("planDetailsHeading")}
             </h2>
@@ -746,7 +754,7 @@ export function PlanDetail({ id, data }: { id: string; data?: PlansData | null }
               className="mt-4 inline-flex items-center gap-1 border-t border-divider pt-3 text-[12px] font-bold text-electric transition-colors hover:text-electric-hover"
             >
               {t("viewAllPlans")}
-              <ArrowUpRight size={13} strokeWidth={2.5} aria-hidden="true" />
+              <ArrowUpRight size={13} strokeWidth={2.4} aria-hidden="true" />
             </Link>
           </section>
         </aside>

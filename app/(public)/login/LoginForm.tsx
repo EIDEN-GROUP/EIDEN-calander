@@ -7,6 +7,11 @@ import { useTranslations } from "next-intl";
 
 const initialState: LoginState = { ok: false, configured: true };
 
+const fieldLabel =
+  "mb-2 block text-[13px] font-semibold tracking-[-0.01em] text-obsidian";
+const pillInput =
+  "h-[50px] w-full rounded-pill border-[1.5px] border-[rgba(29,29,31,0.14)] bg-white px-[22px] text-[15px] text-obsidian outline-none transition placeholder:text-[#86868B] hover:border-[rgba(29,29,31,0.32)] focus:border-electric focus:shadow-[0_0_0_4px_rgba(0,102,204,0.12)]";
+
 export function LoginForm({ nextPath }: { nextPath: string }) {
   const t = useTranslations("login");
   const [state, formAction, pending] = useActionState(login, initialState);
@@ -17,7 +22,7 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
       <input type="hidden" name="next" value={nextPath} />
 
       {/* Email */}
-      <label htmlFor="email" className="label">
+      <label htmlFor="email" className={fieldLabel}>
         {t("email")}
       </label>
       <input
@@ -28,12 +33,12 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
         inputMode="email"
         required
         placeholder="you@eiden-group.com"
-        className="input-pill"
+        className={pillInput}
         aria-describedby={state.errorKey ? "login-error" : undefined}
       />
 
       {/* Password */}
-      <label htmlFor="password" className="label mt-5">
+      <label htmlFor="password" className={`${fieldLabel} mt-5`}>
         {t("password")}
       </label>
       <div className="relative">
@@ -44,7 +49,7 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
           autoComplete="current-password"
           required
           placeholder="••••••••••"
-          className="input-pill pr-14"
+          className={`${pillInput} pr-[56px]`}
           aria-describedby={state.errorKey ? "login-error" : undefined}
         />
         <button
@@ -52,9 +57,13 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
           onClick={() => setShowPassword((v) => !v)}
           aria-label={showPassword ? t("hidePassword") : t("showPassword")}
           aria-pressed={showPassword}
-          className="absolute right-5 top-1/2 -translate-y-1/2 text-obsidian-light transition-colors hover:text-obsidian"
+          className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-obsidian-light transition hover:scale-[1.06] hover:bg-canvas hover:text-obsidian active:scale-[0.94]"
         >
-          {showPassword ? <EyeOff size={20} strokeWidth={1.8} /> : <Eye size={20} strokeWidth={1.8} />}
+          {showPassword ? (
+            <EyeOff size={19} strokeWidth={1.8} aria-hidden="true" />
+          ) : (
+            <Eye size={19} strokeWidth={1.8} aria-hidden="true" />
+          )}
         </button>
       </div>
 
@@ -62,7 +71,7 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
       <div className="mt-2.5 flex justify-end">
         <a
           href="/forgot-password"
-          className="text-[13px] font-semibold text-obsidian-light underline decoration-black/20 underline-offset-2 transition-colors hover:text-electric"
+          className="px-0.5 py-1 text-[13px] font-semibold text-obsidian underline decoration-black/20 underline-offset-[3px] transition-colors hover:text-electric"
         >
           {t("forgot")}
         </a>
@@ -85,7 +94,7 @@ export function LoginForm({ nextPath }: { nextPath: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="btn btn-primary mt-6 h-[52px] w-full rounded-pill text-[17px] tracking-[-0.01em] disabled:cursor-wait disabled:opacity-80"
+        className="mt-5 flex h-[52px] w-full items-center justify-center gap-2.5 whitespace-nowrap rounded-pill bg-electric text-[16px] font-semibold tracking-[-0.01em] text-white transition hover:scale-[1.02] hover:bg-electric-hover hover:shadow-[0_8px_24px_rgba(0,102,204,0.3)] active:scale-[0.99] disabled:cursor-wait disabled:opacity-80"
       >
         {pending ? (
           <>

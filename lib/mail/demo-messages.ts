@@ -1,13 +1,13 @@
 /**
- * demo-messages.ts — in-memory demo mailbox (SERVER-ONLY).
+ * demo-messages.ts: in-memory demo mailbox (SERVER-ONLY).
  *
  * Used when the real mailbox is unconfigured (fresh clone / preview), so the
  * entire inbox UI is exercisable without IMAP/SMTP credentials. Fixtures are
  * realistic Eiden Group business threads (booking confirmations, a suspected
- * double-booking, a formation enrollment CSV, invoice questions — FR/EN mix).
+ * double-booking, a formation enrollment CSV, invoice questions; FR/EN mix).
  *
  * One fixture (uid 903) embeds `<script>alert(1)</script>` and inline handlers
- * on purpose — rendered through sanitizeMessageHtml, a working preview proves
+ * on purpose: rendered through sanitizeMessageHtml. A working preview proves
  * the payload is stripped before it reaches the iframe.
  *
  * Demo "mark as seen" is held in a module-level Map so the toggle works during
@@ -62,11 +62,11 @@ const CSV_ENROLLMENT = [
 ].join("\n");
 
 const NOTES_SALLE_GRANDE = [
-  "Ordre du jour — séminaire clients, mardi 10h00",
+  "Ordre du jour : séminaire clients, mardi 10h00",
   "- Point 1 : revue du pipe Q4",
   "- Point 2 : démonstration plateforme CALENDAR.",
   "- Point 3 : lunch 13:00 (traiteur réservé)",
-  "Contact: Nadia Bensaïd — nadia@acme-sarl.ma",
+  "Contact: Nadia Bensaïd · nadia@acme-sarl.ma",
 ].join("\n");
 
 const RECORDS: DemoRecord[] = [
@@ -74,36 +74,36 @@ const RECORDS: DemoRecord[] = [
     uid: 901, folder: "INBOX", seq: 901,
     from: { name: "Nadia Bensaïd", address: "nadia@acme-sarl.ma" },
     to: [CONTACT], cc: [],
-    subject: "Booking confirmation — Salle Grande, Tuesday 10:00",
+    subject: "Booking confirmation: Salle Grande, Tuesday 10:00",
     date: hoursAgo(2), seen: false, size: 18_432,
     messageId: "<20261113.0902.901@acme-sarl.ma>",
     inReplyTo: null, references: [],
     attachments: [
       { part: "2", filename: "ordre-du-jour-salle-grande.txt", contentType: "text/plain", size: NOTES_SALLE_GRANDE.length, content: NOTES_SALLE_GRANDE },
     ],
-    text: "Bonjour,\n\nNous confirmons notre réservation de la Salle Grande pour mardi à 10:00 (12 personnes). Pourriez-vous nous confirmer le matériel : vidéoprojecteur, écran 85\" et paperboard ?\n\nMerci,\nNadia Bensaïd — Acme SARL",
+    text: "Bonjour,\n\nNous confirmons notre réservation de la Salle Grande pour mardi à 10:00 (12 personnes). Pourriez-vous nous confirmer le matériel : vidéoprojecteur, écran 85\" et paperboard ?\n\nMerci,\nNadia Bensaïd, Acme SARL",
     html: [
       "<p>Bonjour,</p>",
       "<p>Nous confirmons notre réservation de la <strong>Salle Grande</strong> pour mardi à 10:00 (12 personnes). Pourriez-vous nous confirmer le matériel : vidéoprojecteur, écran 85&quot; et paperboard&nbsp;?</p>",
-      "<p>Merci,<br>Nadia Bensaïd — Acme SARL</p>",
+      "<p>Merci,<br>Nadia Bensaïd, Acme SARL</p>",
     ].join(""),
   },
   {
     uid: 902, folder: "INBOX", seq: 902,
     from: { name: "Khadija El Amrani", address: "k.elamrani@marjanemaroc.ma" },
     to: [CONTACT], cc: [],
-    subject: "Formation enrollment — React Avancé S3 (CSV)",
+    subject: "Formation enrollment: React Avancé S3 (CSV)",
     date: hoursAgo(6), seen: false, size: 24_108,
     messageId: "<CAN=20261113-902@marjanemaroc.ma>",
     inReplyTo: null, references: [],
     attachments: [
       { part: "2", filename: "participants-react-s3.csv", contentType: "text/csv", size: CSV_ENROLLMENT.length, content: CSV_ENROLLMENT },
     ],
-    text: "Bonjour,\n\nCi-joint la liste des participants pour la session React Avancé S3 du 24 novembre (16 places). Deux places restent en liste d'attente. Merci d'accuser réception.\n\nCordialement,\nKhadija El Amrani — Marjane",
+    text: "Bonjour,\n\nCi-joint la liste des participants pour la session React Avancé S3 du 24 novembre (16 places). Deux places restent en liste d'attente. Merci d'accuser réception.\n\nCordialement,\nKhadija El Amrani, Marjane",
     html: [
       "<p>Bonjour,</p>",
       "<p>Ci-joint la liste des participants pour la session <strong>React Avancé S3</strong> du 24 novembre (16 places). Deux places restent en liste d'attente. Merci d'accuser réception.</p>",
-      "<p>Cordialement,<br>Khadija El Amrani — Marjane</p>",
+      "<p>Cordialement,<br>Khadija El Amrani, Marjane</p>",
     ].join(""),
   },
   {
@@ -115,10 +115,10 @@ const RECORDS: DemoRecord[] = [
     messageId: "<suspect-903@balima.ma>",
     inReplyTo: null, references: [],
     attachments: [],
-    text: "Bonjour — nous avons une confirmation pour mardi 10:00 en Salle Grande, mais votre site affiche déjà un créneau occupé à la même heure. Pouvez-vous vérifier s'il y a un conflit ?\n\n<script>alert(1)</script> Merci !",
-    // Deliberately hostile markup — must be stripped by the sanitizer.
+    text: "Bonjour, nous avons une confirmation pour mardi 10:00 en Salle Grande, mais votre site affiche déjà un créneau occupé à la même heure. Pouvez-vous vérifier s'il y a un conflit ?\n\n<script>alert(1)</script> Merci !",
+    // Deliberately hostile markup; must be stripped by the sanitizer.
     html: [
-      "<p>Bonjour — nous avons une confirmation pour <strong>mardi 10:00 en Salle Grande</strong>, mais votre site affiche déjà un créneau occupé à la même heure. Pouvez-vous vérifier s'il y a un conflit&nbsp;?</p>",
+      "<p>Bonjour, nous avons une confirmation pour <strong>mardi 10:00 en Salle Grande</strong>, mais votre site affiche déjà un créneau occupé à la même heure. Pouvez-vous vérifier s'il y a un conflit&nbsp;?</p>",
       "<script>alert(1)</script>",
       '<p onclick="steal()">Merci !</p>',
       '<img src="https://tracker.example.com/pixel.gif" alt="" width="1" height="1">',
@@ -131,16 +131,16 @@ const RECORDS: DemoRecord[] = [
     uid: 904, folder: "INBOX", seq: 904,
     from: { name: "Comptabilité", address: "compta@attijariwafa.com" },
     to: [CONTACT], cc: [],
-    subject: "Invoice #2026-014 — question",
+    subject: "Invoice #2026-014: question",
     date: daysAgo(1, 3), seen: true, size: 12_640,
     messageId: "<inv-2026-014@attijariwafa.com>",
     inReplyTo: null, references: [],
     attachments: [],
-    text: "Bonjour,\n\nFacture #2026-014 (mise à disposition Salle Formation, 3 jours) : le montant HT semble différer de notre bon de commande N°4471. Merci de nous confirmer le détail de la ligne « Formation — options ».\n\nCordialement,\nService comptabilité",
+    text: "Bonjour,\n\nFacture #2026-014 (mise à disposition Salle Formation, 3 jours) : le montant HT semble différer de notre bon de commande N°4471. Merci de nous confirmer le détail de la ligne « Formation : options ».\n\nCordialement,\nService comptabilité",
     html: [
       "<p>Bonjour,</p>",
       "<p>Facture <strong>#2026-014</strong> (mise à disposition Salle Formation, 3 jours) : le montant HT semble différer de notre bon de commande N°4471.</p>",
-      "<p>Merci de nous confirmer le détail de la ligne «&nbsp;Formation — options&nbsp;».</p>",
+      "<p>Merci de nous confirmer le détail de la ligne «&nbsp;Formation : options&nbsp;».</p>",
       "<p>Cordialement,<br>Service comptabilité</p>",
     ].join(""),
   },
@@ -148,33 +148,33 @@ const RECORDS: DemoRecord[] = [
     uid: 905, folder: "INBOX", seq: 905,
     from: { name: "Youssef Berrada", address: "youssef@otopgroup.com" },
     to: [CONTACT], cc: [],
-    subject: "Demande de devis — séminaire annuel",
+    subject: "Demande de devis : séminaire annuel",
     date: daysAgo(2, 5), seen: true, size: 15_872,
     messageId: "<devis-905@otopgroup.com>",
     inReplyTo: null, references: [],
     attachments: [],
-    text: "Bonjour,\n\nNous souhaitons organiser notre séminaire annuel (45 personnes, 2 jours) à Casablanca. Merci de nous envoyer un devis pour la Salle Grande + Salle Formation, avec traiteur et équipement A/V complet. Dates envisagées : semaine du 15 décembre.\n\nBien cordialement,\nYoussef Berrada — OTOP Group",
+    text: "Bonjour,\n\nNous souhaitons organiser notre séminaire annuel (45 personnes, 2 jours) à Casablanca. Merci de nous envoyer un devis pour la Salle Grande + Salle Formation, avec traiteur et équipement A/V complet. Dates envisagées : semaine du 15 décembre.\n\nBien cordialement,\nYoussef Berrada, OTOP Group",
     html: [
       "<p>Bonjour,</p>",
       "<p>Nous souhaitons organiser notre <strong>séminaire annuel</strong> (45 personnes, 2 jours) à Casablanca. Merci de nous envoyer un devis pour la Salle Grande + Salle Formation, avec traiteur et équipement A/V complet.</p>",
       "<p>Dates envisagées : semaine du 15 décembre.</p>",
-      "<p>Bien cordialement,<br>Youssef Berrada — OTOP Group</p>",
+      "<p>Bien cordialement,<br>Youssef Berrada, OTOP Group</p>",
     ].join(""),
   },
   {
     uid: 906, folder: "Sent", seq: 906,
     from: CONTACT,
     to: [{ name: "Nadia Bensaïd", address: "nadia@acme-sarl.ma" }], cc: [],
-    subject: "Re: Booking confirmation — Salle Grande, Tuesday 10:00",
+    subject: "Re: Booking confirmation: Salle Grande, Tuesday 10:00",
     date: hoursAgo(1), seen: true, size: 11_284,
     messageId: "<20261113.1015.906@eiden-group.com>",
     inReplyTo: "<20261113.0902.901@acme-sarl.ma>",
     references: ["<20261113.0902.901@acme-sarl.ma>"],
     attachments: [],
-    text: "Bonjour Nadia,\n\nBien noté — Salle Grande, mardi 10:00, 12 personnes, vidéoprojecteur + écran 85\" + paperboard confirmés. Votre ordre du jour est bien reçu.\n\nCordialement,\nEiden Group",
+    text: "Bonjour Nadia,\n\nBien noté : Salle Grande, mardi 10:00, 12 personnes, vidéoprojecteur + écran 85\" + paperboard confirmés. Votre ordre du jour est bien reçu.\n\nCordialement,\nEiden Group",
     html: [
       "<p>Bonjour Nadia,</p>",
-      "<p>Bien noté — <strong>Salle Grande, mardi 10:00</strong>, 12 personnes, vidéoprojecteur + écran 85&quot; + paperboard confirmés. Votre ordre du jour est bien reçu.</p>",
+      "<p>Bien noté : <strong>Salle Grande, mardi 10:00</strong>, 12 personnes, vidéoprojecteur + écran 85&quot; + paperboard confirmés. Votre ordre du jour est bien reçu.</p>",
       "<p>Cordialement,<br>Eiden Group</p>",
     ].join(""),
   },
@@ -182,7 +182,7 @@ const RECORDS: DemoRecord[] = [
     uid: 907, folder: "Sent", seq: 907,
     from: CONTACT,
     to: [{ name: "Khadija El Amrani", address: "k.elamrani@marjanemaroc.ma" }], cc: [],
-    subject: "Confirmation — Formation Leadership T4",
+    subject: "Confirmation : Formation Leadership T4",
     date: daysAgo(1, 1), seen: true, size: 14_051,
     messageId: "<20261112.cos.907@eiden-group.com>",
     inReplyTo: null, references: [],
@@ -197,25 +197,23 @@ const RECORDS: DemoRecord[] = [
   {
     uid: 908, folder: "Sent", seq: 908,
     from: CONTACT,
-    to: [{ name: "ONCF — Réception", address: "reception@oncf.ma" }], cc: [],
-    subject: "Re: Invoice #2026-014 — question",
+    to: [{ name: "ONCF · Réception", address: "reception@oncf.ma" }], cc: [],
+    subject: "Re: Invoice #2026-014: question",
     date: daysAgo(1, 7), seen: true, size: 13_330,
     messageId: "<20261112.reo.908@eiden-group.com>",
     inReplyTo: "<inv-2026-014@attijariwafa.com>",
     references: ["<inv-2026-014@attijariwafa.com>"],
     attachments: [],
-    text: "Bonjour,\n\nMerci pour votre message. Il s'agissait bien de la ligne Formation — options ; nous renvoyons une facture rectificative #2026-014-R aujourd'hui. Merci de votre compréhension.\n\nCordialement,\nEiden Group",
+    text: "Bonjour,\n\nMerci pour votre message. Il s'agissait bien de la ligne Formation : options ; nous renvoyons une facture rectificative #2026-014-R aujourd'hui. Merci de votre compréhension.\n\nCordialement,\nEiden Group",
     html: [
       "<p>Bonjour,</p>",
-      "<p>Merci pour votre message. Il s'agissait bien de la ligne <strong>Formation — options</strong> ; nous renvoyons une facture rectificative #2026-014-R aujourd'hui.</p>",
+      "<p>Merci pour votre message. Il s'agissait bien de la ligne <strong>Formation : options</strong> ; nous renvoyons une facture rectificative #2026-014-R aujourd'hui.</p>",
       "<p>Merci de votre compréhension.<br>Cordialement,<br>Eiden Group</p>",
     ].join(""),
   },
 ];
 
-/* ------------------------------------------------------------------ */
-/* Demo seen-state overlay (module-level, non-persistent)              */
-/* ------------------------------------------------------------------ */
+/* Demo seen-state overlay (module-level, non-persistent) */
 
 const seenOverrides = new Map<number, boolean>();
 
@@ -228,9 +226,7 @@ function effectiveSeen(record: DemoRecord): boolean {
   return seenOverrides.get(record.uid) ?? record.seen;
 }
 
-/* ------------------------------------------------------------------ */
-/* Public API                                                          */
-/* ------------------------------------------------------------------ */
+/* Public API */
 
 export function getDemoMessageList(folder: MailFolder): MailMessageSummary[] {
   return RECORDS.filter((r) => r.folder === folder)
@@ -256,7 +252,7 @@ export function getDemoMessageList(folder: MailFolder): MailMessageSummary[] {
 export function getDemoMessage(uid: number, folder: MailFolder): DemoMessage | null {
   const r = RECORDS.find((rec) => rec.uid === uid && rec.folder === folder);
   if (!r) return null;
-  // Demo html is sanitized exactly like live mail — one code path, proof included.
+  // Demo html is sanitized exactly like live mail: one code path, proof included.
   const text = r.text;
   return {
     uid: r.uid,

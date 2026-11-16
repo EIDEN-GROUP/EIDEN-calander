@@ -1,5 +1,5 @@
 -- 0005_rls.sql
--- CALENDAR. — row level security + role/function privileges + realtime.
+-- CALENDAR.: row level security + role/function privileges + realtime.
 -- Model: shared workspace. Every authenticated user sees all data; writes are
 -- scoped per table (see policies below). anon gets NOTHING (default deny).
 -- service_role bypasses RLS entirely (Supabase default) and is the only role
@@ -24,7 +24,7 @@ alter table public.notifications            enable row level security;
 alter table public.audit_log                enable row level security;
 
 -- ===========================================================================
--- 2) Table & sequence privileges — only authenticated + service_role
+-- 2) Table & sequence privileges: only authenticated + service_role
 --    (RLS is the gate for authenticated; service_role bypasses RLS)
 -- ===========================================================================
 revoke all on all tables in schema public from anon;
@@ -50,7 +50,7 @@ alter default privileges in schema public grant usage, select on sequences to au
 alter default privileges in schema public grant usage, select on sequences to service_role;
 
 -- ===========================================================================
--- 3) Function privileges (functions are EXECUTE-able by PUBLIC by default —
+-- 3) Function privileges (functions are EXECUTE-able by PUBLIC by default:
 --    tighten the RPC-facing ones)
 -- ===========================================================================
 revoke all on function public.is_admin() from public, anon;
@@ -430,7 +430,7 @@ create policy change_requests_update_admin
   with check (public.is_admin());
 
 -- ---- notifications ------------------------------------------------------------
--- insert: NO policy — only via security definer (notify_user) / service role.
+-- insert: NO policy: only via security definer (notify_user) / service role.
 -- update: own rows only, and only the read_at column (column grant + policy).
 drop policy if exists notifications_select_own on public.notifications;
 create policy notifications_select_own
@@ -452,7 +452,7 @@ create policy notifications_delete_own
   using (user_id = auth.uid());
 
 -- ---- audit_log -----------------------------------------------------------------
--- read: admin only. insert/update/delete: NO policies for authenticated —
+-- read: admin only. insert/update/delete: NO policies for authenticated:
 -- writes happen via security definer functions (e.g. expire_change_requests)
 -- or the service role (bypasses RLS).
 drop policy if exists audit_log_select_admin on public.audit_log;
@@ -462,7 +462,7 @@ create policy audit_log_select_admin
   using (public.is_admin());
 
 -- ===========================================================================
--- 5) Realtime — add notifications to the supabase_realtime publication when
+-- 5) Realtime: add notifications to the supabase_realtime publication when
 --    it exists (Supabase). No-op on a plain Postgres database.
 -- ===========================================================================
 do $$

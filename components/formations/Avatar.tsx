@@ -1,5 +1,5 @@
 /**
- * Avatar — initials in Obsidian/Electric rotation, or a Building2 glyph for
+ * Avatar: initials in Obsidian/Electric rotation, or a Building2 glyph for
  * companies. Deterministic rotation via string hash (stable across renders).
  */
 

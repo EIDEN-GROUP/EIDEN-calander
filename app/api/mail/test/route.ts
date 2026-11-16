@@ -1,5 +1,5 @@
 /**
- * GET /api/mail/test — connectivity check for the mail path.
+ * GET /api/mail/test: connectivity check for the mail path.
  *
  * Never returns credentials or host details beyond ok/not-ok per layer.
  * Demo mode → everything reported ok with { demo: true }.
@@ -10,7 +10,7 @@ import { verifyTransporter, isSmtpConfigured } from "@/lib/email/send";
 import { authorizeMail, jsonOk } from "@/lib/mail/http";
 
 export async function GET() {
-  // Reads no request data — opt out of build-time prerendering explicitly.
+  // Reads no request data: opt out of build-time prerendering explicitly.
   await connection();
   const access = await authorizeMail();
   if (!("demo" in access)) return access; // 401
@@ -18,7 +18,7 @@ export async function GET() {
   if (access.demo) {
     return jsonOk({
       demo: true,
-      note: "Demo mode — connect IMAP/SMTP in the environment to go live.",
+      note: "Demo mode: connect IMAP/SMTP in the environment to go live.",
       imap: { ok: true },
       smtp: { ok: true },
     });
@@ -39,7 +39,7 @@ export async function GET() {
       await mailbox.close();
     }
   } else {
-    imap = { ok: false, code: "IMAP_UNAVAILABLE", message: "Could not reach the mailbox — check host, port and network." };
+    imap = { ok: false, code: "IMAP_UNAVAILABLE", message: "Could not reach the mailbox: check host, port and network." };
   }
 
   return jsonOk({

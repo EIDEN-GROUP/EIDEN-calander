@@ -1,10 +1,10 @@
 -- ===========================================================================
--- 0007 — log_audit_event(): canonical security-definer write path for audit_log.
+-- 0007: log_audit_event(): canonical security-definer write path for audit_log.
 --
 -- audit_log has NO insert policy for `authenticated` (writes are security-definer
--- only — see 0005_rls.sql). Until now the only definer writer was
+-- only: see 0005_rls.sql). Until now the only definer writer was
 -- expire_change_requests(), so any audit insert made through the regular
--- authenticated client was rejected by RLS — and since supabase-js returns
+-- authenticated client was rejected by RLS: and since supabase-js returns
 -- errors instead of throwing, those writes vanished silently. This function is
 -- the single write path for server actions going forward; actor_id is taken
 -- from auth.uid() (null under service-role / cron contexts, matching the

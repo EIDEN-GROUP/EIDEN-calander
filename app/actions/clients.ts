@@ -8,7 +8,7 @@ import type { ActionResult, ClientRow } from "@/lib/types/db";
 import { logAudit } from "@/lib/audit";
 
 function notConfigured<T>(): ActionResult<T> {
-  return { ok: false, error: { code: "not_configured", message: "Supabase isn't configured — set .env." } };
+  return { ok: false, error: { code: "not_configured", message: "Supabase isn't configured: set .env." } };
 }
 function fail(code: string, message: string): ActionResult<never> {
   return { ok: false, error: { code, message } };
@@ -108,7 +108,7 @@ export async function addClientNoteAction(raw: unknown): Promise<ActionResult<{ 
   }
 }
 
-/** GDPR anonymize — admin only. Keeps bookings aggregates, strips PII. */
+/** GDPR anonymize: admin only. Keeps bookings aggregates, strips PII. */
 export async function anonymizeClientAction(raw: unknown): Promise<ActionResult<{ anonymized: true }>> {
   try {
     await requireAdmin();

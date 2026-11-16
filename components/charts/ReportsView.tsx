@@ -39,9 +39,7 @@ import { seededSeries, walkSeries } from "./seed";
 import { DEMO_ROOMS, getDemoBookings } from "@/lib/demo-data";
 import type { ReportsLive } from "@/lib/reports-live";
 
-/* ------------------------------------------------------------------ */
-/* Controls                                                            */
-/* ------------------------------------------------------------------ */
+/* Controls */
 
 type RangeKey = "7D" | "30D" | "90D" | "Q";
 type LocationKey = "all" | "casa" | "agadir";
@@ -67,7 +65,7 @@ const LOCATION_OPTIONS: Array<{ key: LocationKey; labelKey?: "locationAll" }> = 
 ];
 const LOC_SCALE: Record<LocationKey, number> = { all: 1, casa: 0.68, agadir: 0.32 };
 
-/** Headline KPIs — deterministic constants; 30D/All is the brand reference (MAD 48,650 · 68% · 81%). */
+/** Headline KPIs: deterministic constants; 30D/All is the brand reference (MAD 48,650 · 68% · 81%). */
 const HEADLINE: Record<RangeKey, { bookings: number; revenue: number; util: number; fill: number }> = {
   "7D": { bookings: 63, revenue: 11_240, util: 71, fill: 84 },
   "30D": { bookings: 214, revenue: 48_650, util: 68, fill: 81 },
@@ -84,9 +82,7 @@ const ROOM_LOCATION: Record<string, LocationKey> = Object.fromEntries(
   DEMO_ROOMS.map((r) => [r.id, r.location === "Agadir" ? "agadir" : "casa"]),
 );
 
-/* ------------------------------------------------------------------ */
-/* Bookings-per-day buckets — seeded baseline + demo overlay           */
-/* ------------------------------------------------------------------ */
+/* Bookings-per-day buckets: seeded baseline + demo overlay */
 
 interface DayBucket {
   label: string;
@@ -148,9 +144,7 @@ function buildBuckets(range: RangeKey, loc: LocationKey, localeTag: string = app
 }
 
 
-/* ------------------------------------------------------------------ */
-/* Live aggregates — derived from the server-provided daily series      */
-/* ------------------------------------------------------------------ */
+/* Live aggregates: derived from the server-provided daily series */
 
 function locKey(loc: LocationKey): "all" | "casa" | "agadir" {
   return loc === "casa" ? "casa" : loc === "agadir" ? "agadir" : "all";
@@ -216,11 +210,9 @@ function fmtDelta(cur: number, prev: number): { text: string; up: boolean } {
   return { text: (pct >= 0 ? "+" : "") + pct + "%", up: pct >= 0 };
 }
 
-/* ------------------------------------------------------------------ */
-/* Static demo datasets (range/location-scaled deterministically)      */
-/* ------------------------------------------------------------------ */
+/* Static demo datasets (range/location-scaled deterministically) */
 
-/** Category base values — names are localized at render time via `categoryRoomRental` etc. */
+/** Category base values: names are localized at render time via `categoryRoomRental` etc. */
 const CATEGORY_BASE = [
   { nameKey: "categoryRoomRental", value: 26_240, color: "var(--color-electric)" },
   { nameKey: "categoryFormation", value: 15_570, color: "var(--color-success)" },
@@ -251,9 +243,7 @@ const FORMATION_ROWS: FormationPerformanceRow[] = [
   { name: "Onboarding RH", sessions: 3, enrolled: 45, capacity: 60, fill: 75, attendance: 79, noShows: 7 },
 ];
 
-/* ------------------------------------------------------------------ */
-/* Custom tooltips — dark obsidian pill, no chart junk                 */
-/* ------------------------------------------------------------------ */
+/* Custom tooltips: dark obsidian pill, no chart junk */
 
 function BookingsTooltip({
   active,
@@ -268,11 +258,11 @@ function BookingsTooltip({
   if (!active || !p) return null;
   return (
     <div className="rounded-sm border border-white/10 bg-obsidian px-3 py-2 text-white shadow-md">
-      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/60">{p.fullLabel}</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/60">{p.fullLabel}</p>
       <p className="mt-1 font-mono text-[12px] font-semibold tabular-nums">
-        {t("tooltipBookingCount", { count: p.count })} · MAD {formatMoney(p.revenue, intlLocale)}
+        {t("tooltipBookingCount", { count: p.count })} · {"MAD\u00A0"}{formatMoney(p.revenue, intlLocale)}
       </p>
-      <p className="font-mono text-[10.5px] font-medium text-white/55 tabular-nums">
+      <p className="font-mono text-[11px] font-medium text-white/55 tabular-nums">
         {t("tooltipPrevious", { count: p.prevCount })}
       </p>
     </div>
@@ -291,9 +281,9 @@ function CategoryTooltip({
   if (!active || !item) return null;
   return (
     <div className="rounded-sm border border-white/10 bg-obsidian px-3 py-2 text-white shadow-md">
-      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/60">{item.name}</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/60">{item.name}</p>
       <p className="mt-1 font-mono text-[12px] font-semibold tabular-nums">
-        MAD {formatMoney(item.value ?? 0, intlLocale)} · {item.payload?.share ?? 0}%
+        {"MAD\u00A0"}{formatMoney(item.value ?? 0, intlLocale)} · {item.payload?.share ?? 0}%
       </p>
     </div>
   );
@@ -308,11 +298,10 @@ function UtilTooltip({
 }) {
   const p = payload?.[0]?.payload;
   const t = useTranslations("reports");
-  const intlLocale = appLocaleTag(useLocale());
   if (!active || !p) return null;
   return (
     <div className="rounded-sm border border-white/10 bg-obsidian px-3 py-2 text-white shadow-md">
-      <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-white/60">{p.room}</p>
+      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-white/60">{p.room}</p>
       <p className="mt-1 font-mono text-[12px] font-semibold tabular-nums">
         {t("tooltipBooked", { pct: p.pct, hours: p.hours })}
       </p>
@@ -320,9 +309,7 @@ function UtilTooltip({
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* View                                                                */
-/* ------------------------------------------------------------------ */
+/* View */
 
 export function ReportsView({ live }: { live?: ReportsLive | null }) {
   const t = useTranslations("reports");
@@ -332,7 +319,7 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
   const [location, setLocation] = useState<LocationKey>("all");
   const [compare, setCompare] = useState(true);
 
-  /* ----- derived dataset (deterministic) ----- */
+  /* derived dataset (deterministic) */
   const buckets = useMemo(
     () => (live ? liveBuckets(live, range, location, intlLocale) : buildBuckets(range, location, intlLocale)),
     [live, range, location, intlLocale],
@@ -383,7 +370,7 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
     [live, location],
   );
 
-  /* ----- KPIs ----- */
+  /* KPIs */
   const headline = HEADLINE[range];
   const bookingsKpi = live && totals ? totals.bookings : Math.round(headline.bookings * LOC_SCALE[location]);
   const revenueKpi = live && totals ? totals.revenue : Math.round((headline.revenue * LOC_SCALE[location]) / 10) * 10;
@@ -447,7 +434,7 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
     },
   ];
 
-  /* ----- CSV exports — stream from the live, currently-filtered dataset ----- */
+  /* CSV exports: stream from the live, currently-filtered dataset */
   const exportBookings = useCallback(() => {
     // Streams the filtered daily buckets (live data when connected).
     downloadCsv("calendar-bookings-per-day.csv", [
@@ -502,7 +489,7 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.04em] text-obsidian sm:text-[32px]">
+          <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.05em] text-obsidian sm:text-[32px]">
             {t("title")}
           </h1>
           <p className="mt-1 max-w-xl text-[14px] font-medium text-obsidian-light">
@@ -609,7 +596,7 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
                     dataKey="prevCount"
                     name={t("barPreviousPeriod")}
                     stroke="var(--color-muted)"
-                    strokeWidth={1.6}
+                    strokeWidth={1.8}
                     strokeDasharray="5 4"
                     dot={false}
                   />
@@ -618,7 +605,7 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
             </ResponsiveContainer>
           </div>
           {compare && (
-            <div className="mt-2 flex items-center justify-center gap-5 text-[10.5px] font-semibold text-muted">
+            <div className="mt-2 flex items-center justify-center gap-5 text-[11px] font-semibold text-muted">
               <span className="inline-flex items-center gap-1.5">
                 <span aria-hidden="true" className="h-2 w-2 rounded-pill bg-electric" />
                 {t("thisPeriod")}
@@ -631,7 +618,7 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
           )}
         </ChartCard>
 
-        {/* (2) Revenue by category — donut */}
+        {/* (2) Revenue by category: donut */}
         <ChartCard
           title={t("revenueByCategory")}
           icon={PieChartIcon}
@@ -671,11 +658,11 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted">{t("total")}</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted">{t("total")}</span>
               <span className="mt-0.5 font-mono text-[15px] font-bold leading-none text-obsidian tabular-nums">
                 {formatMoney(categoryTotal, intlLocale)}
               </span>
-              <span className="mt-0.5 text-[9px] font-semibold text-muted">MAD</span>
+              <span className="mt-0.5 text-[10px] font-semibold text-muted">MAD</span>
             </div>
           </div>
           <ul className="mt-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5">
@@ -696,7 +683,7 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
           </ul>
         </ChartCard>
 
-        {/* (3) Utilization by room — horizontal bars */}
+        {/* (3) Utilization by room: horizontal bars */}
         <ChartCard
           title={t("utilizationByRoom")}
           icon={DoorOpen}
@@ -747,7 +734,7 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
           </div>
         </ChartCard>
 
-        {/* (4) Formation performance — table */}
+        {/* (4) Formation performance: table */}
         <ChartCard
           title={t("formationPerformance")}
           icon={GraduationCap}
@@ -760,14 +747,14 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
             <table className="w-full min-w-[540px] text-left">
               <thead>
                 <tr className="border-b border-divider">
-                  <th scope="col" className="py-2 pr-3 text-[10px] font-bold uppercase tracking-[0.09em] text-muted">
+                  <th scope="col" className="py-2 pr-3 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                     {t("tableFormation")}
                   </th>
                   {(["tableSessions", "tableEnrolled", "tableFill", "tableAttendance", "tableNoShows"] as const).map((colKey) => (
                     <th
                       key={colKey}
                       scope="col"
-                      className="px-2 py-2 text-right text-[10px] font-bold uppercase tracking-[0.09em] text-muted last:pr-0"
+                      className="px-2 py-2 text-right text-[11px] font-bold uppercase tracking-[0.08em] text-muted last:pr-0"
                     >
                       {t(colKey)}
                     </th>
@@ -779,11 +766,11 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
                   <tr key={row.name} className="transition-colors hover:bg-canvas/70">
                     <th scope="row" className="py-2.5 pr-3">
                       <span className="flex items-center gap-2">
-                        <span className="whitespace-nowrap text-[12.5px] font-bold text-obsidian">
+                        <span className="whitespace-nowrap text-[12px] font-bold text-obsidian">
                           {row.name}
                         </span>
                         {(row.fill ?? 0) >= 100 && (
-                          <span className="chip bg-error-tint text-[9.5px] font-extrabold uppercase tracking-[0.08em] text-error">
+                          <span className="chip bg-error-tint text-[10px] font-extrabold uppercase tracking-[0.08em] text-error-fg">
                             {t("full")}
                           </span>
                         )}
@@ -794,7 +781,7 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
                     </td>
                     <td className="px-2 py-2.5 text-right font-mono text-[12px] font-semibold text-obsidian-light tabular-nums">
                       {row.enrolled}
-                      <span className="text-[10px] text-muted">/{row.capacity}</span>
+                      <span className="text-[11px] text-muted">/{row.capacity}</span>
                     </td>
                     <td className="px-2 py-2.5">
                       <span className="flex items-center justify-end gap-1.5">
@@ -826,7 +813,7 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
                 ))}
                 {formationRows.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-8 text-center text-[12.5px] font-medium text-muted">
+                    <td colSpan={6} className="py-8 text-center text-[12px] font-medium text-muted">
                       {t("noFormationsAgadir")}
                     </td>
                   </tr>

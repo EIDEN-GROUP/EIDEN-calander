@@ -28,9 +28,9 @@ describe("findOverlaps", () => {
   const candidates = [
     bk("a", "room-1", "2026-11-13T14:00:00Z", "2026-11-13T15:30:00Z"),
     bk("b", "room-1", "2026-11-13T16:00:00Z", "2026-11-13T17:00:00Z"),
-    bk("c", "room-2", "2026-11-13T14:00:00Z", "2026-11-13T15:30:00Z"), // other room — fine
-    bk("d", "room-1", "2026-11-13T14:30:00Z", "2026-11-13T15:00:00Z", "cancelled"), // cancelled — fine
-    bk("e", "room-1", "2026-11-13T10:00:00Z", "2026-11-13T11:00:00Z", "pending_conflict"), // held — still blocks
+    bk("c", "room-2", "2026-11-13T14:00:00Z", "2026-11-13T15:30:00Z"), // other room: fine
+    bk("d", "room-1", "2026-11-13T14:30:00Z", "2026-11-13T15:00:00Z", "cancelled"), // cancelled: fine
+    bk("e", "room-1", "2026-11-13T10:00:00Z", "2026-11-13T11:00:00Z", "pending_conflict"), // held: still blocks
   ];
 
   it("finds same-room active overlaps", () => {

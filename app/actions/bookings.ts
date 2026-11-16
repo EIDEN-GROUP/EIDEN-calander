@@ -27,7 +27,7 @@ const bookingInput = z.object({
 export type BookingInput = z.infer<typeof bookingInput>;
 
 function notConfigured<T>(): ActionResult<T> {
-  return { ok: false, error: { code: "not_configured", message: "Supabase isn't configured — set .env (see docs/RUNBOOK.md)." } };
+  return { ok: false, error: { code: "not_configured", message: "Supabase isn't configured: set .env (see docs/RUNBOOK.md)." } };
 }
 function fail(code: string, message: string): ActionResult<never> {
   return { ok: false, error: { code, message } };
@@ -83,7 +83,7 @@ export async function createBookingAction(raw: unknown): Promise<ActionResult<Cr
     const supabase = await createClient();
     if (!supabase) return notConfigured();
 
-    // 1) Conflict check (app layer — the DB trigger is the backstop)
+    // 1) Conflict check (app layer: the DB trigger is the backstop)
     const windowFrom = new Date(new Date(input.startsAt).getTime() - 24 * 3600_000).toISOString();
     const windowTo = new Date(new Date(input.endsAt).getTime() + 24 * 3600_000).toISOString();
     const existing = input.roomId
@@ -114,7 +114,7 @@ export async function createBookingAction(raw: unknown): Promise<ActionResult<Cr
       return { ok: true, data: { bookingId: "", status: "pending_conflict", conflict: { clashes, suggestions } } };
     }
 
-    // 2) Clean slot — insert as confirmed
+    // 2) Clean slot: insert as confirmed
     const { data: inserted, error } = await supabase
       .from("bookings")
       .insert({
@@ -134,7 +134,7 @@ export async function createBookingAction(raw: unknown): Promise<ActionResult<Cr
       .single();
     if (error) {
       if (error.code === "P0001" || /room_conflict/.test(error.message)) {
-        return fail("room_conflict", "That slot was just taken — refresh and pick another time.");
+        return fail("room_conflict", "That slot was just taken: refresh and pick another time.");
       }
       throw error;
     }
@@ -171,7 +171,7 @@ export async function requestChangeAction(raw: unknown): Promise<ActionResult<{ 
       .single();
     if (incErr || !incumbent) return fail("not_found", "The conflicting booking no longer exists.");
 
-    // Save the requester's booking as pending_conflict — update in place when editing,
+    // Save the requester's booking as pending_conflict: update in place when editing,
     // insert fresh when creating.
     let newBookingId = "";
     if (existingBookingId) {
@@ -310,7 +310,7 @@ export async function respondToChangeRequestAction(raw: unknown): Promise<Action
         .eq("id", req.conflicting_booking_id);
       if (moveErr) {
         if (moveErr.code === "P0001" || /room_conflict/.test(moveErr.message)) {
-          return fail("room_conflict", "That new slot is taken too — pick another.");
+          return fail("room_conflict", "That new slot is taken too: pick another.");
         }
         throw moveErr;
       }
@@ -320,7 +320,7 @@ export async function respondToChangeRequestAction(raw: unknown): Promise<Action
         .from("change_requests")
         .update({ status: "approved", response_message: message ?? null, responded_at: new Date().toISOString(), resolved_booking_id: req.conflicting_booking_id })
         .eq("id", req.id);
-      await notifyUser(supabase, {userId: req.requested_by, type: "change_request_approved", title: "Slot secured", body: message ?? "The other booking was moved — yours is confirmed.", link: `/requests/${req.id}`, entityId: req.id});
+      await notifyUser(supabase, {userId: req.requested_by, type: "change_request_approved", title: "Slot secured", body: message ?? "The other booking was moved: yours is confirmed.", link: `/requests/${req.id}`, entityId: req.id});
       await logAudit(supabase, {action: "change_request.approve", entityType: "change_request", entityId: req.id, meta: { moved_to: chosenSlot }});
       await notifyChangeRequestEvent(supabase, req.id, "approved");
     } else {
@@ -363,7 +363,7 @@ export async function cancelChangeRequestAction(raw: unknown): Promise<ActionRes
   }
 }
 
-/** Remove a booking entirely (creator or admin). Hard delete — audit log keeps the trail. */
+/** Remove a booking entirely (creator or admin). Hard delete: audit log keeps the trail. */
 export async function cancelBookingAction(raw: unknown): Promise<ActionResult<{ status: "cancelled" }>> {
   try {
     const profile = await requireUser();
@@ -381,10 +381,10 @@ export async function cancelBookingAction(raw: unknown): Promise<ActionResult<{ 
 
     await notifyBookingEvent(supabase, parsed.data.bookingId, "cancelled");
 
-    // Audit FIRST — the row is about to vanish; the trail must survive.
+    // Audit FIRST: the row is about to vanish; the trail must survive.
     await logAudit(supabase, {action: "booking.delete", entityType: "booking", entityId: parsed.data.bookingId, meta: { title: existing.title, starts_at: existing.starts_at, ends_at: existing.ends_at, room_id: existing.room_id, status: existing.status, reason: parsed.data.reason ?? null, }});
 
-    // Hard delete — cascades clear formations/participants/change-requests.
+    // Hard delete: cascades clear formations/participants/change-requests.
     const { error } = await supabase.from("bookings").delete().eq("id", parsed.data.bookingId);
     if (error) throw error;
     revalidatePath("/calendar");
@@ -395,7 +395,7 @@ export async function cancelBookingAction(raw: unknown): Promise<ActionResult<{ 
   }
 }
 
-/** List bookings overlapping [from,to), with optional filters — live data source for the calendar. */
+/** List bookings overlapping [from,to), with optional filters: live data source for the calendar. */
 export async function listBookingsAction(filters: {
   from: string;
   to: string;
@@ -452,9 +452,7 @@ export async function markNotificationsReadAction(ids: string[]): Promise<Action
   }
 }
 
-/* ------------------------------------------------------------------ */
-/* Edit / pause / postpone (context menu + drawer edit mode)          */
-/* ------------------------------------------------------------------ */
+/* Edit / pause / postpone (context menu + drawer edit mode) */
 
 const updateInput = bookingInput.partial().extend({
   bookingId: z.string().uuid(),
@@ -529,7 +527,7 @@ export async function updateBookingAction(raw: unknown): Promise<ActionResult<{ 
     const { error } = await supabase.from("bookings").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", bookingId);
     if (error) {
       if (error.code === "P0001" || /room_conflict/.test(error.message)) {
-        return fail("room_conflict", "That slot was just taken — refresh and pick another time.");
+        return fail("room_conflict", "That slot was just taken: refresh and pick another time.");
       }
       throw error;
     }
@@ -573,7 +571,7 @@ export async function pauseBookingAction(raw: unknown): Promise<ActionResult<{ s
   }
 }
 
-/** Postpone a booking to a new slot — conflict-checked like a fresh booking. */
+/** Postpone a booking to a new slot: conflict-checked like a fresh booking. */
 export async function postponeBookingAction(raw: unknown): Promise<ActionResult<{ bookingId: string } | { conflict: { clashes: OverlapCandidate[]; suggestions: { startsAt: string; endsAt: string; labelKey: string }[] } }>> {
   try {
     const profile = await requireUser();
@@ -628,7 +626,7 @@ export async function postponeBookingAction(raw: unknown): Promise<ActionResult<
       .eq("id", bookingId);
     if (error) {
       if (error.code === "P0001" || /room_conflict/.test(error.message)) {
-        return fail("room_conflict", "That slot was just taken — pick another.");
+        return fail("room_conflict", "That slot was just taken: pick another.");
       }
       throw error;
     }

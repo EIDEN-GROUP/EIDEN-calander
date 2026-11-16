@@ -1,5 +1,5 @@
 /**
- * client.ts — tiny typed fetch helpers for the inbox UI.
+ * client.ts: tiny typed fetch helpers for the inbox UI.
  *
  * Every helper throws MailApiError on non-2xx (with the server's error code),
  * or falls back to the compact offline fixtures when the network/API is
@@ -18,13 +18,13 @@ async function mailApiFetch<T>(url: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(url, { cache: "no-store", ...init });
   } catch {
-    throw new MailApiError(0, "NETWORK", "Could not reach the server — check your connection.");
+    throw new MailApiError(0, "NETWORK", "Could not reach the server: check your connection.");
   }
   let data: unknown = null;
   try {
     data = await res.json();
   } catch {
-    // non-JSON error page (proxy/html) — synthesize a clean error
+    // non-JSON error page (proxy/html): synthesize a clean error
   }
   const obj = (data ?? {}) as Record<string, unknown> & {
     ok?: boolean;
@@ -43,7 +43,7 @@ export interface ListResult {
   demo: boolean;
   offline: boolean;
   searchSource?: string;
-  /** Set when the mail API failed but fixtures were substituted — surfaced as a banner. */
+  /** Set when the mail API failed but fixtures were substituted: surfaced as a banner. */
   error?: MailApiError;
 }
 

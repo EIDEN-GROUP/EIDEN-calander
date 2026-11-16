@@ -1,5 +1,5 @@
 /**
- * Formation detail — session info + roster management.
+ * Formation detail: session info + roster management.
  * Demo data (DEMO_FORMATIONS / getDemoParticipants) + local state.
  * Live mode talks to server actions (enrollParticipantAction, markAttendanceAction,
  * importParticipantsAction, removeParticipantAction, setParticipantWaitlistAction, cancelBookingAction).
@@ -69,7 +69,7 @@ import { Modal } from "./Modal";
 import { FormationStatusChip, StatusChip } from "./StatusChip";
 import { ToastViewport, useToast } from "./Toast";
 
-/* Injected print stylesheet — hides app chrome (shell uses <nav>/<header>) and
+/* Injected print stylesheet: hides app chrome (shell uses <nav>/<header>) and
    expands the roster table to the printable area. Date output stays minimal. */
 const PRINT_CSS = `@media print {
   nav, header { display: none !important; }
@@ -138,7 +138,6 @@ export function FormationDetailClient({
   data?: FormationListData | null;
 }) {
   const t = useTranslations("formations");
-  const intlLocale = appLocaleTag(useLocale());
   const liveVm = data?.vms[0] ?? null;
   const live = data?.live === true;
   // Demo formations render identically on server and client.
@@ -191,7 +190,7 @@ export function FormationDetailClient({
       </nav>
       <div className="card mt-5 flex flex-col items-center px-6 py-20 text-center">
         <NowBarMark size={52} className="opacity-90" />
-        <h1 className="mt-5 text-[22px] font-extrabold tracking-[-0.03em] text-obsidian">
+        <h1 className="mt-5 text-[28px] font-extrabold tracking-[-0.05em] text-obsidian">
           {t("notFoundTitle")}
         </h1>
         <p className="mt-1.5 max-w-md text-[14px] leading-snug text-obsidian-light">
@@ -220,21 +219,21 @@ function FormationDetailView({
   const router = useRouter();
   const t = useTranslations("formations");
   const intlLocale = appLocaleTag(useLocale());
-  const { toasts, push, dismiss } = useToast();
+  const { toasts, leaving, push, dismiss } = useToast();
   const [participants, setParticipants] = useState<FormationParticipantRow[]>(
     () => vm.participants,
   );
 
-  /* ---------- session-cancelled local state ---------- */
+  /* session-cancelled local state */
   const [cancelledReason, setCancelledReason] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState<string>(CANCEL_REASONS[0]);
   const isCancelled = vm.formation.status === "cancelled" || cancelledReason !== null;
   const cancelReasonLabel = (reason: string) => t(CANCEL_REASON_KEYS[reason] ?? "cancelReasonOther");
 
-  /* ---------- roster search / filters ---------- */
+  /* roster search / filters */
   const [rosterQuery, setRosterQuery] = useState("");
-  /* Fixed-position "remove?" popover — escapes the table's overflow clip. */
+  /* Fixed-position "remove?" popover: escapes the table's overflow clip. */
   const [removeTarget, setRemoveTarget] = useState<{ id: string; x: number; y: number; openUpward: boolean } | null>(null);
 
   const active = activeCount(participants);
@@ -356,7 +355,7 @@ function FormationDetailView({
     push(t("toastMarkedPresent", { count: eligible.length }));
   }
 
-  /* ---------- enroll modal ---------- */
+  /* enroll modal */
   const full = left <= 0 && capacity > 0;
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [enroll, setEnroll] = useState(EMPTY_ENROLL);
@@ -364,7 +363,7 @@ function FormationDetailView({
 
   function openEnroll() {
     // Pre-check waitlist when the session is full (capacity can't change
-    // while the modal is open — seats only move through this form).
+    // while the modal is open: seats only move through this form).
     setEnroll({ ...EMPTY_ENROLL, waitlist: full });
     setEnrollError(null);
     setEnrollOpen(true);
@@ -445,7 +444,7 @@ function FormationDetailView({
     setEnrollError(null);
   }
 
-  /* ---------- CSV import (papaparse, dry run first) ---------- */
+  /* CSV import (papaparse, dry run first) */
   const [importOpen, setImportOpen] = useState(false);
   const [csvText, setCsvText] = useState("");
   const [csvFileName, setCsvFileName] = useState<string | null>(null);
@@ -549,7 +548,7 @@ function FormationDetailView({
         checked_in_at: null,
       };
     });
-    // TODO(WIRE): bulkEnrollParticipants action — server dedupes + enforces capacity atomically.
+    // TODO(WIRE): bulkEnrollParticipants action: server dedupes + enforces capacity atomically.
     setParticipants((current) => [...current, ...newbies]);
     push(
       `${t("importEnrolled", { count: newbies.length })}${duplicateImportCount ? ` ${t("importSkipped", { skipped: duplicateImportCount })}` : ""}`,
@@ -558,7 +557,7 @@ function FormationDetailView({
     resetImport();
   }
 
-  /* ---------- export / print ---------- */
+  /* export / print */
   function exportCsv() {
     const header = ["full_name", "email", "phone", "company", "status", "waitlist"];
     const lines = participants.map((p) =>
@@ -604,20 +603,20 @@ function FormationDetailView({
       {isCancelled && (
         <div
           role="alert"
-          className="print:hidden mt-4 flex flex-wrap items-start gap-3 rounded-sm border border-error/30 bg-error-tint px-4 py-3 text-[13px] font-semibold text-error"
+          className="print:hidden mt-4 flex flex-wrap items-start gap-3 rounded-sm border border-error/30 bg-error-tint px-4 py-3 text-[13px] font-semibold text-error-fg"
         >
           <AlertTriangle size={18} aria-hidden="true" className="mt-0.5 shrink-0" />
           <div>
             <p>{t("cancelBannerTitle")}</p>
-            <p className="mt-0.5 font-medium text-error/80">{t("cancelBannerReason", { reason: cancelledReason ? cancelReasonLabel(cancelledReason) : t("statusCancelled") })}</p>
+            <p className="mt-0.5 font-medium text-error-fg/80">{t("cancelBannerReason", { reason: cancelledReason ? cancelReasonLabel(cancelledReason) : t("statusCancelled") })}</p>
           </div>
         </div>
       )}
 
       {/* Print-only masthead */}
       <div className="print-only hidden border-b border-border pb-4">
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-muted">{t("printMasthead")}</p>
-        <h1 className="mt-1 text-[22px] font-extrabold tracking-[-0.03em] text-obsidian">{booking.title}</h1>
+        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{t("printMasthead")}</p>
+        <h1 className="mt-1 text-[22px] font-extrabold tracking-[-0.05em] text-obsidian">{booking.title}</h1>
         <p className="mt-0.5 text-[13px] font-medium text-obsidian-light">
           {formatFullDay(booking.starts_at, intlLocale)} · {formatTimeRange(booking.starts_at, booking.ends_at, intlLocale)} ·{" "}
           {room ? stripDemoSuffix(room.name) : t("roomTbd")} · {t("seatsCount", { count: capacity })}
@@ -628,13 +627,13 @@ function FormationDetailView({
         {/* ============ LEFT: session info ============ */}
         <section className="card min-w-0 p-5 print:hidden sm:p-6" aria-labelledby="session-heading">
           <div className="print:hidden flex flex-wrap items-center gap-2">
-            <StatusChip tone="green" className="tracking-[0.06em]">{t("chipFormation")}</StatusChip>
+            <StatusChip tone="green" className="tracking-[0.08em]">{t("chipFormation")}</StatusChip>
             <FormationStatusChip status={status} seatsLeft={left} />
           </div>
 
           <h1
             id="session-heading"
-            className="print:hidden mt-3 text-[24px] font-extrabold leading-tight tracking-[-0.03em] text-obsidian"
+            className="print:hidden mt-3 text-[28px] font-extrabold leading-tight tracking-[-0.05em] text-obsidian"
           >
             {booking.title}
           </h1>
@@ -667,7 +666,7 @@ function FormationDetailView({
                 <dt className="label mb-0.5">{t("labelRoom")}</dt>
                 <dd className="flex flex-wrap items-center gap-2 text-[13px] font-semibold leading-snug text-obsidian">
                   {room ? stripDemoSuffix(room.name) : t("toBeAssigned")}
-                  <span className="chip bg-track px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-muted">
+                  <span className="chip bg-track px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                     {locationBadge(room?.location)}
                   </span>
                 </dd>
@@ -684,12 +683,12 @@ function FormationDetailView({
               </div>
             </div>
 
-            {/* Capacity — spans both columns with a live progress bar */}
+            {/* Capacity: spans both columns with a live progress bar */}
             <div className="sm:col-span-2">
               <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
                 <dt className="label mb-0.5" id="capacity-label">{t("labelCapacity")}</dt>
                 <dd className="text-[12px] font-bold tabular-nums text-obsidian-light">
-                  {t("capacityFilledPrefix", { active, capacity })} · <span className={left > 0 ? "text-tint-fg-green" : "text-error"}>{t("statusSeatsLeft", { count: left })}</span>
+                  {t("capacityFilledPrefix", { active, capacity })} · <span className={left > 0 ? "text-tint-fg-green" : "text-error-fg"}>{t("statusSeatsLeft", { count: left })}</span>
                 </dd>
               </div>
               <div
@@ -701,7 +700,7 @@ function FormationDetailView({
                 className="mt-2 h-2.5 w-full overflow-hidden rounded-pill bg-track"
               >
                 <div
-                  className="h-full rounded-pill transition-all duration-500"
+                  className="h-full rounded-pill transition-all duration-slower"
                   style={{ width: `${pct}%`, background: pctColor }}
                 />
               </div>
@@ -745,7 +744,7 @@ function FormationDetailView({
               type="button"
               onClick={() => setCancelOpen(true)}
               disabled={isCancelled}
-              className="btn h-11 border border-error/30 bg-error-tint px-5 text-[13px] font-bold text-error transition-colors hover:bg-error hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+              className="btn h-11 border border-error/30 bg-error-tint px-5 text-[13px] font-bold text-error-fg transition-colors hover:border-error/50 hover:bg-error/20 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <AlertTriangle size={16} aria-hidden="true" />
               {isCancelled ? t("cancelledButton") : t("cancelSessionLabel")}
@@ -761,7 +760,7 @@ function FormationDetailView({
             </h2>
             <span aria-live="polite" className="flex flex-wrap items-center gap-2">
               <span className="chip bg-tint-blue tabular-nums text-tint-fg-blue">{t("chipEnrolled", { count: active })}</span>
-              <span className={`chip tabular-nums ${left > 0 ? "bg-success-tint text-tint-fg-green" : "bg-error-tint text-error"}`}>
+              <span className={`chip tabular-nums ${left > 0 ? "bg-success-tint text-tint-fg-green" : "bg-error-tint text-error-fg"}`}>
                 {t("statusSeatsLeft", { count: left })}
               </span>
             </span>
@@ -814,7 +813,7 @@ function FormationDetailView({
               <div className="print-area mt-4 hidden overflow-x-auto md:block">
                 <table className="w-full min-w-[720px] border-collapse text-left text-[13px]">
                   <thead>
-                    <tr className="border-b border-border text-[10px] font-bold uppercase tracking-[0.09em] text-muted">
+                    <tr className="border-b border-border text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                       <th scope="col" className="w-10 pb-2.5 pr-2">#</th>
                       <th scope="col" className="pb-2.5 pr-3">{t("colName")}</th>
                       <th scope="col" className="pb-2.5 pr-3">{t("colContact")}</th>
@@ -832,8 +831,8 @@ function FormationDetailView({
                           <div className="flex items-center gap-2.5">
                             <Avatar name={p.full_name} size={32} />
                             <span className="min-w-0">
-                              <span className="block truncate font-semibold leading-tight text-obsidian">{p.full_name}</span>
-                              {p.company && <span className="block truncate text-[11px] font-medium text-muted">{p.company}</span>}
+                              <span title={p.full_name} className="block truncate font-semibold leading-tight text-obsidian">{p.full_name}</span>
+                              {p.company && <span title={p.company} className="block truncate text-[11px] font-medium text-muted">{p.company}</span>}
                             </span>
                           </div>
                         </td>
@@ -893,14 +892,14 @@ function FormationDetailView({
                               p.status === "attended"
                                 ? "bg-success-tint text-tint-fg-green"
                                 : p.status === "no_show"
-                                  ? "bg-error-tint text-error"
+                                  ? "bg-error-tint text-error-fg"
                                   : "bg-track text-obsidian-light hover:bg-hover-fill hover:text-obsidian"
                             }`}
                           >
                             {p.status === "attended" ? (
-                              <><Check size={13} strokeWidth={3} aria-hidden="true" />{t("checkInAttended")}</>
+                              <><Check size={13} strokeWidth={2.4} aria-hidden="true" />{t("checkInAttended")}</>
                             ) : p.status === "no_show" ? (
-                              <><X size={13} strokeWidth={3} aria-hidden="true" />{t("checkInNoShow")}</>
+                              <><X size={13} strokeWidth={2.4} aria-hidden="true" />{t("checkInNoShow")}</>
                             ) : (
                               <><UserCheck size={13} aria-hidden="true" />{t("checkIn")}</>
                             )}
@@ -913,7 +912,7 @@ function FormationDetailView({
                             aria-haspopup="dialog"
                             aria-expanded={removeTarget?.id === p.id}
                             onClick={(event) => requestRemove(event, p.id)}
-                            className="flex h-9 w-9 items-center justify-center rounded-pill text-muted transition-colors hover:bg-error-tint hover:text-error"
+                            className="flex h-9 w-9 items-center justify-center rounded-pill text-muted transition-colors hover:bg-error-tint hover:text-error-fg"
                           >
                             <Trash2 size={16} aria-hidden="true" />
                           </button>
@@ -932,9 +931,9 @@ function FormationDetailView({
                       <span className="mt-1 w-6 shrink-0 text-right text-[11px] font-bold tabular-nums text-muted">{index + 1}</span>
                       <Avatar name={p.full_name} size={40} />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13px] font-bold leading-tight text-obsidian">{p.full_name}</p>
-                        {p.company && <p className="truncate text-[11px] font-medium text-muted">{p.company}</p>}
-                        <p className="mt-1 truncate text-[11px] text-obsidian-light">{p.email ?? "—"}{p.phone ? ` · ${p.phone}` : ""}</p>
+                        <p title={p.full_name} className="truncate text-[13px] font-bold leading-tight text-obsidian">{p.full_name}</p>
+                        {p.company && <p title={p.company} className="truncate text-[11px] font-medium text-muted">{p.company}</p>}
+                        <p className="mt-1 truncate text-[11px] text-obsidian-light" title={`${p.email ?? "—"}${p.phone ? " · " + p.phone : ""}`}>{p.email ?? "—"}{p.phone ? ` · ${p.phone}` : ""}</p>
                       </div>
                       {p.waitlist && <StatusChip tone="amber" className="shrink-0">{t("waitlistChip")}</StatusChip>}
                     </div>
@@ -965,14 +964,14 @@ function FormationDetailView({
                           p.status === "attended"
                             ? "bg-success-tint text-tint-fg-green"
                             : p.status === "no_show"
-                              ? "bg-error-tint text-error"
+                              ? "bg-error-tint text-error-fg"
                               : "bg-track text-obsidian-light"
                         }`}
                       >
                         {p.status === "attended" ? (
-                          <><Check size={13} strokeWidth={3} aria-hidden="true" />{t("checkInAttended")}</>
+                          <><Check size={13} strokeWidth={2.4} aria-hidden="true" />{t("checkInAttended")}</>
                         ) : p.status === "no_show" ? (
-                          <><X size={13} strokeWidth={3} aria-hidden="true" />{t("checkInNoShow")}</>
+                          <><X size={13} strokeWidth={2.4} aria-hidden="true" />{t("checkInNoShow")}</>
                         ) : (
                           <><UserCheck size={13} aria-hidden="true" />{t("checkIn")}</>
                         )}
@@ -987,7 +986,7 @@ function FormationDetailView({
                         aria-label={t("removeFromRoster", { name: p.full_name })}
                         aria-haspopup="dialog"
                         onClick={(event) => requestRemove(event, p.id)}
-                        className="flex h-9 w-9 items-center justify-center rounded-pill text-muted hover:bg-error-tint hover:text-error"
+                        className="flex h-9 w-9 items-center justify-center rounded-pill text-muted hover:bg-error-tint hover:text-error-fg"
                       >
                         <Trash2 size={16} aria-hidden="true" />
                       </button>
@@ -998,7 +997,7 @@ function FormationDetailView({
             </>
           ) : (
             <div className="print:hidden mt-6 flex flex-col items-center gap-3 px-4 py-10 text-center">
-              <Users size={30} aria-hidden="true" className="text-muted" strokeWidth={1.75} />
+              <Users size={30} aria-hidden="true" className="text-muted" strokeWidth={1.8} />
               {rosterQuery.trim() ? (
                 <>
                   <p className="text-[15px] font-bold text-obsidian">{t("noParticipantsMatch", { query: rosterQuery.trim() })}</p>
@@ -1042,7 +1041,7 @@ function FormationDetailView({
                 <option value="">{t("noLinkedClient")}</option>
                 {clients.map((client) => (
                   <option key={client.id} value={client.id}>
-                    {client.full_name}{client.company && client.company !== client.full_name ? ` — ${client.company}` : ""}
+                    {client.full_name}{client.company && client.company !== client.full_name ? `: ${client.company}` : ""}
                   </option>
                 ))}
               </select>
@@ -1111,7 +1110,7 @@ function FormationDetailView({
               </span>
             </label>
             {enrollError && (
-              <p role="alert" className="rounded-sm border border-error/30 bg-error-tint px-4 py-2.5 text-[13px] font-semibold text-error">
+              <p role="alert" className="rounded-sm border border-error/30 bg-error-tint px-4 py-2.5 text-[13px] font-semibold text-error-fg">
                 {enrollError}
               </p>
             )}
@@ -1166,7 +1165,7 @@ function FormationDetailView({
           </div>
 
           {csvError && (
-            <p role="alert" className="mt-3 rounded-sm border border-error/30 bg-error-tint px-4 py-2.5 text-[13px] font-semibold text-error">
+            <p role="alert" className="mt-3 rounded-sm border border-error/30 bg-error-tint px-4 py-2.5 text-[13px] font-semibold text-error-fg">
               {csvError}
             </p>
           )}
@@ -1180,13 +1179,13 @@ function FormationDetailView({
                 <p aria-live="polite" className="text-[12px] font-semibold text-obsidian-light">
                   <span className="text-tint-fg-green">{t("previewReady", { count: validImportRows.length })}</span>
                   {duplicateImportCount > 0 && <> · <span className="text-tint-fg-amber">{t("previewDuplicates", { count: duplicateImportCount })}</span></>}
-                  {errorImportCount > 0 && <> · <span className="text-error">{t("previewErrors", { count: errorImportCount })}</span></>}
+                  {errorImportCount > 0 && <> · <span className="text-error-fg">{t("previewErrors", { count: errorImportCount })}</span></>}
                 </p>
               </div>
               <div className="mt-2 max-h-64 overflow-auto rounded-sm border border-border">
                 <table className="w-full border-collapse text-left text-[12px]">
                   <thead className="sticky top-0 bg-canvas">
-                    <tr className="text-[10px] font-bold uppercase tracking-[0.09em] text-muted">
+                    <tr className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                       <th scope="col" className="px-3 py-2">#</th>
                       <th scope="col" className="px-3 py-2">{t("colFullName")}</th>
                       <th scope="col" className="px-3 py-2">{t("colEmail")}</th>
@@ -1203,7 +1202,7 @@ function FormationDetailView({
                         <td className="px-3 py-2 text-obsidian-light">{row.company || <span className="text-muted">—</span>}</td>
                         <td className="px-3 py-2">
                           {row.errors.length > 0 ? (
-                            <span className="font-semibold text-error">{row.errors.join("; ")}</span>
+                            <span className="font-semibold text-error-fg">{row.errors.join("; ")}</span>
                           ) : row.duplicate ? (
                             <span className="font-semibold text-tint-fg-amber">{t("rowDuplicate")}</span>
                           ) : (
@@ -1316,7 +1315,7 @@ function FormationDetailView({
         </>
       )}
 
-      <ToastViewport toasts={toasts} onDismiss={dismiss} />
+      <ToastViewport toasts={toasts} leaving={leaving} onDismiss={dismiss} />
     </div>
   );
 }

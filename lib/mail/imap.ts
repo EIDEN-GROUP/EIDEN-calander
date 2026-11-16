@@ -1,19 +1,19 @@
 /**
- * imap.ts — IMAP mailbox access for the app (SERVER-ONLY).
+ * imap.ts: IMAP mailbox access for the app (SERVER-ONLY).
  *
  * Hard guarantees:
  *  - Only the MAILBOX_ALLOWED mailbox is ever opened. The mailbox is NOT a
  *    parameter anywhere; IMAP_USER is fixed by env.
  *  - Boot-time guard: if IMAP_USER / MAILBOX_ALLOWED are missing the module
- *    marks itself unconfigured (no throw — demo/preview mode). If both are set
+ *    marks itself unconfigured (no throw: demo/preview mode). If both are set
  *    and differ (case-insensitive) the module throws at import time
- *    (fail fast — prevents ever touching the wrong mailbox).
+ *    (fail fast: prevents ever touching the wrong mailbox).
  *  - One connection per Mailbox instance; callers MUST `close()` in a finally.
  *  - No IMAP write is performed except the `\Seen` flag (messageFlagsAdd/Remove)
  *    and, for replies, an optional APPEND to Sent (best effort, caller's choice).
  *    No delete, no move, no expunge.
  *  - Protocol errors are logged with UIDs only, never bodies or secrets.
- *  - Error payloads surfaced to routes use `classifyMailError` — human messages,
+ *  - Error payloads surfaced to routes use `classifyMailError`: human messages,
  *    no stack traces, no credentials.
  */
 import "server-only";
@@ -35,9 +35,7 @@ import {
   MAX_QUOTE_CHARS,
 } from "./mime";
 
-/* ------------------------------------------------------------------ */
-/* Boot-time guard                                                     */
-/* ------------------------------------------------------------------ */
+/* Boot-time guard */
 
 const IMAP_HOST = (process.env.IMAP_HOST ?? "imap.hostinger.com").trim();
 const IMAP_PORT = Number(process.env.IMAP_PORT ?? "993");
@@ -47,12 +45,12 @@ const MAILBOX_ALLOWED = process.env.MAILBOX_ALLOWED?.trim();
 
 let bootUnconfigured = false;
 if (!IMAP_USER || !MAILBOX_ALLOWED) {
-  // Not an error — the app runs in demo/preview mode without a mailbox.
+  // Not an error: the app runs in demo/preview mode without a mailbox.
   bootUnconfigured = true;
 } else if (IMAP_USER.toLowerCase() !== MAILBOX_ALLOWED.toLowerCase()) {
   // Fail fast at import time. Continuing would risk opening the wrong mailbox.
   throw new Error(
-    "MAILBOX_ALLOWED mismatch: IMAP_USER does not equal MAILBOX_ALLOWED — refusing to open any mailbox. Fix your environment.",
+    "MAILBOX_ALLOWED mismatch: IMAP_USER does not equal MAILBOX_ALLOWED: refusing to open any mailbox. Fix your environment.",
   );
 }
 
@@ -66,9 +64,7 @@ export function isMailConfigured(): boolean {
   return true;
 }
 
-/* ------------------------------------------------------------------ */
-/* Types                                                               */
-/* ------------------------------------------------------------------ */
+/* Types */
 
 export type MailFolder = "INBOX" | "Sent";
 export type MailErrorCode = "IMAP_UNAVAILABLE" | "IMAP_AUTH" | "IMAP_UNKNOWN";
@@ -118,9 +114,7 @@ export interface MailMessage extends MailMessageSummary {
   textPlainExcerpt: string;
 }
 
-/* ------------------------------------------------------------------ */
-/* Error classification — routes turn these into 502 payloads          */
-/* ------------------------------------------------------------------ */
+/* Error classification: routes turn these into 502 payloads */
 
 export interface MailErrorInfo {
   code: MailErrorCode;
@@ -139,17 +133,15 @@ export function classifyMailError(err: unknown): MailErrorInfo {
   const code =
     err && typeof err === "object" && "code" in err ? String((err as { code?: unknown }).code ?? "") : "";
   if (err instanceof AuthenticationFailure || code === "AUTHENTICATIONFAILED") {
-    return { code: "IMAP_AUTH", message: "Mailbox rejected the login — check the IMAP settings." };
+    return { code: "IMAP_AUTH", message: "Mailbox rejected the login: check the IMAP settings." };
   }
   if (UNAVAILABLE_CODES.has(code)) {
-    return { code: "IMAP_UNAVAILABLE", message: "Could not reach the mailbox — check host, port and network." };
+    return { code: "IMAP_UNAVAILABLE", message: "Could not reach the mailbox: check host, port and network." };
   }
-  return { code: "IMAP_UNKNOWN", message: "Unexpected mailbox error — see server logs." };
+  return { code: "IMAP_UNKNOWN", message: "Unexpected mailbox error: see server logs." };
 }
 
-/* ------------------------------------------------------------------ */
-/* Bodystructure walking                                               */
-/* ------------------------------------------------------------------ */
+/* Bodystructure walking */
 
 interface WalkedPart {
   part: string;
@@ -249,9 +241,7 @@ function stripBrackets(id: string | undefined | null): string | null {
   return bare ? bare.replace(/[\r\n]/g, "") : null;
 }
 
-/* ------------------------------------------------------------------ */
-/* The mailbox                                                         */
-/* ------------------------------------------------------------------ */
+/* The mailbox */
 
 const SENT_FALLBACKS = ["Sent", "Sent Items", "INBOX.Sent"] as const;
 const LIST_PREVIEW_BYTES = 384;
@@ -269,13 +259,13 @@ export class Mailbox {
    */
   static async create(): Promise<Mailbox | null> {
     if (!isMailConfigured()) {
-      console.info("[mail] mailbox unconfigured — running in demo mode");
+      console.info("[mail] mailbox unconfigured: running in demo mode");
       return null;
     }
     const client = new ImapFlow({
       host: IMAP_HOST,
       port: IMAP_PORT,
-      secure: true, // TLS only (993) — no STARTTLS downgrade
+      secure: true, // TLS only (993): no STARTTLS downgrade
       auth: { user: IMAP_USER as string, pass: IMAP_PASSWORD as string },
       connectionTimeout: 8000,
       greetingTimeout: 8000,
@@ -292,7 +282,7 @@ export class Mailbox {
       try {
         client.close();
       } catch {
-        // already closed — ignore
+        // already closed: ignore
       }
       return null;
     }
@@ -476,7 +466,7 @@ export class Mailbox {
     };
   }
 
-  /** Add/remove the \Seen flag — the ONLY write the app performs. */
+  /** Add/remove the \Seen flag: the ONLY write the app performs. */
   async setSeen(folder: MailFolder, uid: number, seen: boolean): Promise<boolean> {
     const path = await this.resolveFolder(folder);
     await this.client.mailboxOpen(path);
@@ -579,9 +569,7 @@ export class Mailbox {
   }
 }
 
-/* ------------------------------------------------------------------ */
-/* Preview helpers (listMessages)                                      */
-/* ------------------------------------------------------------------ */
+/* Preview helpers (listMessages) */
 
 interface TextPartPreview {
   part: string;

@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("notifications");
   return { title: t("title") };
 }
-// Reads live data at request time — block prerender.
+// Reads live data at request time: block prerender.
 export const instant = false;
 
 const ICONS: Record<string, typeof Bell> = {
@@ -66,11 +66,11 @@ export default async function NotificationsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-[1440px]">
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[28px] font-extrabold tracking-[-0.04em] text-obsidian">
+          <h1 className="text-[28px] font-extrabold tracking-[-0.05em] text-obsidian">
             {t("title")}
           </h1>
           <p className="mt-1 text-[14px] font-medium text-obsidian-light">
@@ -84,7 +84,7 @@ export default async function NotificationsPage() {
       {notifications.length === 0 ? (
         <div className="card mt-6 flex flex-col items-center px-6 py-20 text-center">
           <NowBarMark size={56} className="opacity-90" />
-          <h2 className="mt-5 text-[19px] font-extrabold tracking-[-0.03em] text-obsidian">
+          <h2 className="mt-5 text-[19px] font-extrabold tracking-[-0.02em] text-obsidian">
             {t("emptyTitle")}
           </h2>
           <p className="mt-1.5 max-w-sm text-[14px] leading-snug text-obsidian-light">
@@ -95,21 +95,21 @@ export default async function NotificationsPage() {
         <div className="mt-6 space-y-6">
           {groups.map((group) => (
             <section key={group.label} aria-label={group.label}>
-              <h2 className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-muted">
+              <h2 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-muted">
                 {group.label}
               </h2>
               <ul className="mt-2 divide-y divide-divider overflow-hidden rounded-md border border-border bg-white shadow-sm">
                 {group.items.map((n) => {
                   const Icon = iconFor(n.type);
                   const body = (
-                    <div className="flex items-start gap-3.5 p-4 transition-colors hover:bg-canvas/60">
+                    <div className="row-lift flex items-start gap-3.5 p-4 hover:bg-canvas/60">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-tint-blue text-electric">
                         <Icon size={18} strokeWidth={1.9} aria-hidden="true" />
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2">
                           <span className="text-[14px] font-bold leading-snug text-obsidian">{n.title}</span>
-                          {!n.read_at && <span className="h-2 w-2 shrink-0 rounded-pill bg-electric" aria-label={t("unread")} />}
+                          {!n.read_at && <span className="h-2 w-2 shrink-0 rounded-pill bg-electric" role="img" aria-label={t("unread")} />}
                         </span>
                         {n.body && (
                           <span className="mt-0.5 block text-[13px] font-medium leading-snug text-obsidian-light">

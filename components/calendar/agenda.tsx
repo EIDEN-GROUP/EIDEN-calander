@@ -31,7 +31,6 @@ export function DayTimeline({
   onBookingContextMenu?: (b: BookingRow, x: number, y: number) => void;
 }) {
   const t = useTranslations("calendar");
-  const intlLocale = appLocaleTag(useLocale());
   const dayBookings = bookings
     .filter((b) => isSameDay(new Date(b.starts_at), day))
     .sort((a, b) => +new Date(a.starts_at) - +new Date(b.starts_at));
@@ -42,7 +41,7 @@ export function DayTimeline({
       className="card flex flex-col p-5"
     >
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-[14px] font-extrabold uppercase tracking-[0.1em] text-obsidian-light">
+        <h2 className="text-[14px] font-extrabold uppercase tracking-[0.08em] text-obsidian-light">
           {t("agendaTitle")}
         </h2>
         <span className="chip bg-electric-tint text-[11px] text-electric">
@@ -121,14 +120,14 @@ function TimelineItem({
         }}
         className="min-w-0 flex-1 rounded-sm border border-border bg-white p-2.5 text-left transition-shadow hover:shadow-md"
       >
-        <span className={`chip ${tint.chip} !text-[10px] uppercase tracking-[0.05em]`}>
+        <span className={`chip ${tint.chip} !text-[11px] uppercase tracking-[0.08em]`}>
           {booking.status === "pending_conflict"
             ? t("pending")
             : booking.type === "formation"
               ? t("typeFormation")
               : t("chipBooked")}
         </span>
-        <span className="mt-1.5 block truncate text-[13px] font-bold leading-snug text-obsidian">
+        <span title={booking.title} className="mt-1.5 block truncate text-[13px] font-bold leading-snug text-obsidian">
           {booking.title}
         </span>
         <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] font-medium text-muted">
@@ -184,7 +183,7 @@ export function AgendaView({
   if (groups.length === 0) {
     return (
       <div className="card flex flex-col items-center justify-center px-6 py-16 text-center">
-        <CalendarDays size={40} strokeWidth={1.5} className="text-muted" aria-hidden="true" />
+        <CalendarDays size={40} strokeWidth={1.8} className="text-muted" aria-hidden="true" />
         <h2 className="mt-4 text-[18px] font-extrabold tracking-[-0.02em] text-obsidian">
           {t("noBookingsNext14")}
         </h2>
@@ -205,10 +204,10 @@ export function AgendaView({
         >
           {/* Date block */}
           <div className="flex shrink-0 items-center gap-3 sm:w-36 sm:flex-col sm:items-start sm:gap-0 sm:border-r sm:border-divider sm:pr-5">
-            <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted">
+            <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
               {relativeDayLabel(day, today, { today: t("today"), tomorrow: t("tomorrow") }, intlLocale)}
             </span>
-            <span className="text-[26px] font-extrabold leading-none tracking-[-0.03em] text-obsidian sm:mt-1.5">
+            <span className="text-[26px] font-extrabold leading-none tracking-[-0.05em] text-obsidian sm:mt-1.5">
               {day.getDate()}{" "}
               <span className="text-[13px] font-bold text-obsidian-light">
                 {day.toLocaleDateString(intlLocale, { month: "short" })}
@@ -241,7 +240,7 @@ export function AgendaView({
                   >
                     <span className="w-[92px] shrink-0 text-[12px] font-bold tabular-nums text-obsidian">
                       {formatTime(start, intlLocale)}
-                      <span className="block text-[10px] font-semibold text-muted">
+                      <span className="block text-[11px] font-semibold text-muted">
                         → {formatTime(end, intlLocale)}
                       </span>
                     </span>
@@ -262,10 +261,10 @@ export function AgendaView({
                       />
                     )}
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] font-bold text-obsidian transition-colors group-hover:text-electric">
+                      <span title={b.title} className="block truncate text-[13px] font-bold text-obsidian transition-colors group-hover:text-electric">
                         {b.title}
                       </span>
-                      <span className="mt-0.5 block truncate text-[11px] font-medium text-muted">
+                      <span title={`${room ? room.name.replace(/\s*\(DEMO\)\s*$/, "") : t("offSite")}${client ? " · " + client.full_name : ""}`} className="mt-0.5 block truncate text-[11px] font-medium text-muted">
                         {room ? room.name.replace(/\s*\(DEMO\)\s*$/, "") : t("offSite")}
                         {client ? ` · ${client.full_name}` : ""}
                         {b.status === "pending_conflict" ? ` · ${t("pendingConflict")}` : ""}

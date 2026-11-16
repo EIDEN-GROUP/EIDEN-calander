@@ -51,7 +51,7 @@ describe("sanitizePlain", () => {
 });
 
 describe("demo fixtures", () => {
-  it("message 903 arrives sanitized — script never reaches the pane", () => {
+  it("message 903 arrives sanitized: script never reaches the pane", () => {
     const msg = getDemoMessage(903, "INBOX");
     expect(msg).not.toBeNull();
     expect(msg?.html).toBeTruthy();

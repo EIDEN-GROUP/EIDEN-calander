@@ -1,6 +1,6 @@
 import { appLocaleTag } from "@/lib/intl-locale";
 /**
- * Shared formatting helpers — CALENDAR. (charts + plans).
+ * Shared formatting helpers: CALENDAR. (charts + plans).
  * All dates use the local timezone; date-only strings ("2026-05-01") are
  * parsed as local midnight to avoid UTC-shift surprises.
  */
@@ -12,7 +12,7 @@ export function formatMoney(n: number, locale: string = appLocaleTag()): string 
 }
 
 export function formatMAD(n: number, locale: string = appLocaleTag()): string {
-  return `MAD ${formatMoney(n, locale)}`;
+  return `MAD\u00A0${formatMoney(n, locale)}`;
 }
 
 /** Parse "YYYY-MM-DD" (or any ISO string) as a *local* Date. */
@@ -35,7 +35,7 @@ export function isOverdueDate(iso: string | null): boolean {
   return parseLocalDate(iso) < startOfToday();
 }
 
-/** "5 May" — compact, for chips and table cells. */
+/** "5 May": compact, for chips and table cells. */
 export function formatShortDate(iso: string, locale: string = appLocaleTag()): string {
   return parseLocalDate(iso).toLocaleDateString(locale, {
     day: "numeric",
@@ -52,7 +52,7 @@ export function formatFullDate(iso: string, locale: string = appLocaleTag()): st
   });
 }
 
-/** "Tue 5 May" — for chart tooltips. */
+/** "Tue 5 May": for chart tooltips. */
 export function formatDayLong(d: Date, locale: string = appLocaleTag()): string {
   return d.toLocaleDateString(locale, {
     weekday: "short",

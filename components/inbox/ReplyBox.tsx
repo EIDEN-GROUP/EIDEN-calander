@@ -17,7 +17,7 @@ export function ReplyBox({
   uid: number;
   folder: MailFolder;
   demo: boolean;
-  /** The connected mailbox — shown as the "Sending as" identity. */
+  /** The connected mailbox: shown as the "Sending as" identity. */
   mailboxAddress: string;
   onSent: (notice: string) => void;
 }) {
@@ -75,7 +75,7 @@ export function ReplyBox({
           maxLength={10_000}
           autoFocus
           placeholder={t("replyPlaceholder")}
-          className="min-h-[104px] w-full resize-y rounded-md border border-border bg-white px-4 py-3 text-[14px] leading-relaxed text-obsidian outline-none transition-shadow placeholder:text-black/30 focus:border-electric/50 focus:shadow-[0_0_0_4px_var(--color-electric-tint)]"
+          className="min-h-[104px] w-full resize-y rounded-md border border-border bg-white px-4 py-3 text-[14px] leading-relaxed text-obsidian outline-none transition-shadow placeholder:text-black/50 focus:border-electric/50 focus:shadow-[0_0_0_4px_var(--color-electric-tint)]"
         />
       </div>
 
@@ -87,7 +87,7 @@ export function ReplyBox({
             onChange={(event) => setCc(event.target.value)}
             placeholder={t("ccPlaceholder")}
             aria-label={t("ccAria")}
-            className="h-9 rounded-[10px] border border-border bg-white px-3 text-[12px] outline-none placeholder:text-black/30 focus:border-electric/50"
+            className="h-9 rounded-sm border border-border bg-white px-3 text-[12px] outline-none placeholder:text-black/50 focus:border-electric/50"
           />
           <input
             type="text"
@@ -95,13 +95,13 @@ export function ReplyBox({
             onChange={(event) => setBcc(event.target.value)}
             placeholder={t("bccPlaceholder")}
             aria-label={t("bccAria")}
-            className="h-9 rounded-[10px] border border-border bg-white px-3 text-[12px] outline-none placeholder:text-black/30 focus:border-electric/50"
+            className="h-9 rounded-sm border border-border bg-white px-3 text-[12px] outline-none placeholder:text-black/50 focus:border-electric/50"
           />
         </div>
       )}
 
       {error && (
-        <p role="alert" className="mt-2 flex items-center gap-1.5 pl-6 text-[12px] font-semibold text-[#B02A1F]">
+        <p role="alert" className="mt-2 flex items-center gap-1.5 pl-6 text-[12px] font-semibold text-error-fg">
           <AlertCircle size={13} strokeWidth={2.2} aria-hidden="true" /> {error}
         </p>
       )}

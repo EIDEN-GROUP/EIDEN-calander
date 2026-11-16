@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { loadDashboard } from "@/lib/dashboard-live";
 import { DashboardView } from "@/components/dashboard/DashboardView";
 
-// Reads live data at request time — block prerender.
+// Reads live data at request time: block prerender.
 export const instant = false;
 
 export async function generateMetadata(): Promise<Metadata> {

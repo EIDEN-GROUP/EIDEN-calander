@@ -98,7 +98,7 @@ export function CategoriesView({
   live?: boolean;
 }) {
   const t = useTranslations("settings");
-  const { toasts, push } = useToast();
+  const { toasts, leaving, push } = useToast();
   const router = useRouter();
   const isLive = live === true && !!initialCategories;
   const [categories, setCategories] = useState<CategoryVM[]>(
@@ -298,14 +298,14 @@ export function CategoriesView({
         <div className="card overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider px-4 py-3 sm:px-5">
             <p className="text-[12px] font-semibold text-obsidian-light">
-              <span className="font-mono text-obsidian">{categories.length}</span> {t("categoriesCountBefore")} <span className="font-mono text-obsidian">{activeCount}</span> {t("categoriesActiveSuffix")}
+              <span className="font-mono text-obsidian">{categories.length}</span> {t("categoriesCountBefore", { count: categories.length })} <span className="font-mono text-obsidian">{activeCount}</span> {t("categoriesActiveSuffix", { count: activeCount })}
             </p>
             <p className="text-[11px] font-medium text-muted">{t("displayOrderNote")}</p>
           </div>
 
           {categories.length === 0 ? (
             <div className="flex flex-col items-center px-6 py-12 text-center">
-              <Calendar size={28} strokeWidth={1.6} aria-hidden="true" className="text-muted" />
+              <Calendar size={28} strokeWidth={1.8} aria-hidden="true" className="text-muted" />
               <p className="mt-3 text-[14px] font-bold text-obsidian">{t("noCategoriesTitle")}</p>
               <p className="mt-1 max-w-sm text-[12px] font-medium text-muted">{t("noCategoriesBody")}</p>
               <button type="button" onClick={openAdd} className="btn btn-primary mt-4 h-10 px-4 text-[13px]">
@@ -315,9 +315,9 @@ export function CategoriesView({
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[860px] text-left text-[13px]">
+              <table className="w-full min-w-0 text-left text-[13px]">
                 <thead>
-                  <tr className="border-b border-border text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
+                  <tr className="border-b border-border text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                     <th scope="col" className="px-4 py-2.5">{t("colColor")}</th>
                     <th scope="col" className="px-3 py-2.5">{t("colNameEn")}</th>
                     <th scope="col" className="px-3 py-2.5">{t("colNameFr")}</th>
@@ -412,7 +412,7 @@ export function CategoriesView({
                               onClick={() => move(category.id, -1)}
                               disabled={index === 0}
                               aria-label={t("moveUpAria", { name: category.name_en })}
-                              className="rounded-pill p-1.5 text-muted transition-colors hover:bg-canvas hover:text-obsidian disabled:cursor-not-allowed disabled:opacity-30"
+                              className="rounded-pill p-2.5 text-muted transition-colors hover:bg-canvas hover:text-obsidian disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               <ArrowUp size={14} strokeWidth={2.2} aria-hidden="true" />
                             </button>
@@ -421,7 +421,7 @@ export function CategoriesView({
                               onClick={() => move(category.id, 1)}
                               disabled={index === categories.length - 1}
                               aria-label={t("moveDownAria", { name: category.name_en })}
-                              className="rounded-pill p-1.5 text-muted transition-colors hover:bg-canvas hover:text-obsidian disabled:cursor-not-allowed disabled:opacity-30"
+                              className="rounded-pill p-2.5 text-muted transition-colors hover:bg-canvas hover:text-obsidian disabled:cursor-not-allowed disabled:opacity-30"
                             >
                               <ArrowDown size={14} strokeWidth={2.2} aria-hidden="true" />
                             </button>
@@ -434,7 +434,7 @@ export function CategoriesView({
                               <button
                                 type="button"
                                 onClick={() => deleteCategory(category.id)}
-                                className="rounded-pill bg-error px-2.5 py-1.5 text-[11px] font-bold text-white transition-opacity hover:opacity-85"
+                                className="rounded-pill border border-error/30 bg-error-tint px-2.5 py-1.5 text-[11px] font-bold text-error-fg transition-colors hover:bg-error/20"
                               >
                                 {t("deleteConfirm")}
                               </button>
@@ -452,15 +452,15 @@ export function CategoriesView({
                                 type="button"
                                 onClick={commitRename}
                                 aria-label={t("saveNameAria")}
-                                className="rounded-pill bg-success-tint p-2 text-tint-fg-green transition-colors hover:bg-success-tint"
+                                className="rounded-pill bg-success-tint p-2.5 text-tint-fg-green transition-colors hover:bg-success-tint/80"
                               >
-                                <Check size={14} strokeWidth={2.6} aria-hidden="true" />
+                                <Check size={14} strokeWidth={2.4} aria-hidden="true" />
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setEditing(null)}
                                 aria-label={t("cancelRenameAria")}
-                                className="rounded-pill border border-border p-2 text-muted transition-colors hover:bg-canvas hover:text-obsidian"
+                                className="rounded-pill border border-border p-2.5 text-muted transition-colors hover:bg-canvas hover:text-obsidian"
                               >
                                 <X size={14} strokeWidth={2.4} aria-hidden="true" />
                               </button>
@@ -468,7 +468,7 @@ export function CategoriesView({
                           ) : (
                             <div className="flex items-center justify-end gap-1.5">
                               {category.is_system ? (
-                                <span className="chip border border-border bg-canvas text-muted" title={t("systemCategoryTitle")}>
+                                <span className="chip whitespace-nowrap border border-border bg-canvas text-muted" title={t("systemCategoryTitle")}>
                                   <Lock size={11} strokeWidth={2.4} aria-hidden="true" />
                                   {t("systemRenameOnly")}
                                 </span>
@@ -477,7 +477,7 @@ export function CategoriesView({
                                 type="button"
                                 onClick={() => startRename(category)}
                                 aria-label={t("renameAria", { name: category.name_en })}
-                                className="rounded-pill p-2 text-muted transition-colors hover:bg-canvas hover:text-obsidian"
+                                className="rounded-pill p-2.5 text-muted transition-colors hover:bg-canvas hover:text-obsidian"
                               >
                                 <Pencil size={14} strokeWidth={2} aria-hidden="true" />
                               </button>
@@ -489,7 +489,7 @@ export function CategoriesView({
                                     setConfirmDeleteId(category.id);
                                   }}
                                   aria-label={t("deleteAria", { name: category.name_en })}
-                                  className="rounded-pill p-2 text-muted transition-colors hover:bg-error-tint hover:text-error"
+                                  className="rounded-pill p-2.5 text-muted transition-colors hover:bg-error-tint hover:text-error-fg"
                                 >
                                   <Trash size={14} strokeWidth={2} aria-hidden="true" />
                                 </button>
@@ -508,7 +508,7 @@ export function CategoriesView({
 
         <aside className="space-y-4">
           <div className="card p-5">
-            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">{t("howCategoriesWork")}</h2>
+            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-muted">{t("howCategoriesWork")}</h2>
             <ul className="mt-3 space-y-2.5 text-[12px] font-medium leading-snug text-obsidian-light">
               <li className="flex gap-2"><Lock size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" /> {t("howSystemCategories")}</li>
               <li className="flex gap-2"><GraduationCap size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" /> {t("howFormationType")}</li>
@@ -517,19 +517,19 @@ export function CategoriesView({
             </ul>
           </div>
           <div className="card p-5">
-            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">{t("brandTints")}</h2>
+            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-muted">{t("brandTints")}</h2>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {TINT_ORDER.map((tintKey) => {
                 const tint = TINTS[tintKey];
                 return (
                   <div key={tintKey} className={`flex items-center gap-1.5 rounded-sm ${tint.swatch} px-2 py-1.5`}>
                     <span className={`h-3 w-3 rounded-pill ${tint.dot}`} aria-hidden="true" />
-                    <span className={`text-[10px] font-bold ${tint.chip}`}>{t(tint.labelKey)}</span>
+                    <span className={`text-[11px] font-bold ${tint.chip}`}>{t(tint.labelKey)}</span>
                   </div>
                 );
               })}
             </div>
-            <p className="mt-2 text-[10px] font-medium leading-snug text-muted">{t("brandTintsNote")}</p>
+            <p className="mt-2 text-[11px] font-medium leading-snug text-muted">{t("brandTintsNote")}</p>
           </div>
         </aside>
       </div>
@@ -557,7 +557,7 @@ export function CategoriesView({
               <input id="cat-name-fr" className="input h-11" value={draftNameFr} onChange={(e) => setDraftNameFr(e.target.value)} autoComplete="off" placeholder={t("nameFrPlaceholder")} />
             </div>
           </div>
-          {draftError ? <p role="alert" className="text-[12px] font-semibold text-error">{draftError}</p> : null}
+          {draftError ? <p role="alert" className="text-[12px] font-semibold text-error-fg">{draftError}</p> : null}
           <div>
             <label htmlFor="cat-type" className="label">{t("colType")}</label>
             <select id="cat-type" className="input h-11" value={draftType} onChange={(e) => setDraftType(e.target.value as CategoryType)}>
@@ -600,7 +600,7 @@ export function CategoriesView({
         </form>
       </Modal>
 
-      <ToastViewport toasts={toasts} />
+      <ToastViewport toasts={toasts} leaving={leaving} />
     </div>
   );
 }

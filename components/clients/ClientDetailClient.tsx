@@ -1,5 +1,5 @@
 /**
- * Client detail — profile, contact, bookings and notes for one renting customer.
+ * Client detail: profile, contact, bookings and notes for one renting customer.
  * Demo data (DEMO_CLIENTS / getDemoBookings) + local state.
  * Live mode: data comes from the server; mutations call server actions
  * (addClientNoteAction, anonymizeClientAction). Demo mode persists locally.
@@ -57,23 +57,23 @@ const TABS: Array<{ key: Tab; labelKey: "tabOverview" | "tabBookings" | "tabNote
   { key: "notes", labelKey: "tabNotes" },
 ];
 
-/* Demo notes per client — timestamps derived at render so they always look fresh. */
+/* Demo notes per client: timestamps derived at render so they always look fresh. */
 const DEMO_NOTES: Record<string, Array<{ body: string; hoursAgo: number }>> = {
   "cli-1": [
-    { body: "Monthly board meeting, always 09:30 — prefers Salle Grande. Billing net-30.", hoursAgo: 24 * 6 },
-    { body: "Asked for a catering quote for the March committee — send after Monday.", hoursAgo: 26 },
+    { body: "Monthly board meeting, always 09:30: prefers Salle Grande. Billing net-30.", hoursAgo: 24 * 6 },
+    { body: "Asked for a catering quote for the March committee: send after Monday.", hoursAgo: 26 },
   ],
   "cli-2": [
     { body: "Events team prepays by invoice; PO required for amounts above 5 000 MAD.", hoursAgo: 24 * 12 },
   ],
-  "cli-3": [{ body: "Prefers Agadir mornings. Attends every React session — front row.", hoursAgo: 24 * 9 }],
+  "cli-3": [{ body: "Prefers Agadir mornings. Attends every React session: front row.", hoursAgo: 24 * 9 }],
   "cli-4": [
-    { body: "Negotiating annual rate — promising 12 sessions per quarter. Hold current price for now.", hoursAgo: 24 * 3 },
+    { body: "Negotiating annual rate: promising 12 sessions per quarter. Hold current price for now.", hoursAgo: 24 * 3 },
   ],
   "cli-5": [
     { body: "Confirmed as speaker for React Avancé S3 next cohort. Send rider + AV checklist.", hoursAgo: 24 * 2 },
   ],
-  "cli-7": [{ body: "Asked about formation pricing — send Agile Module 1 brochure.", hoursAgo: 24 * 4 }],
+  "cli-7": [{ body: "Asked about formation pricing: send Agile Module 1 brochure.", hoursAgo: 24 * 4 }],
 };
 
 interface NoteEntry {
@@ -117,7 +117,6 @@ export function ClientDetailClient({
   data?: ClientDetailData | null;
 }) {
   const t = useTranslations("clients");
-  const intlLocale = appLocaleTag(useLocale());
   const liveClient = data?.client ?? null;
   const liveBookings = data?.bookings ?? null;
   const demoClient = useMemo<ClientRow | null>(
@@ -165,7 +164,7 @@ export function ClientDetailClient({
       </Link>
       <div className="card mt-4 flex flex-col items-center px-6 py-20 text-center">
         <NowBarMark size={52} className="opacity-90" />
-        <h1 className="mt-5 text-[22px] font-extrabold tracking-[-0.03em] text-obsidian">
+        <h1 className="mt-5 text-[28px] font-extrabold tracking-[-0.05em] text-obsidian">
           {t("notFoundTitle")}
         </h1>
         <p className="mt-1.5 max-w-md text-[14px] leading-snug text-obsidian-light">
@@ -193,13 +192,13 @@ function ClientDetailView({
   const t = useTranslations("clients");
   const intlLocale = appLocaleTag(useLocale());
   const id = client.id;
-  const { toasts, push, dismiss } = useToast();
+  const { toasts, leaving, push, dismiss } = useToast();
   const [anonymized, setAnonymized] = useState(false);
   const [tab, setTab] = useState<Tab>("overview");
   const [anonymizeOpen, setAnonymizeOpen] = useState(false);
   const [confirmName, setConfirmName] = useState("");
 
-  /* ---------- notes ---------- */
+  /* notes */
   const [notes, setNotes] = useState<NoteEntry[]>(() =>
     live
       ? (client.notes ?? "")
@@ -315,13 +314,13 @@ function ClientDetailView({
         <div className="flex min-w-0 items-start gap-4">
           {anonymized ? (
             <span aria-hidden="true" className="flex h-16 w-16 shrink-0 items-center justify-center rounded-pill bg-track text-muted">
-              <ShieldCheck size={30} strokeWidth={1.75} />
+              <ShieldCheck size={30} strokeWidth={1.8} aria-hidden="true" />
             </span>
           ) : (
             <Avatar name={client.full_name} kind={client.type} size={64} />
           )}
           <div className="min-w-0">
-            <h1 className="text-[24px] font-extrabold leading-tight tracking-[-0.03em] text-obsidian">
+            <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.05em] text-obsidian">
               {displayName}
             </h1>
             <p className="mt-0.5 text-[13px] font-medium text-obsidian-light">
@@ -333,12 +332,12 @@ function ClientDetailView({
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <StatusChip tone={meta.tone} dot>{t(meta.labelKey)}</StatusChip>
-              <span className="chip bg-track text-[10px] font-bold uppercase tracking-[0.08em] text-muted">
+              <span className="chip bg-track text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                 {client.type === "company" ? t("typeCompany") : t("typePerson")}
               </span>
               {!anonymized &&
                 client.tags.map((tag) => (
-                  <span key={tag} className="chip bg-track text-[10px] font-semibold text-obsidian-light">
+                  <span key={tag} className="chip bg-track text-[11px] font-semibold text-obsidian-light">
                     {tag}
                   </span>
                 ))}
@@ -374,7 +373,7 @@ function ClientDetailView({
             <button
               type="button"
               onClick={() => { setConfirmName(""); setAnonymizeOpen(true); }}
-              className="btn h-10 border border-error/30 bg-error-tint px-4 text-[13px] font-bold text-error transition-colors hover:bg-error hover:text-white"
+              className="btn h-10 border border-error/30 bg-error-tint px-4 text-[13px] font-bold text-error-fg transition-colors hover:border-error/50 hover:bg-error/20"
             >
               <AlertTriangle size={15} aria-hidden="true" />
               {t("anonymize")}
@@ -489,7 +488,7 @@ function ClientDetailView({
                           <span className="text-[16px] font-extrabold tabular-nums leading-none text-obsidian">
                             {formatTime(booking.starts_at)}
                           </span>
-                          <span className="mt-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted">
+                          <span className="mt-1 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                             {bookingDayFmt(intlLocale).format(new Date(booking.starts_at))}
                           </span>
                         </div>
@@ -521,7 +520,7 @@ function ClientDetailView({
                 <ul className="mt-3 space-y-3">
                   {[
                     { title: "Quarterly board meeting", room: "Salle Grande · Casablanca", day: "In 2 weeks", price: "900 MAD" },
-                    { title: "Marketing offsite — half day", room: "Salle Formation · Casablanca", day: "Last month", price: "1 800 MAD" },
+                    { title: "Marketing offsite: half day", room: "Salle Formation · Casablanca", day: "Last month", price: "1 800 MAD" },
                     { title: "Onboarding session", room: "Salle Petite · Agadir", day: "3 months ago", price: "500 MAD" },
                   ].map((sample) => (
                     <li key={sample.title} className="flex items-stretch gap-4 rounded-sm border border-dashed border-border bg-canvas p-4 opacity-80">
@@ -536,7 +535,7 @@ function ClientDetailView({
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center">
-                        <span className="font-mono text-[12px] font-semibold text-muted">{sample.price}</span>
+                        <span className="font-mono text-[12px] font-semibold text-muted tabular-nums">{sample.price}</span>
                       </div>
                     </li>
                   ))}
@@ -585,7 +584,7 @@ function ClientDetailView({
                 <ul aria-live="polite" className="mt-4 space-y-3">
                   {notes.map((note) => (
                     <li key={note.id} className="rounded-sm border border-border bg-canvas p-4">
-                      <p className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.09em] text-muted">
+                      <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                         <StickyNote size={12} aria-hidden="true" />
                         {noteDayFmt(intlLocale).format(new Date(note.createdAt))} · {noteTimeFmt(intlLocale).format(new Date(note.createdAt))}
                       </p>
@@ -667,12 +666,12 @@ function ClientDetailView({
         </Modal>
       )}
 
-      <ToastViewport toasts={toasts} onDismiss={dismiss} />
+      <ToastViewport toasts={toasts} leaving={leaving} onDismiss={dismiss} />
     </div>
   );
 }
 
-/* ---------------- small pieces ---------------- */
+/* small pieces */
 
 function ContactRow({
   icon: Icon,
@@ -687,7 +686,7 @@ function ContactRow({
     <div className="flex items-start gap-3 py-3">
       <Icon size={16} aria-hidden="true" className="mt-0.5 shrink-0 text-muted" />
       <div className="min-w-0">
-        <dt className="text-[10px] font-bold uppercase tracking-[0.09em] text-muted">{label}</dt>
+        <dt className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{label}</dt>
         <dd className="mt-0.5 break-words text-[13px] font-semibold text-obsidian">{children}</dd>
       </div>
     </div>
@@ -711,7 +710,7 @@ function StatRow({
         <dt className="text-[13px] font-semibold text-obsidian-light">{label}</dt>
         <dd className="mt-0.5 text-[11px] font-medium text-muted">{hint}</dd>
       </div>
-      <p className={`text-[28px] font-extrabold tabular-nums leading-none tracking-[-0.03em] ${alert ? "text-error" : "text-obsidian"}`}>
+      <p className={`text-[28px] font-extrabold tabular-nums leading-none tracking-[-0.05em] ${alert ? "text-error-fg" : "text-obsidian"}`}>
         {value}
       </p>
     </div>

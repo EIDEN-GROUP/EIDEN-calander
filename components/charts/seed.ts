@@ -1,6 +1,6 @@
 /**
  * Deterministic pseudo-random series (seeded PRNG).
- * Used for demo/preview KPI shapes — identical on every render and on the
+ * Used for demo/preview KPI shapes: identical on every render and on the
  * server, so hydration never mismatches. NOT crypto random.
  */
 
@@ -27,7 +27,7 @@ export function mulberry32(seed: number): () => number {
   };
 }
 
-/** n values in [floor, floor + spread) — stable for a given key. */
+/** n values in [floor, floor + spread): stable for a given key. */
 export function seededSeries(
   key: string,
   n: number,
@@ -41,7 +41,7 @@ export function seededSeries(
 }
 
 /**
- * Random-walk series with a gentle upward drift — for KPI sparklines.
+ * Random-walk series with a gentle upward drift: for KPI sparklines.
  * Always stays positive and ends above it starts (matches "we are growing").
  */
 export function walkSeries(

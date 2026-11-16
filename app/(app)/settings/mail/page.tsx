@@ -14,5 +14,5 @@ export default function Page() {
   return <MailView mailboxAddress={mailboxAddress} />;
 }
 
-// Reads env at request time — block prerender.
+// Reads env at request time: block prerender.
 export const instant = false;

@@ -1,10 +1,10 @@
 /**
- * Clients — demo persistence + download helper.
+ * Clients: demo persistence + download helper.
  * Locally created clients live in sessionStorage; exposed via
- * useSyncExternalStore (an external system — no setState-in-effect).
+ * useSyncExternalStore (an external system: no setState-in-effect).
  *
  * Demo fallback only. Live mode reads/writes via server components + server actions.
- * (app/actions/clients.ts) — this module disappears then.
+ * (app/actions/clients.ts): this module disappears then.
  */
 
 import type { ClientRow } from "@/lib/types/db";
@@ -75,7 +75,7 @@ export function appendStoredClient(client: ClientRow): void {
   try {
     window.sessionStorage.setItem(KEY, JSON.stringify([...getClientsSnapshot(), client]));
   } catch {
-    // Quota exceeded — still notify so in-memory demo state stays consistent.
+    // Quota exceeded: still notify so in-memory demo state stays consistent.
   }
   window.dispatchEvent(new Event(CHANGE_EVENT));
 }

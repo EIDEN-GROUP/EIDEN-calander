@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 /**
- * Authenticated smoke — skipped unless credentials are supplied via env.
+ * Authenticated smoke: skipped unless credentials are supplied via env.
  *   E2E_EMAIL=you@example.com E2E_PASSWORD=secret npm run e2e
  */
 const EMAIL = process.env.E2E_EMAIL;
@@ -21,7 +21,7 @@ test.describe("authenticated smoke", () => {
   test("login → dashboard renders live KPIs", async ({ page }) => {
     await signIn(page);
     await expect(page.getByRole("heading", { name: /Good morning/ })).toBeVisible();
-    await expect(page.getByText("Today's bookings")).toBeVisible();
+    await expect(page.getByText("Today’s bookings")).toBeVisible();
   });
 
   test("calendar loads with Live indicator", async ({ page }) => {

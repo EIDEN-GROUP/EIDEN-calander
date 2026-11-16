@@ -1,5 +1,5 @@
 /**
- * Demo staff directory — the four selectable demo users.
+ * Demo staff directory: the four selectable demo users.
  * Live directory: pass profiles from the server via setLiveStaff().
  * This list is the offline fallback only.
  */
@@ -9,7 +9,7 @@ export interface DemoStaffMember {
   /** Display name, EN style first name. */
   name: string;
   role: "Admin" | "Staff";
-  /** Avatar tint pair (bg + fg) — brand tint presets only. */
+  /** Avatar tint pair (bg + fg): brand tint presets only. */
   tint: string;
 }
 
@@ -46,7 +46,7 @@ export interface ResolvedStaff {
   tint: string;
 }
 
-/** Module-level live directory — populated by server-fed pages so live UUIDs render as names. */
+/** Module-level live directory: populated by server-fed pages so live UUIDs render as names. */
 let LIVE_STAFF: Array<{ id: string; full_name: string; role: string }> = [];
 
 export function setLiveStaff(members: Array<{ id: string; full_name: string; role: string }>): void {
@@ -66,7 +66,7 @@ export function getStaff(id: string | null | undefined, unassignedLabel: string 
   if (known) {
     return { id, name: known.name, initials: initialsOf(known.name), tint: known.tint };
   }
-  // Unknown (e.g. "demo-admin" legacy) — stable tint from hash, raw id as name.
+  // Unknown (e.g. "demo-admin" legacy): stable tint from hash, raw id as name.
   let h = 0;
   for (let i = 0; i < id.length; i += 1) h = (h * 31 + id.charCodeAt(i)) | 0;
   const tint = FALLBACK_TINTS[Math.abs(h) % FALLBACK_TINTS.length];

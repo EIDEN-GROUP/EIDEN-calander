@@ -25,7 +25,7 @@ type DateFormat = "eu" | "us";
 
 const SAMPLE_AMOUNT = 1234560.5;
 
-/** Fixed reference instant — stable across prerender and hydration. */
+/** Fixed reference instant: stable across prerender and hydration. */
 const SAMPLE_DATE = new Date(2026, 10, 13, 14, 30);
 
 function pad2(n: number): string {
@@ -41,7 +41,7 @@ export function LocalizationView({
 }) {
   const t = useTranslations("settings");
   const router = useRouter();
-  const { toasts, push } = useToast();
+  const { toasts, leaving, push } = useToast();
   const [locale, setLocale] = useState<Locale>(initial?.defaultLocale ?? "en");
   const [hourCycle, setHourCycle] = useState<HourCycle>(initial?.hourCycle ?? "24");
   const [dateFormat, setDateFormat] = useState<DateFormat>(initial?.dateFormat ?? "eu");
@@ -146,7 +146,7 @@ export function LocalizationView({
                   const selected = dateFormat === key;
                   return (
                     <li key={key} className={`flex items-center gap-2 text-[11px] font-medium ${selected ? "text-obsidian" : "text-muted"}`}>
-                      {selected ? <Check size={12} strokeWidth={2.6} aria-hidden="true" className="text-electric" /> : <span className="w-3" aria-hidden="true" />}
+                      {selected ? <Check size={12} strokeWidth={2.4} aria-hidden="true" className="text-electric" /> : <span className="w-3" aria-hidden="true" />}
                       <span className="w-20">{label}</span>
                       <span className="rounded-sm bg-canvas px-1.5 py-0.5 font-mono text-[11px]">{sample}</span>
                     </li>
@@ -191,12 +191,12 @@ export function LocalizationView({
                     }`}
                     aria-current={selected ? "true" : undefined}
                   >
-                    <p className="flex items-center justify-between gap-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
+                    <p className="flex items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                       {label} · <span className="font-mono normal-case">{tag}</span>
-                      {selected ? <Check size={12} strokeWidth={2.6} aria-hidden="true" className="text-electric" /> : null}
+                      {selected ? <Check size={12} strokeWidth={2.4} aria-hidden="true" className="text-electric" /> : null}
                     </p>
                     <p className="mt-1.5 truncate font-mono text-[15px] font-bold text-obsidian" title={value}>{value}</p>
-                    <p className="mt-0.5 text-[10px] font-medium text-muted">{t("liveSampleNote")}</p>
+                    <p className="mt-0.5 text-[11px] font-medium text-muted">{t("liveSampleNote")}</p>
                   </div>
                 );
               })}
@@ -212,7 +212,7 @@ export function LocalizationView({
 
         <aside className="space-y-4">
           <div className="card p-5">
-            <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">
+            <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase tracking-[0.08em] text-muted">
               <Globe size={14} strokeWidth={2.2} aria-hidden="true" />
               {t("localizedSurfacesHeading")}
             </h2>
@@ -220,11 +220,11 @@ export function LocalizationView({
               <li className="flex gap-2"><FileText size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />{t("surfaceInvoices")}</li>
               <li className="flex gap-2"><Mail size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />{t("surfaceEmails")}</li>
               <li className="flex gap-2"><FileSpreadsheet size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />{t("surfaceCsv")}</li>
-              <li className="flex gap-2"><Monitor size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" />{t("surfacePublicSiteBefore")} <code className="rounded-sm bg-canvas px-1 font-mono text-[10px]">lang</code> {t("surfacePublicSiteAfter")}</li>
+              <li className="flex items-start gap-2"><Monitor size={13} strokeWidth={2.2} className="mt-0.5 shrink-0 text-muted" aria-hidden="true" /><span>{t("surfacePublicSiteBefore")} <code className="rounded-sm bg-canvas px-1 font-mono text-[11px]">lang</code> {t("surfacePublicSiteAfter")}</span></li>
             </ul>
           </div>
           <div className="card p-5">
-            <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">
+            <h2 className="flex items-center gap-2 text-[13px] font-extrabold uppercase tracking-[0.08em] text-muted">
               <CalendarDays size={14} strokeWidth={2.2} aria-hidden="true" />
               {t("moroccoDefaultHeading")}
             </h2>
@@ -239,7 +239,7 @@ export function LocalizationView({
         </aside>
       </div>
 
-      <ToastViewport toasts={toasts} />
+      <ToastViewport toasts={toasts} leaving={leaving} />
     </div>
   );
 }

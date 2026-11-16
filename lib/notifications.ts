@@ -2,12 +2,12 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * notifyUser — the single write path for in-app notifications.
+ * notifyUser: the single write path for in-app notifications.
  *
  * `notifications` has no INSERT policy for `authenticated`; every write goes
  * through the `notify_user()` security-definer RPC (see
  * supabase/migrations/0004_functions.sql). Direct inserts through the
- * authenticated client were silently rejected before this helper existed —
+ * authenticated client were silently rejected before this helper existed:
  * the bell counter showed 0 while change requests fired.
  *
  * Never throws: a failed notification is logged loudly but does not mask the
@@ -25,7 +25,7 @@ export async function notifyUser(
   },
 ): Promise<void> {
   if (!supabase) {
-    console.warn(`[notify] skipped type "${entry.type}" — Supabase not configured`);
+    console.warn(`[notify] skipped type "${entry.type}": Supabase not configured`);
     return;
   }
   try {

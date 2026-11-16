@@ -1,13 +1,14 @@
 /**
- * Modal — shared dialog primitive.
+ * Modal: shared dialog primitive.
  * - role="dialog" + aria-modal + aria-labelledby
  * - Escape closes, backdrop click closes, body scroll locked
  * - First focusable element receives focus; Tab / Shift+Tab cycle inside
+ * - Enter/exit animated (~240/320ms, ease-apple) with a two-phase close
  */
 
 "use client";
 
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
@@ -16,6 +17,8 @@ const SIZE_CLASS: Record<"md" | "lg" | "xl", string> = {
   lg: "sm:max-w-2xl",
   xl: "sm:max-w-4xl",
 };
+
+const EXIT_MS = 240;
 
 export function Modal({
   title,
@@ -34,6 +37,24 @@ export function Modal({
   const titleId = useId();
   const descriptionId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
+  const [closing, setClosing] = useState(false);
+  const closingRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  /* Two-phase close: exit animation first, then the parent unmounts us */
+  const requestClose = () => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    setClosing(true);
+    window.setTimeout(() => onCloseRef.current(), EXIT_MS);
+  };
+  const requestCloseRef = useRef(requestClose);
+  useEffect(() => {
+    requestCloseRef.current = requestClose;
+  });
 
   useEffect(() => {
     const panelEl = panelRef.current;
@@ -52,7 +73,7 @@ export function Modal({
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.stopPropagation();
-        onClose();
+        requestCloseRef.current();
         return;
       }
       if (event.key !== "Tab") return;
@@ -77,16 +98,23 @@ export function Modal({
       document.removeEventListener("keydown", onKeyDown, true);
       document.body.style.overflow = previousOverflow;
     };
-  }, [onClose]);
+  }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+    <div
+      className={`fixed inset-0 z-50 flex items-end justify-center sm:items-center ${
+        closing ? "pointer-events-none" : ""
+      }`}
+      aria-hidden={closing || undefined}
+    >
       <button
         type="button"
         tabIndex={-1}
         aria-label={t("closeDialog")}
-        onClick={onClose}
-        className="absolute inset-0 cursor-default bg-black/40 backdrop-blur-[2px]"
+        onClick={requestClose}
+        className={`overlay-enter absolute inset-0 cursor-default bg-black/40 backdrop-blur-[2px] transition-opacity duration-slow ease-apple ${
+          closing ? "opacity-0" : "opacity-100"
+        }`}
       />
       <div
         ref={panelRef}
@@ -94,7 +122,9 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
-        className={`relative z-10 max-h-[92vh] w-full overflow-y-auto rounded-t-md bg-white p-6 shadow-lg sm:m-6 sm:rounded-md ${SIZE_CLASS[size]}`}
+        className={`relative z-10 max-h-[92vh] w-full overflow-y-auto rounded-t-md bg-white p-6 shadow-lg transition-all duration-slow ease-apple sm:m-6 sm:rounded-md ${SIZE_CLASS[size]} ${
+          closing ? "translate-y-3 opacity-0 sm:translate-y-2 sm:scale-[0.98]" : "modal-enter"
+        }`}
       >
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -109,7 +139,7 @@ export function Modal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             aria-label={t("close")}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill text-muted transition-colors hover:bg-hover-fill hover:text-obsidian"
           >

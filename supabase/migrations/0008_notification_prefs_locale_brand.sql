@@ -1,13 +1,13 @@
 -- ===========================================================================
--- 0008 — business_settings: notification prefs + localization defaults
+-- 0008: business_settings: notification prefs + localization defaults
 --        storage: brand-assets bucket (public read, admin write) for logos
 --
--- 1) notification_prefs jsonb — which transactional emails actually leave the
+-- 1) notification_prefs jsonb: which transactional emails actually leave the
 --    building. Enforced in lib/email/notify.ts before every sendMail; default
 --    all-on so existing behavior is unchanged.
--- 2) hour_cycle / date_format — business-wide rendering defaults, persisted
+-- 2) hour_cycle / date_format: business-wide rendering defaults, persisted
 --    from Settings → Localization (24h + DD/MM/YYYY, the Casablanca norm).
--- 3) brand-assets storage bucket — public read (logo is public-facing),
+-- 3) brand-assets storage bucket: public read (logo is public-facing),
 --    admin-only write. Logo upload path for Settings → General.
 -- ===========================================================================
 

@@ -9,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("plans");
   return { title: t("title") };
 }
-// Reads live data at request time — block prerender.
+// Reads live data at request time: block prerender.
 export const instant = false;
 
 function BoardFallback() {

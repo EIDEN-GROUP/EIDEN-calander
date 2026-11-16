@@ -9,7 +9,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL(".", import.meta.url)),
-      // Unit tests run outside React Server Components — stub the marker.
+      // Unit tests run outside React Server Components: stub the marker.
       "server-only": fileURLToPath(new URL("./lib/mail/server-only.stub.ts", import.meta.url)),
     },
   },

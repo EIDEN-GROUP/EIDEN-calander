@@ -1,5 +1,5 @@
 -- 0003_indexes_triggers.sql
--- CALENDAR. — indexes + baseline seed data required for the app to function.
+-- CALENDAR.: indexes + baseline seed data required for the app to function.
 -- Baseline seed (working hours, system categories, business settings) is part of
 -- the migration on purpose: every environment needs identical system rows.
 -- Demo/sample content lives ONLY in supabase/seed.sql (staging/local).
@@ -33,7 +33,7 @@ create index if not exists change_requests_assigned_pending_idx
   where status = 'pending';
 
 -- ---------------------------------------------------------------------------
--- working_hours — Mon–Sat open 08:00–20:00, Sunday closed
+-- working_hours: Mon–Sat open 08:00–20:00, Sunday closed
 -- ---------------------------------------------------------------------------
 insert into public.working_hours (weekday, is_open, open_time, close_time) values
   ('mon', true,  '08:00', '20:00'),
@@ -46,7 +46,7 @@ insert into public.working_hours (weekday, is_open, open_time, close_time) value
 on conflict (weekday) do nothing;
 
 -- ---------------------------------------------------------------------------
--- categories — system categories (idempotent: insert only if missing by name)
+-- categories: system categories (idempotent: insert only if missing by name)
 -- ---------------------------------------------------------------------------
 insert into public.categories (name_en, name_fr, color, icon, type, is_system, is_active, sort)
 select 'Meeting Room Rental', 'Location de salle de réunion', 'blue', 'calendar', 'standard', true, true, 1
@@ -61,7 +61,7 @@ select 'Event', 'Événement', 'purple', 'sparkles', 'standard', true, true, 3
 where not exists (select 1 from public.categories where name_en = 'Event');
 
 -- ---------------------------------------------------------------------------
--- business_settings — singleton row (Eiden Group). Insert once, never overwrite.
+-- business_settings: singleton row (Eiden Group). Insert once, never overwrite.
 -- ---------------------------------------------------------------------------
 insert into public.business_settings (
   id, business_name, public_url, timezone, currency, default_locale, country

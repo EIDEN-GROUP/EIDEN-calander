@@ -1,12 +1,12 @@
 -- 0002_tables.sql
--- CALENDAR. — Eiden Group internal scheduling system
+-- CALENDAR.: Eiden Group internal scheduling system
 -- All tables. UUID primary keys (gen_random_uuid()) and timestamptz defaults (now()).
 -- Dependency order: profiles -> business_settings/working_hours -> categories/rooms
 --                   -> clients -> bookings -> formations -> formation_participants
 --                   -> plans -> plan_tasks -> change_requests -> notifications -> audit_log
 
 -- ---------------------------------------------------------------------------
--- profiles — 1:1 with auth.users, created by admins (never self-registered)
+-- profiles: 1:1 with auth.users, created by admins (never self-registered)
 -- ---------------------------------------------------------------------------
 create table public.profiles (
   id                   uuid primary key references auth.users (id) on delete cascade,
@@ -24,7 +24,7 @@ create table public.profiles (
 );
 
 -- ---------------------------------------------------------------------------
--- business_settings — singleton row (id is always true)
+-- business_settings: singleton row (id is always true)
 -- ---------------------------------------------------------------------------
 create table public.business_settings (
   id                 boolean primary key default true check (id),
@@ -49,7 +49,7 @@ create table public.business_settings (
 );
 
 -- ---------------------------------------------------------------------------
--- working_hours — one row per weekday
+-- working_hours: one row per weekday
 -- ---------------------------------------------------------------------------
 create table public.working_hours (
   weekday    public.weekday primary key,
@@ -60,7 +60,7 @@ create table public.working_hours (
 );
 
 -- ---------------------------------------------------------------------------
--- categories — booking categories (system ones shipped in migration 0003)
+-- categories: booking categories (system ones shipped in migration 0003)
 -- ---------------------------------------------------------------------------
 create table public.categories (
   id         uuid primary key default gen_random_uuid(),
@@ -76,7 +76,7 @@ create table public.categories (
 );
 
 -- ---------------------------------------------------------------------------
--- rooms — rentable rooms / spaces
+-- rooms: rentable rooms / spaces
 -- ---------------------------------------------------------------------------
 create table public.rooms (
   id          uuid primary key default gen_random_uuid(),
@@ -94,7 +94,7 @@ create table public.rooms (
 );
 
 -- ---------------------------------------------------------------------------
--- clients — people / companies (soft-deletable, anonymizable for GDPR-style flows)
+-- clients: people / companies (soft-deletable, anonymizable for GDPR-style flows)
 -- ---------------------------------------------------------------------------
 create table public.clients (
   id            uuid primary key default gen_random_uuid(),
@@ -117,7 +117,7 @@ create table public.clients (
 );
 
 -- ---------------------------------------------------------------------------
--- bookings — the core scheduling entity
+-- bookings: the core scheduling entity
 -- ---------------------------------------------------------------------------
 create table public.bookings (
   id            uuid primary key default gen_random_uuid(),
@@ -139,7 +139,7 @@ create table public.bookings (
 );
 
 -- ---------------------------------------------------------------------------
--- formations — 1:1 extension of bookings with type = 'formation'
+-- formations: 1:1 extension of bookings with type = 'formation'
 -- ---------------------------------------------------------------------------
 create table public.formations (
   booking_id  uuid primary key references public.bookings (id) on delete cascade,
@@ -150,7 +150,7 @@ create table public.formations (
 );
 
 -- ---------------------------------------------------------------------------
--- formation_participants — enrolment / attendance
+-- formation_participants: enrolment / attendance
 -- ---------------------------------------------------------------------------
 create table public.formation_participants (
   id           uuid primary key default gen_random_uuid(),
@@ -168,7 +168,7 @@ create table public.formation_participants (
 );
 
 -- ---------------------------------------------------------------------------
--- plans — strategic plans / initiatives with task breakdown
+-- plans: strategic plans / initiatives with task breakdown
 -- ---------------------------------------------------------------------------
 create table public.plans (
   id                  uuid primary key default gen_random_uuid(),
@@ -186,7 +186,7 @@ create table public.plans (
 );
 
 -- ---------------------------------------------------------------------------
--- plan_tasks — tasks under a plan (progress rolls up to plans.progress)
+-- plan_tasks: tasks under a plan (progress rolls up to plans.progress)
 -- ---------------------------------------------------------------------------
 create table public.plan_tasks (
   id           uuid primary key default gen_random_uuid(),
@@ -201,7 +201,7 @@ create table public.plan_tasks (
 );
 
 -- ---------------------------------------------------------------------------
--- change_requests — raised when a booking collides with another; assigned to
+-- change_requests: raised when a booking collides with another; assigned to
 -- the other booking's owner for resolution (approve / decline / reschedule)
 -- ---------------------------------------------------------------------------
 create table public.change_requests (
@@ -221,7 +221,7 @@ create table public.change_requests (
 );
 
 -- ---------------------------------------------------------------------------
--- notifications — per-user in-app notifications (written via security definer)
+-- notifications: per-user in-app notifications (written via security definer)
 -- ---------------------------------------------------------------------------
 create table public.notifications (
   id         uuid primary key default gen_random_uuid(),
@@ -236,7 +236,7 @@ create table public.notifications (
 );
 
 -- ---------------------------------------------------------------------------
--- audit_log — append-only audit trail; actor_id intentionally NOT a hard FK
+-- audit_log: append-only audit trail; actor_id intentionally NOT a hard FK
 -- so the log survives profile deletion; writes happen via security definer
 -- functions / service role only
 -- ---------------------------------------------------------------------------

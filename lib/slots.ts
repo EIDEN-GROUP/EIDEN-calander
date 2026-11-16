@@ -1,5 +1,5 @@
 /**
- * CALENDAR. — "please pick another slot" engine (pure, unit-tested).
+ * CALENDAR. · "please pick another slot" engine (pure, unit-tested).
  * Scans working hours from the desired day forward, returns the N nearest free
  * windows for a room at a fixed increment. Same-day-first ordering.
  */
@@ -24,11 +24,11 @@ export interface SuggestSlotsOptions {
   daysAhead?: number;
   /** Max suggestions returned. */
   limit?: number;
-  /** Active bookings to avoid (any room or only this room — pass pre-filtered). */
+  /** Active bookings to avoid (any room or only this room: pass pre-filtered). */
   existing: OverlapCandidate[];
   /** Working-hours config for all 7 weekdays. */
   workingHours: WorkingHoursEntry[];
-  /** IANA tz — slot wall-clock times are computed in this zone (default Africa/Casablanca). */
+  /** IANA tz: slot wall-clock times are computed in this zone (default Africa/Casablanca). */
   timeZone?: string;
   /** For tests. */
   now?: Date;
@@ -37,7 +37,7 @@ export interface SuggestSlotsOptions {
 export interface SlotSuggestion {
   startsAt: string; // ISO
   endsAt: string;   // ISO
-  labelKey: string; // e.g. "today" | "tomorrow" | "date" — UI formats localized label
+  labelKey: string; // e.g. "today" | "tomorrow" | "date": UI formats localized label
 }
 
 const WEEKDAY_INDEX: Record<WorkingHoursEntry["weekday"], number> = {
@@ -52,7 +52,7 @@ export function parseTimeToMinutes(t: string): number {
 
 /**
  * Convert a wall-clock time in `timeZone` on a given calendar day to a UTC Date.
- * Uses Intl offset math — no external tz library required.
+ * Uses Intl offset math: no external tz library required.
  */
 export function zonedTimeToUtc(day: Date, minutes: number, timeZone: string): Date {
   // Build a guess in UTC, then measure the zone's offset at that guess and adjust.

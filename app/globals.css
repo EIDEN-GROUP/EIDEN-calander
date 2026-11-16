@@ -28,6 +28,10 @@
   --color-warning-tint: rgba(255, 159, 10, 0.16);
   --color-error: #ff3b30;
   --color-error-tint: rgba(255, 59, 48, 0.12);
+  /* Darkened foreground for body-size error text (≥ 4.5:1 on white/error-tint) */
+  --color-error-fg: #b02a1f;
+  /* Hover for error-fg links */
+  --color-error-fg-hover: #8f1f16;
 
   /* Category tint presets (muted, WCAG-friendly) */
   --color-tint-blue: rgba(0, 102, 204, 0.12);
@@ -64,8 +68,12 @@
   --shadow-lg: 0 24px 48px rgba(0, 0, 0, 0.08);
   --shadow-electric: 0 8px 24px rgba(0, 102, 204, 0.3);
 
-  /* Motion (brand book) */
+  /* Motion (brand book + CALENDAR. system) */
   --ease-apple: cubic-bezier(0.25, 1, 0.5, 1);
+  --transition-duration-fast: 120ms;
+  --transition-duration-base: 180ms;
+  --transition-duration-slow: 240ms;
+  --transition-duration-slower: 320ms;
 }
 
 @layer base {
@@ -87,6 +95,7 @@
     outline: none;
     box-shadow: 0 0 0 3px var(--color-canvas), 0 0 0 6px rgba(0, 102, 204, 0.45);
     border-radius: var(--radius-xs);
+    animation: focus-ring-in var(--transition-duration-base) var(--ease-apple);
   }
 }
 
@@ -99,10 +108,77 @@
     border-bottom: 1px solid var(--color-border);
   }
 
+  /* ============================================================
+     Motion system — one curve, one duration scale
+     ease-apple: cubic-bezier(0.25, 1, 0.5, 1)
+     durations: fast 120 · base 180 · slow 240 · slower 320
+     ============================================================ */
+
+  /* Fade+rise for route/view content swaps */
+  .view-enter {
+    animation: view-enter var(--transition-duration-slow) var(--ease-apple) both;
+    will-change: transform, opacity;
+  }
+
+  /* Modal/dialog panel entrance (exit handled by the two-phase close in the component) */
+  .overlay-enter {
+    animation: overlay-in var(--transition-duration-slow) var(--ease-apple) both;
+  }
+  .modal-enter {
+    animation: modal-in var(--transition-duration-slower) var(--ease-apple) both;
+    will-change: transform, opacity;
+  }
+
+  /* Toast enter/exit */
+  .toast-in {
+    animation: toast-in var(--transition-duration-base) var(--ease-apple) both;
+  }
+  .toast-leave {
+    animation: toast-out var(--transition-duration-base) var(--ease-apple) both;
+  }
+
+  /* Bell badge — pops when a new unread count lands */
+  .badge-pop {
+    animation: badge-pop var(--transition-duration-slow) var(--ease-apple) both;
+    transform-origin: center;
+  }
+
+  /* Keyboard keycap */
+  .kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.6rem;
+    padding: 0.1rem 0.4rem;
+    border: 1px solid var(--color-border);
+    border-bottom-width: 2px;
+    border-radius: var(--radius-xs);
+    background: var(--color-surface);
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.5;
+    color: var(--color-obsidian-light);
+    white-space: nowrap;
+  }
+
+  /* List rows — subtle lift on hover (transform-only) */
+  .row-lift {
+    transition:
+      transform var(--transition-duration-base) var(--ease-apple),
+      background-color var(--transition-duration-base) var(--ease-apple),
+      box-shadow var(--transition-duration-base) var(--ease-apple);
+  }
+  .row-lift:hover {
+    transform: translateY(-1px);
+  }
+
   /* Buttons */
   .btn {
     @apply inline-flex h-11 select-none items-center justify-center gap-2 whitespace-nowrap rounded-pill px-6 text-[15px] font-semibold transition-all duration-200;
-    transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+    transition-duration: var(--transition-duration-base);
+    transition-timing-function: var(--ease-apple);
   }
   .btn-primary {
     background: var(--color-electric);
@@ -133,14 +209,14 @@
     @apply mb-1.5 block text-[11px] font-bold uppercase tracking-[0.08em] text-obsidian-light;
   }
   .input {
-    @apply h-11 w-full rounded-[14px] border border-border bg-white px-4 text-[15px] text-obsidian outline-none transition-shadow placeholder:text-black/30;
+    @apply h-11 w-full rounded-[14px] border border-border bg-white px-4 text-[15px] text-obsidian outline-none transition-shadow placeholder:text-black/50;
   }
   .input:focus {
     border-color: rgba(0, 102, 204, 0.5);
     box-shadow: 0 0 0 4px var(--color-electric-tint);
   }
   .input-pill {
-    @apply h-12 w-full rounded-pill border border-border bg-white px-5 text-[16px] text-obsidian outline-none transition-shadow placeholder:text-black/30;
+    @apply h-12 w-full rounded-pill border border-border bg-white px-5 text-[16px] text-obsidian outline-none transition-shadow placeholder:text-black/50;
   }
   .input-pill:focus {
     border-color: rgba(0, 102, 204, 0.6);
@@ -153,7 +229,7 @@
     box-shadow: var(--shadow-sm);
   }
   .card-hover {
-    transition: transform 0.25s var(--ease-apple), box-shadow 0.25s var(--ease-apple);
+    transition: transform var(--transition-duration-slow) var(--ease-apple), box-shadow var(--transition-duration-slow) var(--ease-apple);
   }
   .card-hover:hover {
     transform: translateY(-3px);
@@ -178,21 +254,26 @@
   }
   .segment {
     @apply flex h-8 cursor-pointer select-none items-center rounded-[7px] px-4 text-[13px] font-semibold text-obsidian transition-all;
+    transition-duration: var(--transition-duration-base);
+    transition-timing-function: var(--ease-apple);
     background: transparent;
   }
   .segment-active {
     background: #fff;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.04);
+    animation: segment-in var(--transition-duration-base) var(--ease-apple);
   }
 
   /* Chips */
   .chip {
-    @apply inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-[11px] font-semibold;
+    @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill px-2.5 py-1 text-[11px] font-semibold;
   }
 
   /* Icon rail buttons */
   .rail-btn {
     @apply relative flex h-12 w-12 items-center justify-center rounded-pill border border-border bg-white text-obsidian-light transition-all duration-200;
+    transition-duration: var(--transition-duration-base);
+    transition-timing-function: var(--ease-apple);
     box-shadow: var(--shadow-sm);
   }
   .rail-btn:hover {
@@ -210,6 +291,73 @@
   @keyframes menuPop {
     from { opacity: 0; transform: scale(0.94) translateY(-4px); }
     to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  /* Route/view fade+rise */
+  @keyframes view-enter {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  /* Overlay fade */
+  @keyframes overlay-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  /* Dialog panel entrance — rise + settle, never bouncy */
+  @keyframes modal-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  /* Toast enter/exit */
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateY(10px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes toast-out {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 0; transform: translateY(6px) scale(0.98); }
+  }
+  /* Bell badge pop on a new unread count */
+  @keyframes badge-pop {
+    0% { opacity: 0; transform: scale(0.5); }
+    55% { opacity: 1; transform: scale(1.18); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  /* Focus rings animate in */
+  @keyframes focus-ring-in {
+    from { box-shadow: 0 0 0 3px var(--color-canvas), 0 0 0 3px rgba(0, 102, 204, 0); }
+    to { box-shadow: 0 0 0 3px var(--color-canvas), 0 0 0 6px rgba(0, 102, 204, 0.45); }
+  }
+  /* Segmented control — newly-active segment eases in */
+  @keyframes segment-in {
+    from { opacity: 0.4; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  /* Press states — physical, 0.97 on :active (declared last so :active wins over :hover lifts) */
+  .btn:active,
+  .rail-btn:active,
+  .segment:active,
+  .chip:active {
+    transform: scale(0.97);
+  }
+  .btn:disabled,
+  .rail-btn:disabled,
+  .segment:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+  .btn:disabled:active,
+  .rail-btn:disabled:active,
+  .segment:disabled:active {
+    transform: none;
+  }
+  .input:disabled,
+  .input-pill:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    background: var(--color-canvas);
   }
 
   /* Login artwork floating cards */
@@ -238,5 +386,17 @@
       linear-gradient(to right, var(--color-divider) 1px, transparent 1px),
       linear-gradient(to bottom, var(--color-divider) 1px, transparent 1px);
     background-size: 40px 40px;
+  }
+
+  /* Reduced motion — zero motion for users who ask for it */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

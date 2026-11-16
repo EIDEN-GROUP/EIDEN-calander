@@ -1,5 +1,5 @@
 /**
- * Formations — shared view-model helpers.
+ * Formations: shared view-model helpers.
  * Demo data + derived display state. No backend calls.
  */
 
@@ -53,7 +53,7 @@ export function effectiveStatus(vm: FormationVM, now: Date = new Date()): Effect
   return "open";
 }
 
-/* ---------- formatting ---------- */
+/* formatting */
 
 const dayFmt = (tag?: string) => new Intl.DateTimeFormat(tag ?? appLocaleTag(), { weekday: "short", day: "numeric", month: "short" });
 const fullDayFmt = (tag?: string) =>
@@ -103,9 +103,9 @@ export function locationBadge(location: string | undefined): string {
   return location === "Casablanca" ? "Casa" : location;
 }
 
-/** Group thousands with a regular space: 1200 → "1 200". */
+/** Group thousands with a narrow no-break space: 1200 → "1 200 MAD". */
 export function formatMad(amount: number): string {
-  return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") + " MAD";
+  return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "\u202f") + "\u00a0MAD";
 }
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;

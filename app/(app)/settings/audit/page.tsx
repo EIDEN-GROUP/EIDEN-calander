@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("settings");
   return { title: t("metaAudit") };
 }
-// Reads live data at request time — block prerender.
+// Reads live data at request time: block prerender.
 export const instant = false;
 
 type Verb = "create" | "update" | "delete" | "auth" | "settings";
@@ -96,15 +96,15 @@ export default async function AuditPage() {
   }
 
   if (!supabase) {
-    // Unconfigured — demo data
+    // Unconfigured: demo data
     return <AuditView />;
   }
   if (!isAdmin) {
     return (
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-[1440px]">
         <div className="card flex flex-col items-center px-6 py-16 text-center">
-          <ScrollText size={36} strokeWidth={1.5} className="text-muted" aria-hidden="true" />
-          <h1 className="mt-4 text-[22px] font-extrabold tracking-[-0.03em] text-obsidian">{t("adminOnlyTitle")}</h1>
+          <ScrollText size={36} strokeWidth={1.8} className="text-muted" aria-hidden="true" />
+          <h1 className="mt-4 text-[28px] font-extrabold tracking-[-0.05em] text-obsidian">{t("adminOnlyTitle")}</h1>
           <p className="mt-1.5 max-w-sm text-[14px] leading-snug text-obsidian-light">
             {t("adminOnlyBody")}
           </p>

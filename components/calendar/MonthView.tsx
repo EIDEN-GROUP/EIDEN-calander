@@ -48,7 +48,7 @@ export function MonthView({
         {weekdayShort.map((label, i) => (
           <div
             key={label}
-            className={`border-r border-divider px-2 py-2 text-center text-[10px] font-bold uppercase tracking-[0.12em] last:border-r-0 ${
+            className={`border-r border-divider px-2 py-2 text-center text-[11px] font-bold uppercase tracking-[0.08em] last:border-r-0 ${
               i >= 5 ? "text-muted" : "text-obsidian-light"
             }`}
           >
@@ -92,7 +92,7 @@ export function MonthView({
                     ? "bg-electric text-white hover:bg-electric hover:text-white"
                     : inMonth
                       ? "text-obsidian"
-                      : "text-black/25"
+                      : "text-black/35"
                 }`}
               >
                 {day.getDate()}
@@ -112,17 +112,17 @@ export function MonthView({
                         onBookingContextMenu?.(b, e.clientX, e.clientY);
                       }}
                       title={b.title}
-                      className={`flex min-w-0 items-center gap-1 rounded-[6px] border px-1.5 py-[3px] text-left text-[10px] font-semibold leading-tight transition-all hover:-translate-y-px hover:shadow-sm ${tint.block} ${b.status === "paused" || b.status === "cancelled" ? "opacity-55 border-dashed" : ""}`}
+                      className={`flex min-w-0 items-center gap-1 rounded-xs border px-1.5 py-[3px] text-left text-[11px] font-semibold leading-tight transition-all hover:-translate-y-px hover:shadow-sm ${tint.block} ${b.status === "paused" || b.status === "cancelled" ? "opacity-55 border-dashed" : ""}`}
                     >
                       {isFormation && (
                         <GraduationCap
                           size={10}
-                          strokeWidth={2.6}
+                          strokeWidth={2.4}
                           aria-hidden="true"
                           className="shrink-0"
                         />
                       )}
-                      <span className="truncate">{b.title}</span>
+                      <span className="truncate" title={b.title}>{b.title}</span>
                     </button>
                   );
                 })}
@@ -130,7 +130,7 @@ export function MonthView({
                   <button
                     type="button"
                     onClick={() => onSelectDay(day)}
-                    className="rounded-[6px] px-1.5 py-[2px] text-left text-[10px] font-bold text-electric transition-colors hover:bg-electric-tint"
+                    className="rounded-xs px-1.5 py-[2px] text-left text-[11px] font-bold text-electric transition-colors hover:bg-electric-tint"
                   >
                     {t("plusMore", { count: hidden })}
                   </button>

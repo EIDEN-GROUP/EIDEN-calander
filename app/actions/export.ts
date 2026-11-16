@@ -13,14 +13,14 @@ function failUnexpected(err: unknown): ActionResult<never> {
   return { ok: false, error: { code: "unexpected", message: "Export failed on our side. Please try again." } };
 }
 const notConfigured = (): ActionResult<never> =>
-  fail("not_configured", "Supabase isn't configured — set .env.");
+  fail("not_configured", "Supabase isn't configured: set .env.");
 
 /**
  * Full workspace snapshot as a single JSON document (admin only).
  * Covers: business profile (non-secret), working hours, rooms, categories,
  * clients, bookings, formation participants, plans + plan_tasks,
  * change_requests. Notifications/audit_log excluded (internal plumbing).
- * Note: serverless responses cap at ~4.5MB — fine at our scale; if a dump
+ * Note: serverless responses cap at ~4.5MB: fine at our scale; if a dump
  * ever approaches that, switch to per-table CSV downloads.
  */
 export async function exportWorkspaceAction(): Promise<
@@ -51,7 +51,7 @@ export async function exportWorkspaceAction(): Promise<
           console.error(`[export] ${table} failed`, error.message);
           return [table, []] as const;
         }
-        // Scrub updated_by/actor ids — they identify staff internals, not business data.
+        // Scrub updated_by/actor ids: they identify staff internals, not business data.
         const scrubbed = (data ?? []).map((row: Record<string, unknown>) => {
           const rest = { ...row };
           delete rest.updated_by; // staff-internal actor id, not business data

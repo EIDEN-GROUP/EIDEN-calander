@@ -13,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("requests");
   return { title: t("title") };
 }
-// Reads live data at request time — block prerender.
+// Reads live data at request time: block prerender.
 export const instant = false;
 
 type Status = "pending" | "approved" | "declined" | "expired" | "cancelled";
@@ -33,7 +33,7 @@ interface RequestListItem {
 const STATUS_STYLE: Record<Status, { labelKey: string; classes: string }> = {
   pending: { labelKey: "statusPending", classes: "bg-warning-tint text-tint-fg-amber" },
   approved: { labelKey: "statusApproved", classes: "bg-success-tint text-tint-fg-green" },
-  declined: { labelKey: "statusDeclined", classes: "bg-danger-tint text-tint-fg-red" },
+  declined: { labelKey: "statusDeclined", classes: "bg-error-tint text-error-fg" },
   expired: { labelKey: "statusExpired", classes: "bg-hover-fill text-muted" },
   cancelled: { labelKey: "statusCancelled", classes: "bg-hover-fill text-muted" },
 };
@@ -117,7 +117,7 @@ export default async function RequestsIndexPage() {
       <li key={item.id}>
         <Link
           href={`/requests/${item.id}`}
-          className="flex items-start gap-3.5 p-4 transition-colors hover:bg-canvas/60 outline-none focus-visible:shadow-[inset_0_0_0_3px_var(--color-electric-tint)]"
+          className="row-lift flex items-start gap-3.5 p-4 hover:bg-canvas/60 outline-none focus-visible:shadow-[inset_0_0_0_3px_var(--color-electric-tint)]"
         >
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-tint-blue text-electric">
             <Wrench size={18} strokeWidth={1.9} aria-hidden="true" />
@@ -127,7 +127,7 @@ export default async function RequestsIndexPage() {
               <span className="text-[14px] font-bold leading-snug text-obsidian">
                 {t("moveTitle", { conflicting: item.conflictingTitle, new: item.newTitle })}
               </span>
-              <span className={`inline-flex items-center rounded-pill px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] ${style.classes}`}>
+              <span className={`inline-flex items-center rounded-pill px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.08em] ${style.classes}`}>
                 {t(style.labelKey)}
               </span>
             </span>
@@ -137,7 +137,7 @@ export default async function RequestsIndexPage() {
               {pendingExpires ? ` · ${pendingExpires}` : ""}
             </span>
             {item.message && (
-              <span className="mt-0.5 block truncate text-[12px] leading-snug text-muted">
+              <span title={item.message} className="mt-0.5 block truncate text-[12px] leading-snug text-muted">
                 {t("messageQuote", { message: item.message })}
               </span>
             )}
@@ -152,10 +152,10 @@ export default async function RequestsIndexPage() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-[1440px]">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[28px] font-extrabold tracking-[-0.04em] text-obsidian">{t("title")}</h1>
+          <h1 className="text-[28px] font-extrabold tracking-[-0.05em] text-obsidian">{t("title")}</h1>
           <p className="mt-1 text-[14px] font-medium text-obsidian-light">
             {pending.length > 0 ? t("awaitingCount", { count: pending.length }) : t("noOpenRequests")}
           </p>
@@ -165,7 +165,7 @@ export default async function RequestsIndexPage() {
       {items.length === 0 ? (
         <div className="card mt-6 flex flex-col items-center px-6 py-20 text-center">
           <NowBarMark size={56} className="opacity-90" />
-          <h2 className="mt-5 text-[19px] font-extrabold tracking-[-0.03em] text-obsidian">
+          <h2 className="mt-5 text-[19px] font-extrabold tracking-[-0.02em] text-obsidian">
             {t("nothingRequestedYet")}
           </h2>
           <p className="mt-1.5 max-w-sm text-[14px] leading-snug text-obsidian-light">
@@ -176,7 +176,7 @@ export default async function RequestsIndexPage() {
         <div className="mt-6 space-y-6">
           {pending.length > 0 && (
             <section aria-label={t("awaitingDecision")}>
-              <h2 className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-muted">
+              <h2 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-muted">
                 {t("awaitingDecision")}
               </h2>
               <ul className="mt-2 divide-y divide-divider overflow-hidden rounded-md border border-border bg-white shadow-sm">
@@ -186,7 +186,7 @@ export default async function RequestsIndexPage() {
           )}
           {resolved.length > 0 && (
             <section aria-label={t("recentlyResolved")}>
-              <h2 className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-muted">
+              <h2 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-muted">
                 {t("recentlyResolved")}
               </h2>
               <ul className="mt-2 divide-y divide-divider overflow-hidden rounded-md border border-border bg-white shadow-sm">

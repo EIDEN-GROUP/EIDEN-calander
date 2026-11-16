@@ -1,5 +1,5 @@
 /**
- * Reports — live aggregates (server-only).
+ * Reports: live aggregates (server-only).
  * Fetches raw rows; math (bucketing, deltas, utilization) happens on the client
  * so every range/location toggle stays interactive.
  */
@@ -77,7 +77,7 @@ export async function loadReports(): Promise<ReportsLive | null> {
       ]),
     );
 
-    // ---- daily series (all + per location), zero-filled
+    // daily series (all + per location), zero-filled
     const dailyMap = new Map<string, { all: [number, number]; casa: [number, number]; agadir: [number, number] }>();
     for (let i = 0; i < DAYS; i++) {
       const d = new Date(since);
@@ -138,7 +138,7 @@ export async function loadReports(): Promise<ReportsLive | null> {
       .filter((c) => c.revenue > 0)
       .sort((a, b) => b.revenue - a.revenue);
 
-    // ---- room utilization vs available minutes in the window
+    // room utilization vs available minutes in the window
     const totalDaysOpen = new Map<string, number>();
     for (const [weekday, mins] of openMinutesByWeekday) {
       const dayIdx = DAY_NAMES.indexOf(weekday as (typeof DAY_NAMES)[number]);
@@ -166,7 +166,7 @@ export async function loadReports(): Promise<ReportsLive | null> {
       })
       .sort((a, b) => b.pct - a.pct);
 
-    // ---- formation performance (group repeated sessions by title)
+    // formation performance (group repeated sessions by title)
     const capacityByBooking = new Map((formationRows ?? []).map((f) => [f.booking_id as string, Number(f.capacity)]));
     const participantsByBooking = new Map<string, typeof participantRows>();
     for (const p of participantRows ?? []) {

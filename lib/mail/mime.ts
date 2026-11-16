@@ -1,6 +1,6 @@
 /**
- * mime.ts — small MIME/address/text helpers for the mail layer (SERVER-ONLY).
- * No network, no I/O — pure functions, unit-testable.
+ * mime.ts: small MIME/address/text helpers for the mail layer (SERVER-ONLY).
+ * No network, no I/O: pure functions, unit-testable.
  */
 import "server-only";
 import type { MessageAddressObject } from "imapflow";
@@ -40,7 +40,7 @@ export function parseEmailList(csv: string | undefined | null): NormalizedAddres
     .split(",")
     .map((p) => stripHeaderChars(p))
     .filter((p) => p.length > 0);
-  if (parts.length > 20) return null; // sane cap — this is an internal tool, not a bulk sender
+  if (parts.length > 20) return null; // sane cap: this is an internal tool, not a bulk sender
   if (parts.some((p) => !isPlausibleEmail(p))) return null;
   return parts.map((address) => ({ name: "", address }));
 }
@@ -88,7 +88,7 @@ export function safeFilename(name: string | undefined | null): string {
 
 /**
  * Decode a raw transfer-encoded body part to a UTF-8-ish string.
- * Best effort for previews — never throws.
+ * Best effort for previews: never throws.
  */
 export function decodeTextPart(
   buffer: Buffer,
@@ -127,7 +127,7 @@ export function decodeQuotedPrintable(input: Buffer): Buffer {
     if (b === 0x3d /* = */) {
       const h = input.toString("ascii", i + 1, i + 3);
       if (h === "\r\n" || h[0] === "\n") {
-        // Soft line break — skip entirely (=\r\n is 3 bytes).
+        // Soft line break: skip entirely (=\r\n is 3 bytes).
         i += h === "\r\n" ? 2 : 1;
         continue;
       }
@@ -144,7 +144,7 @@ export function decodeQuotedPrintable(input: Buffer): Buffer {
 
 const QUOTE_PREFIX = "> ";
 
-/** "On <date>, <from> wrote:" — the attribution line used in quotes. */
+/** "On <date>, <from> wrote:": the attribution line used in quotes. */
 export function quoteAttribution(from: string, date?: string | Date | null): string {
   const dateStr =
     date != null

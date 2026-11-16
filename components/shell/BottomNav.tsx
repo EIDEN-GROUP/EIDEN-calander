@@ -43,12 +43,12 @@ export function BottomNav() {
             >
               <Icon
                 size={21}
-                strokeWidth={active ? 2.1 : 1.7}
+                strokeWidth={active ? 2.2 : 1.8}
                 className={active ? "text-electric" : "text-obsidian-light"}
                 aria-hidden="true"
               />
               <span
-                className={`text-[9px] font-bold uppercase tracking-[0.06em] ${
+                className={`text-[10px] font-bold uppercase tracking-[0.08em] ${
                   active ? "text-electric" : "text-obsidian-light"
                 }`}
               >

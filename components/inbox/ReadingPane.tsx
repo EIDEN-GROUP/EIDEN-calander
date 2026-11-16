@@ -29,7 +29,7 @@ const EMAIL_BASE_STYLE = `
 body { margin: 10px; font-size: 14px; line-height: 1.55; }
 a { color: #0066CC; }
 blockquote { border-left: 3px solid #0066CC; margin: 14px 0; padding: 2px 0 2px 14px; }
-pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: #F5F5F7; border-radius: 6px; font-size: 12px; }
+pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: #F5F5F7; border-radius: 8px; font-size: 12px; }
 pre { padding: 12px; overflow: auto; }
 table { border-collapse: collapse; margin: 10px 0; }
 tbody td, thead th, td, th { border: 1px solid rgba(0,0,0,0.12); padding: 6px 10px; }
@@ -37,7 +37,7 @@ hr { border: none; border-top: 1px solid rgba(0,0,0,0.12); margin: 16px 0; }
 img { max-width: 100%; height: auto; }
 `;
 
-/** 1×1 transparent GIF — remote <img> srcs are swapped for this until the user opts in. */
+/** 1×1 transparent GIF: remote <img> srcs are swapped for this until the user opts in. */
 const BLANK_PIXEL =
   "data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==";
 
@@ -59,7 +59,7 @@ export function ReadingPane({
 }: {
   uid: number;
   folder: MailFolder;
-  /** Rendered inside /inbox's two-pane on xl — hides the page-only chrome. */
+  /** Rendered inside /inbox's two-pane on xl: hides the page-only chrome. */
   inline?: boolean;
   /** The connected mailbox, threaded down to the reply box. */
   mailboxAddress?: string;
@@ -124,7 +124,7 @@ export function ReadingPane({
   };
 
   // Sandboxed srcDoc. Remote images are swapped for a blank pixel unless the
-  // user opts in via "Load images" — nothing is fetched otherwise.
+  // user opts in via "Load images": nothing is fetched otherwise.
   const htmlBody = message?.html ?? null;
   const srcDoc = useMemo(() => {
     if (!htmlBody) return null;
@@ -137,20 +137,20 @@ export function ReadingPane({
 
   return (
     <div className={`flex flex-col gap-4 ${inline ? "h-full min-h-0" : ""}`}>
-      {/* Top bar — back link + demo/notice chips (right-aligned in inline mode) */}
+      {/* Top bar: back link + demo/notice chips (right-aligned in inline mode) */}
       <div className={`flex items-center gap-3 ${inline ? "justify-end" : "justify-between"}`}>
         {!inline && (
           <Link
             href={backHref}
             className="inline-flex items-center gap-1 text-[13px] font-semibold text-electric outline-none transition-colors hover:text-electric-hover"
           >
-            <ChevronLeft size={16} strokeWidth={2.5} aria-hidden="true" />
+            <ChevronLeft size={16} strokeWidth={2.4} aria-hidden="true" />
             {folder === "Sent" ? t("folderSent") : t("folderInbox")}
           </Link>
         )}
         <div className="flex items-center gap-2">
           {(demo || offline) && (
-            <span className="chip border border-electric/20 bg-electric-tint text-[10px] font-bold uppercase tracking-[0.08em] text-electric">
+            <span className="chip border border-electric/20 bg-electric-tint text-[11px] font-bold uppercase tracking-[0.08em] text-electric">
               {offline ? t("offlinePreview") : t("demoChip")}
             </span>
           )}
@@ -159,12 +159,12 @@ export function ReadingPane({
               role="status"
               className={`chip border text-[11px] font-semibold ${
                 notice.tone === "ok"
-                  ? "border-success/30 bg-success-tint text-[#1E6B31]"
-                  : "border-error/30 bg-error-tint text-[#B02A1F]"
+                  ? "border-success/30 bg-success-tint text-tint-fg-green"
+                  : "border-error/30 bg-error-tint text-error-fg"
               }`}
             >
               {notice.tone === "ok" ? (
-                <Check size={12} strokeWidth={3} aria-hidden="true" />
+                <Check size={12} strokeWidth={2.4} aria-hidden="true" />
               ) : (
                 <MailWarning size={12} strokeWidth={2.4} aria-hidden="true" />
               )}
@@ -222,12 +222,12 @@ export function ReadingPane({
               </div>
 
               <dl className="mt-4 grid gap-1.5 text-[13px] sm:grid-cols-[auto_1fr] sm:gap-x-4">
-                <dt className="font-bold uppercase tracking-[0.08em] text-muted text-[10px] leading-5">{t("fromLabel")}</dt>
+                <dt className="font-bold uppercase tracking-[0.08em] text-muted text-[11px] leading-5">{t("fromLabel")}</dt>
                 <dd className="min-w-0 text-obsidian">
                   <span className="font-semibold">{message.from?.name || t("unknownSender")}</span>{" "}
                   <code className="font-mono text-[11px] text-muted">&lt;{message.from?.address ?? "—"}&gt;</code>
                 </dd>
-                <dt className="font-bold uppercase tracking-[0.08em] text-muted text-[10px] leading-5">{t("toLabel")}</dt>
+                <dt className="font-bold uppercase tracking-[0.08em] text-muted text-[11px] leading-5">{t("toLabel")}</dt>
                 <dd className="min-w-0 text-obsidian-light">
                   {message.to.length === 0
                     ? "—"
@@ -236,7 +236,7 @@ export function ReadingPane({
                     <span className="text-muted"> · {t("ccList", { list: message.cc.map((t) => t.name || t.address).join(", ") })}</span>
                   )}
                 </dd>
-                <dt className="font-bold uppercase tracking-[0.08em] text-muted text-[10px] leading-5">{t("dateLabel")}</dt>
+                <dt className="font-bold uppercase tracking-[0.08em] text-muted text-[11px] leading-5">{t("dateLabel")}</dt>
                 <dd className="text-obsidian-light">
                   <time dateTime={message.date} title={message.date}>
                     {fullDateTime(message.date, intlLocale)}
@@ -246,7 +246,7 @@ export function ReadingPane({
 
               {attachmentCount > 0 && (
                 <div className="mt-4">
-                  <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-muted">
+                  <p className="mb-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                     {t("attachmentCount", { count: attachmentCount })}
                   </p>
                   <ul className="flex flex-wrap gap-2">
@@ -259,8 +259,8 @@ export function ReadingPane({
                           title={t("downloadAttachment", { filename: att.filename })}
                         >
                           <Paperclip size={13} strokeWidth={2} aria-hidden="true" className="shrink-0" />
-                          <span className="truncate">{att.filename}</span>
-                          <span className="shrink-0 font-mono text-[10px] tabular-nums text-muted">
+                          <span className="truncate" title={att.filename}>{att.filename}</span>
+                          <span className="shrink-0 font-mono text-[11px] tabular-nums text-muted">
                             {formatBytes(att.size)}
                           </span>
                           <Download size={13} strokeWidth={2} aria-hidden="true" className="shrink-0" />
@@ -280,7 +280,7 @@ export function ReadingPane({
             <div className="h-[420px] animate-pulse rounded-md border border-border bg-canvas" />
           ) : !message ? (
             <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-              <MailWarning size={34} strokeWidth={1.6} className="text-muted" aria-hidden="true" />
+              <MailWarning size={34} strokeWidth={1.8} className="text-muted" aria-hidden="true" />
               <p className="mt-3 text-[15px] font-bold text-obsidian">{t("messageLoadFailedTitle")}</p>
               <p className="mt-1 max-w-sm text-[13px] text-muted">
                 {t("messageLoadFailedBody")}
@@ -289,7 +289,7 @@ export function ReadingPane({
           ) : srcDoc ? (
             <>
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-muted">{t("messageBody")}</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{t("messageBody")}</p>
                 <button
                   type="button"
                   onClick={() => setShowImages((v) => !v)}
@@ -321,7 +321,7 @@ export function ReadingPane({
             </>
           ) : (
             <>
-              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.08em] text-muted">
+              <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                 {t("plainTextMessage")}
               </p>
               <pre className="max-h-[560px] overflow-auto whitespace-pre-wrap rounded-md border border-border bg-canvas p-4 font-sans text-[13px] leading-relaxed text-obsidian-light">

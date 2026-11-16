@@ -51,7 +51,7 @@ export default function ForgotPasswordClient() {
           {sent ? (
             <div className="mt-5" role="status">
               <div className="flex h-12 w-12 items-center justify-center rounded-pill bg-success-tint">
-                <MailCheck size={24} className="text-success" strokeWidth={1.8} aria-hidden="true" />
+                <MailCheck size={24} className="text-tint-fg-green" strokeWidth={1.8} aria-hidden="true" />
               </div>
               <h1 className="mt-4 text-[26px] font-extrabold tracking-[-0.04em] text-obsidian">
                 {t("checkInbox")}

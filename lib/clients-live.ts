@@ -1,5 +1,5 @@
 /**
- * Clients — live data loader (server-only). Null on unconfigured/error.
+ * Clients: live data loader (server-only). Null on unconfigured/error.
  */
 import "server-only";
 import { createClient } from "@/lib/supabase/server";

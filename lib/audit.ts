@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * logAudit — the single write path for the audit trail from server code.
+ * logAudit: the single write path for the audit trail from server code.
  *
  * `audit_log` has no INSERT policy for `authenticated`; writes go through the
  * `log_audit_event()` security-definer RPC, which stamps actor_id from
@@ -23,7 +23,7 @@ export async function logAudit(
   },
 ): Promise<void> {
   if (!supabase) {
-    console.warn(`[audit] skipped "${entry.action}" — Supabase not configured`);
+    console.warn(`[audit] skipped "${entry.action}": Supabase not configured`);
     return;
   }
   try {

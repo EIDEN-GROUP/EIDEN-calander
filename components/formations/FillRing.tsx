@@ -1,5 +1,5 @@
 /**
- * FillRing — SVG progress ring for formation fill rate.
+ * FillRing: SVG progress ring for formation fill rate.
  * Radius 18 on a 48 viewBox; stroke ramps success → warning (>80%) → error (100%).
  */
 
@@ -57,7 +57,7 @@ export function FillRing({
       </svg>
       <span className="absolute inset-0 flex items-center justify-center text-[11px] font-extrabold tabular-nums leading-none text-obsidian">
         {clamped}
-        <span className="text-[8px] font-bold text-muted">%</span>
+        <span className="text-[11px] font-bold text-muted">%</span>
       </span>
     </span>
   );

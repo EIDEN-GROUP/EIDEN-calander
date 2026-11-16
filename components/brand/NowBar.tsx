@@ -1,5 +1,5 @@
 /**
- * The Now-Bar — official CALENDAR. brand mark (brand book, §The Mark).
+ * The Now-Bar: official CALENDAR. brand mark (brand book, §The Mark).
  * Clear space rule: maintain a margin equal to the width of the blue pill
  * (the rect below) on every side. Minimum size: 24px (mark), 120px (lockup).
  *
@@ -44,7 +44,7 @@ export function NowBarMark({
   );
 }
 
-/** Wordmark — “CALENDAR” at 800 weight, −0.04em tracking, Electric Blue period. */
+/** Wordmark: “CALENDAR” at 800 weight, −0.04em tracking, Electric Blue period. */
 export function Wordmark({
   variant = "obsidian",
   className = "",

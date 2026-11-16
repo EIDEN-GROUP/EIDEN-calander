@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 
 /**
  * Server Supabase client (RSC / Server Actions). Uses cookie-based sessions
- * via @supabase/ssr. cookieStore may be read-only in RSC render — set
+ * via @supabase/ssr. cookieStore may be read-only in RSC render: set
  * failures are swallowed by design; session refresh happens in middleware.
  */
 export async function createClient() {
@@ -24,7 +24,7 @@ export async function createClient() {
             cookieStore.set(name, value, options),
           );
         } catch {
-          /* RSC render — middleware refreshes the session */
+          /* RSC render: middleware refreshes the session */
         }
       },
     },

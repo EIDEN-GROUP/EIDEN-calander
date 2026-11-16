@@ -50,7 +50,7 @@ import { useModalA11y } from "./focus-trap";
 import { ConflictModal } from "./ConflictModal";
 import { appLocaleTag, categoryName } from "@/lib/intl-locale";
 
-/** Default working hours — Mon–Sat 08:00–20:00, Sunday closed. */
+/** Default working hours: Mon–Sat 08:00–20:00, Sunday closed. */
 const DEFAULT_WH: WorkingHoursEntry[] = [
   { weekday: "mon", is_open: true, open_time: "08:00", close_time: "20:00" },
   { weekday: "tue", is_open: true, open_time: "08:00", close_time: "20:00" },
@@ -84,7 +84,7 @@ export interface BookingDrawerProps {
   /** Pre-fill the client select (deep link from /clients). */
   initialClientId?: string | null;
   onSaved?: (payload: BookingPayload, opts: { conflict: boolean }) => void;
-  /** View mode: pause/resume, postpone, remove — same actions as the context menu (needed on touch, where there is no right-click). */
+  /** View mode: pause/resume, postpone, remove: same actions as the context menu (needed on touch, where there is no right-click). */
   onTogglePause?: (booking: BookingRow) => void;
   onPostpone?: (booking: BookingRow) => void;
   onRemove?: (booking: BookingRow) => void;
@@ -170,6 +170,21 @@ export function BookingDrawer({
   const [saving, setSaving] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const closingRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
+  /* Two-phase close: play the exit (slide/fade) first, then ask the parent to unmount. */
+  const requestClose = () => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    setClosing(true);
+    setMounted(false);
+    window.setTimeout(() => onCloseRef.current(), 320);
+  };
   const [view, setView] = useState(mode);
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -209,11 +224,11 @@ export function BookingDrawer({
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  useModalA11y(panelRef, onClose, !conflictModalOpen);
+  useModalA11y(panelRef, requestClose, !conflictModalOpen);
 
   const isView = view === "view";
 
-  /* ---------- derived dates + live conflict check ---------- */
+  /* derived dates + live conflict check */
   const start = parseLocal(date, startTime);
   const end = parseLocal(date, endTime);
   const startMs = start?.getTime() ?? Number.NaN;
@@ -317,7 +332,7 @@ export function BookingDrawer({
           { ...payload, id: res.data.bookingId, status: "pending_conflict" },
           { conflict: true },
         );
-        onClose();
+        requestClose();
         return;
       }
       let res;
@@ -328,12 +343,12 @@ export function BookingDrawer({
       }
       if (!res.ok) { setError(res.error.message); return; }
       if ("conflict" in res.data) {
-        // Race lost between preview and submit — server wins; show its conflicts.
+        // Race lost between preview and submit: server wins; show its conflicts.
         setError(t("slotTakenError"));
         return;
       }
       onSaved?.({ ...payload, id: res.data.bookingId, status: booking?.status === "completed" ? "completed" : "confirmed" }, { conflict: false });
-      onClose();
+      requestClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("genericError"));
     } finally {
@@ -349,41 +364,41 @@ export function BookingDrawer({
     view === "view" ? (live ? t("kickerLive") : t("offlinePreview")) : view === "edit" ? (live ? t("kickerLiveEdit") : t("kickerOfflineEdit")) : live ? t("kickerCreateLive") : t("kickerCreateOffline");
 
   return (
-    <div className="fixed inset-0 z-50">
-      {/* Overlay — click closes */}
+    <div className={`fixed inset-0 z-50 ${closing ? "pointer-events-none" : ""}`} aria-hidden={closing || undefined}>
+      {/* Overlay: click closes */}
       <button
         type="button"
         aria-label={t("closePanel")}
         tabIndex={-1}
-        onClick={onClose}
-        className={`absolute inset-0 cursor-default bg-obsidian/30 backdrop-blur-[2px] transition-opacity duration-300 ${
+        onClick={requestClose}
+        className={`absolute inset-0 cursor-default bg-obsidian/30 backdrop-blur-[2px] transition-opacity duration-slow ease-apple ${
           mounted ? "opacity-100" : "opacity-0"
         }`}
       />
 
-      {/* Panel — right drawer (full-screen on mobile) */}
+      {/* Panel: right drawer (full-screen on mobile) */}
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={heading}
-        className={`absolute inset-y-0 right-0 flex w-full flex-col bg-surface shadow-lg transition-transform duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] sm:max-w-[460px] sm:border-l sm:border-border ${
+        className={`absolute inset-y-0 right-0 flex w-full flex-col bg-surface shadow-lg transition-transform duration-slower ease-apple sm:max-w-[460px] sm:border-l sm:border-border ${
           mounted ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {/* Header */}
         <div className="flex h-16 shrink-0 items-center justify-between gap-3 border-b border-divider px-5">
           <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
               {kicker}
             </p>
-            <h2 className="truncate text-[17px] font-extrabold tracking-[-0.02em] text-obsidian">
+            <h2 title={heading} className="truncate text-[17px] font-extrabold tracking-[-0.02em] text-obsidian">
               {heading}
             </h2>
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={requestClose}
             aria-label={tCommon("close")}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-pill text-muted transition-colors hover:bg-black/[0.04] hover:text-obsidian"
           >
@@ -587,7 +602,7 @@ export function BookingDrawer({
 
               {/* Validation error */}
               {submitted && !canSubmit && (
-                <p role="alert" className="text-[13px] font-semibold text-error">
+                <p role="alert" className="text-[13px] font-semibold text-error-fg">
                   {t("validationError")}
                 </p>
               )}
@@ -603,14 +618,14 @@ export function BookingDrawer({
                     <TriangleAlert
                       size={18}
                       strokeWidth={2.2}
-                      className="mt-0.5 shrink-0 text-warning"
+                      className="mt-0.5 shrink-0 text-tint-fg-amber"
                       aria-hidden="true"
                     />
                     <div className="min-w-0">
                       {conflicts.slice(0, 2).map((c) => (
                         <p
                           key={c.id}
-                          className="text-[13px] font-bold leading-snug text-[#a34d00]"
+                          className="text-[13px] font-bold leading-snug text-tint-fg-amber"
                         >
                           {t("conflictRoomBooked", {
                             room: selectedRoomName,
@@ -620,7 +635,7 @@ export function BookingDrawer({
                         </p>
                       ))}
                       {conflicts.length > 2 && (
-                        <p className="mt-0.5 text-[12px] font-semibold text-[#a34d00]">
+                        <p className="mt-0.5 text-[12px] font-semibold text-tint-fg-amber">
                           {t("plusConflicts", { count: conflicts.length - 2 })}
                         </p>
                       )}
@@ -633,7 +648,7 @@ export function BookingDrawer({
                   {/* Suggested slots */}
                   {suggestionChips.length > 0 && (
                     <div className="mt-2.5 pl-[30px]">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#a34d00]">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-tint-fg-amber">
                         {t("suggestedSlots")}
                       </p>
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -643,7 +658,7 @@ export function BookingDrawer({
                             type="button"
                             onClick={() => applySuggestion(s)}
                             title={formatTimeRange(new Date(s.startsAt), new Date(s.endsAt), intlLocale)}
-                            className="chip border border-warning/50 bg-white/70 text-[11px] text-[#a34d00] transition-all hover:-translate-y-px hover:bg-white"
+                            className="chip border border-warning/50 bg-white/70 text-[11px] text-tint-fg-amber transition-all hover:-translate-y-px hover:bg-white"
                           >
                             {s.label}
                           </button>
@@ -665,10 +680,10 @@ export function BookingDrawer({
                     <button
                       type="button"
                       onClick={() => setConflictModalOpen(true)}
-                      className="inline-flex h-9 items-center gap-0.5 rounded-pill px-3 text-[12px] font-bold text-[#a34d00] transition-colors hover:bg-warning/20"
+                      className="inline-flex h-9 items-center gap-0.5 rounded-pill px-3 text-[12px] font-bold text-tint-fg-amber transition-colors hover:bg-warning/20"
                     >
                       {t("reviewConflicts")}
-                      <ChevronRight size={14} strokeWidth={2.6} aria-hidden="true" />
+                      <ChevronRight size={14} strokeWidth={2.4} aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -678,7 +693,7 @@ export function BookingDrawer({
                   <p
                     role="status"
                     aria-live="polite"
-                    className="flex items-center gap-1.5 text-[12px] font-semibold text-success"
+                    className="flex items-center gap-1.5 text-[12px] font-semibold text-tint-fg-green"
                   >
                     <CheckCircle2 size={15} strokeWidth={2.2} aria-hidden="true" />
                     {t("slotFree", { room: selectedRoomName, timeRange: start ? formatTimeRange(start, end!, intlLocale) : "" })}
@@ -694,14 +709,14 @@ export function BookingDrawer({
           <div
             role="alert"
             aria-live="assertive"
-            className="mx-5 mb-2 flex items-start gap-2.5 rounded-sm border border-error/25 bg-error-tint px-4 py-3 text-[13px] font-medium leading-snug text-[#c22a22]"
+            className="mx-5 mb-2 flex items-start gap-2.5 rounded-sm border border-error/25 bg-error-tint px-4 py-3 text-[13px] font-medium leading-snug text-error-fg"
           >
             <TriangleAlert size={16} strokeWidth={2} className="mt-0.5 shrink-0" aria-hidden="true" />
             <span>{error}</span>
           </div>
         )}
 
-        {/* View mode: quick actions (touch-friendly — no right-click needed) */}
+        {/* View mode: quick actions (touch-friendly: no right-click needed) */}
         {isView && booking && (onTogglePause || onPostpone || onRemove) && (
           <div className="flex shrink-0 items-center gap-1.5 border-t border-divider px-5 py-2.5" aria-label="Quick actions">
             {onTogglePause && (
@@ -728,7 +743,7 @@ export function BookingDrawer({
               <button
                 type="button"
                 onClick={() => onRemove(booking)}
-                className="inline-flex h-9 items-center gap-1.5 rounded-pill px-3 text-[12px] font-bold text-error transition-colors hover:bg-error-tint"
+                className="inline-flex h-9 items-center gap-1.5 rounded-pill px-3 text-[12px] font-bold text-error-fg transition-colors hover:bg-error-tint"
               >
                 <Trash2 size={13} strokeWidth={2.2} aria-hidden="true" />
                 {tCommon("remove")}
@@ -741,7 +756,7 @@ export function BookingDrawer({
         <div className="flex shrink-0 items-center justify-end gap-2 border-t border-divider px-5 py-4">
           {isView ? (
             <>
-              <button type="button" onClick={onClose} className="btn btn-secondary">
+              <button type="button" onClick={requestClose} className="btn btn-secondary">
                 {tCommon("close")}
               </button>
               <button
@@ -754,7 +769,7 @@ export function BookingDrawer({
             </>
           ) : (
             <>
-              <button type="button" onClick={onClose} className="btn btn-secondary">
+              <button type="button" onClick={requestClose} className="btn btn-secondary">
                 {tCommon("cancel")}
               </button>
               <button
@@ -794,7 +809,7 @@ export function BookingDrawer({
   );
 }
 
-/* ---------------- view mode body ---------------- */
+/* view mode body */
 
 function ViewBody({
   booking,
@@ -875,13 +890,13 @@ function ViewBody({
           {categoryName}
         </FactRow>
         <FactRow icon={Banknote} label={t("priceFactLabel")}>
-          {booking.price != null ? `${booking.price} MAD` : "—"}
+          {booking.price != null ? `${booking.price}\u00A0MAD` : "—"}
         </FactRow>
       </dl>
 
       {booking.notes && (
         <div className="mt-4 rounded-sm border border-border border-l-2 border-l-electric bg-white p-3.5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
+          <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
             {t("notesLabel")}
           </p>
           <p className="mt-1 text-[13px] leading-snug text-obsidian-light">
@@ -911,7 +926,7 @@ function FactRow({
         aria-hidden="true"
       />
       <div className="min-w-0">
-        <dt className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted">
+        <dt className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
           {label}
         </dt>
         <dd className="mt-0.5 text-[13px] font-medium leading-snug text-obsidian">

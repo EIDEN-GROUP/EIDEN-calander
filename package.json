@@ -52,5 +52,5 @@
     "typescript": "^5",
     "vitest": "^5.1.0"
   },
-  "description": "CALENDAR. — Architecture for Time. Eiden Group internal scheduling: meeting rooms, formations and clients."
+  "description": "CALENDAR. · Architecture for Time. Eiden Group internal scheduling: meeting rooms, formations and clients."
 }

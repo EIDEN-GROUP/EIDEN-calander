@@ -34,8 +34,8 @@ function passwordScore(pw: string): number {
 }
 
 const STRENGTH: Array<{ labelKey: string; bar: string; text: string }> = [
-  { labelKey: "strengthTooShort", bar: "bg-error", text: "text-error" },
-  { labelKey: "strengthWeak", bar: "bg-error", text: "text-error" },
+  { labelKey: "strengthTooShort", bar: "bg-error", text: "text-error-fg" },
+  { labelKey: "strengthWeak", bar: "bg-error", text: "text-error-fg" },
   { labelKey: "strengthFair", bar: "bg-warning", text: "text-tint-fg-amber" },
   { labelKey: "strengthStrong", bar: "bg-warning", text: "text-tint-fg-amber" },
   { labelKey: "strengthExcellent", bar: "bg-success", text: "text-tint-fg-green" },
@@ -54,7 +54,7 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
   const router = useRouter();
   const t = useTranslations("profile");
   const appLocale = useLocale();
-  const { toasts, push } = useToast();
+  const { toasts, leaving, push } = useToast();
   const initials = (profile?.fullName ?? "MA")
     .split(/\s+/)
     .filter(Boolean)
@@ -114,7 +114,7 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
       {firstLogin && (
         <div
           role="alert"
-          className="mt-4 flex items-start gap-3 rounded-sm border border-warning/50 bg-warning-tint px-4 py-3 text-[13px] font-semibold leading-snug text-[#a34d00]"
+          className="mt-4 flex items-start gap-3 rounded-sm border border-warning/50 bg-warning-tint px-4 py-3 text-[13px] font-semibold leading-snug text-tint-fg-amber"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" strokeLinecap="round" strokeLinejoin="round"/></svg>
           <span>{t("firstLoginNotice")}</span>
@@ -146,11 +146,11 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
             value={name}
             onChange={(e) => setName(e.target.value)}
             aria-label={t("fullName")}
-            className="-ml-2 w-full max-w-xs rounded-sm border border-transparent bg-transparent px-2 py-1 text-[22px] font-extrabold leading-tight tracking-[-0.03em] text-obsidian outline-none transition-colors hover:border-border focus:border-electric focus:bg-white"
+            className="-ml-2 w-full max-w-xs rounded-sm border border-transparent bg-transparent px-2 py-1 text-[22px] font-extrabold leading-tight tracking-[-0.05em] text-obsidian outline-none transition-colors hover:border-border focus:border-electric focus:bg-white"
             autoComplete="name"
           />
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <span className="chip bg-obsidian text-[10px] uppercase tracking-[0.12em] text-white">{profile?.role === "admin" ? t("roleAdmin") : t("roleStaff")}</span>
+            <span className="chip bg-obsidian text-[11px] uppercase tracking-[0.08em] text-white">{profile?.role === "admin" ? t("roleAdmin") : t("roleStaff")}</span>
             <span className="flex items-center gap-1 text-[11px] font-semibold text-muted">
               <Building2 size={11} strokeWidth={2.2} aria-hidden="true" />
               Eiden Group
@@ -174,7 +174,7 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
             >
               <Info size={13} strokeWidth={2.2} aria-hidden="true" />
             </span>
-            <span className="font-sans text-[10px] font-bold uppercase tracking-[0.1em] text-muted">{t("managedByAdmin")}</span>
+            <span className="font-sans text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{t("managedByAdmin")}</span>
           </p>
         </div>
       </div>
@@ -238,7 +238,7 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
               <button type="button" aria-pressed="true" className="segment segment-active cursor-default">{t("themeLight")}</button>
               <button type="button" disabled className="segment cursor-not-allowed opacity-50" title={t("darkModeTitle")}>
                 {t("themeDark")}
-                <span className="ml-1.5 rounded-pill bg-track px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-muted">{t("themeSoon")}</span>
+                <span className="ml-1.5 rounded-pill bg-track px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-muted">{t("themeSoon")}</span>
               </button>
             </div>
             <p className="mt-1.5 text-[11px] font-medium text-muted">{t("themeHint")}</p>
@@ -273,6 +273,7 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
           </h2>
 
           <form onSubmit={submitPassword} className="space-y-3">
+            <input type="text" name="username" autoComplete="username" value={profile?.email ?? ""} readOnly hidden tabIndex={-1} aria-hidden="true" />
             <div>
               <label htmlFor="current-pw" className="label">{t("currentPassword")}</label>
               <input id="current-pw" type="password" autoComplete="current-password" className="input h-10 text-[13px]" value={currentPw} onChange={(e) => { setCurrentPw(e.target.value); setPwError(null); }} />
@@ -303,11 +304,11 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
                   {[1, 2, 3, 4].map((segment) => (
                     <span
                       key={segment}
-                      className={`h-1.5 flex-1 rounded-pill transition-colors duration-300 ${score >= segment ? strength.bar : "bg-track"}`}
+                      className={`h-1.5 flex-1 rounded-pill transition-colors duration-slower ${score >= segment ? strength.bar : "bg-track"}`}
                     />
                   ))}
                 </div>
-                <p className={`mt-1 text-[10px] font-bold uppercase tracking-[0.1em] ${newPw ? strength.text : "text-muted"}`}>
+                <p className={`mt-1 text-[11px] font-bold uppercase tracking-[0.08em] ${newPw ? strength.text : "text-muted"}`}>
                   {newPw ? t(strength.labelKey) : t("minTenChars")}
                 </p>
               </div>
@@ -316,12 +317,12 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
               <label htmlFor="confirm-pw" className="label">{t("confirmNewPassword")}</label>
               <input id="confirm-pw" type="password" autoComplete="new-password" className="input h-10 text-[13px]" value={confirmPw} onChange={(e) => { setConfirmPw(e.target.value); setPwError(null); }} />
             </div>
-            {pwError ? <p role="alert" className="text-[11px] font-semibold text-error">{pwError}</p> : null}
+            {pwError ? <p role="alert" className="text-[11px] font-semibold text-error-fg">{pwError}</p> : null}
             <button type="submit" className="btn btn-primary h-10 w-full text-[13px]">{t("updatePassword")}</button>
           </form>
 
           <div className="border-t border-divider pt-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted">{t("sessions")}</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{t("sessions")}</p>
             <div className="mt-2 flex items-center gap-2 rounded-sm bg-canvas px-3 py-2.5 text-[11px] font-medium leading-snug text-obsidian-light">
               <span className="h-2 w-2 shrink-0 rounded-pill bg-success" aria-hidden="true" />
               {t("currentSession")}
@@ -350,18 +351,18 @@ export function ProfileView({ firstLogin = false, profile = null }: { firstLogin
               <button
                 type="button"
                 onClick={() => setConfirmSignOut(true)}
-                className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-pill border border-error/50 bg-white px-4 text-[12px] font-semibold text-error transition-colors hover:bg-error-tint"
+                className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-pill border border-error/50 bg-white px-4 text-[12px] font-semibold text-error-fg transition-colors hover:bg-error-tint"
               >
                 <LogOut size={14} strokeWidth={2.2} aria-hidden="true" />
                 {t("signOutOtherSessions")}
               </button>
             )}
-            <p className="mt-3 font-mono text-[10px] leading-relaxed text-muted">{t("securityFooter")}</p>
+            <p className="mt-3 font-mono text-[11px] leading-relaxed text-muted">{t("securityFooter")}</p>
           </div>
         </section>
       </div>
 
-      <ToastViewport toasts={toasts} />
+      <ToastViewport toasts={toasts} leaving={leaving} />
     </div>
   );
 }

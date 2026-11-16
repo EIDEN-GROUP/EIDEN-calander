@@ -9,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("clients");
   return { title: t("metaTitleDetail") };
 }
-// Dynamic by client id — block prerender.
+// Dynamic by client id: block prerender.
 export const instant = false;
 
 export default async function ClientDetailPage({

@@ -252,12 +252,12 @@ export function RequestThread({
         <div className="flex items-center gap-3">
           <span
             aria-hidden="true"
-            className="flex h-12 w-12 items-center justify-center rounded-sm bg-warning-tint text-warning"
+            className="flex h-12 w-12 items-center justify-center rounded-sm bg-warning-tint text-tint-fg-amber"
           >
-            <CalendarClock size={24} strokeWidth={1.8} />
+            <CalendarClock size={24} strokeWidth={1.8} aria-hidden="true" />
           </span>
           <div>
-            <h1 className="text-[24px] font-extrabold leading-tight tracking-[-0.03em] text-obsidian sm:text-[28px]">
+            <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.05em] text-obsidian sm:text-[32px]">
               {t("changeRequest")}{" "}
               <span className="align-middle font-mono text-[0.6em] font-bold text-muted">
                 #{ref}
@@ -311,7 +311,7 @@ export function RequestThread({
 
       {/* Two-card layout */}
       <div className="mt-5 grid gap-5 lg:grid-cols-5">
-        {/* ============ LEFT — Details ============ */}
+        {/* ============ LEFT: Details ============ */}
         <section
           aria-labelledby="details-heading"
           className="card p-5 sm:p-6 lg:col-span-3"
@@ -319,7 +319,7 @@ export function RequestThread({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2
               id="details-heading"
-              className="text-[12px] font-extrabold uppercase tracking-[0.12em] text-obsidian-light"
+              className="text-[12px] font-extrabold uppercase tracking-[0.08em] text-obsidian-light"
             >
               {t("detailsHeading")}
             </h2>
@@ -342,7 +342,7 @@ export function RequestThread({
           {/* Connector */}
           <div
             aria-hidden="true"
-            className="my-3 flex items-center gap-3 text-[10px] font-extrabold uppercase tracking-[0.14em] text-muted"
+            className="my-3 flex items-center gap-3 text-[11px] font-extrabold uppercase tracking-[0.08em] text-muted"
           >
             <span className="h-px flex-1 bg-divider" />
             {t("conflictsWith")}
@@ -392,14 +392,14 @@ export function RequestThread({
                   <li key={m.id} className="flex gap-2.5">
                     <span
                       aria-hidden="true"
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-pill text-[10px] font-bold text-white ${
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-pill text-[11px] font-bold text-white ${
                         m.author === "requester" ? "bg-electric" : "bg-obsidian"
                       }`}
                     >
                       {initials(author)}
                     </span>
                     <span className="min-w-0 rounded-sm border border-border bg-white px-3 py-2">
-                      <span className="block text-[10px] font-bold uppercase tracking-[0.08em] text-muted">
+                      <span className="block text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                         {author} · {new Date(m.at).toLocaleTimeString(intlLocale, { hour: "2-digit", minute: "2-digit" })}
                       </span>
                       <span className="mt-0.5 block text-[13px] leading-snug text-obsidian">
@@ -436,14 +436,14 @@ export function RequestThread({
           </form>
         </section>
 
-        {/* ============ RIGHT — Status timeline ============ */}
+        {/* ============ RIGHT: Status timeline ============ */}
         <section
           aria-labelledby="status-heading"
           className="card flex flex-col p-5 sm:p-6 lg:col-span-2"
         >
           <h2
             id="status-heading"
-            className="text-[12px] font-extrabold uppercase tracking-[0.12em] text-obsidian-light"
+            className="text-[12px] font-extrabold uppercase tracking-[0.08em] text-obsidian-light"
           >
             {t("statusTimeline")}
           </h2>
@@ -492,12 +492,12 @@ export function RequestThread({
           {outcome === "pending" && (
             <div className="mt-4 rounded-sm border border-border bg-canvas/60 p-3.5">
               <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.1em] text-obsidian-light">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-obsidian-light">
                   <Hourglass size={13} strokeWidth={2.2} aria-hidden="true" />
                   {t("countdownWindow", { hours: TTL_HOURS })}
                 </span>
                 <span
-                  className="chip bg-warning-tint text-[11px] font-bold tabular-nums text-[#a34d00]"
+                  className="chip bg-warning-tint text-[11px] font-bold tabular-nums text-tint-fg-amber"
                   aria-label={t("timeRemaining", { time: countdown.aria })}
                 >
                   {countdown.text}
@@ -512,14 +512,14 @@ export function RequestThread({
                 aria-label={t("progressAria", { hours: TTL_HOURS })}
               >
                 <div
-                  className="h-full rounded-pill bg-electric transition-[width] duration-500"
+                  className="h-full rounded-pill bg-electric transition-[width] duration-slower"
                   style={{ width: `${Math.max(3, windowFraction * 100)}%` }}
                 />
               </div>
             </div>
           )}
 
-          {/* ------- Action area ------- */}
+          {/* Action area */}
           {outcome === "pending" ? (
             perspective === "incumbent" ? (
               <IncumbentActions
@@ -633,11 +633,10 @@ function BookingSideCard({
   roomName: string;
   location?: string;
   clientName: string | null;
-  /** Live display name — falls back to the demo id lookup. */
+  /** Live display name: falls back to the demo id lookup. */
   creatorName?: string | null;
 }) {
   const t = useTranslations("requests");
-  const intlLocale = appLocaleTag(useLocale());
   const start = new Date(booking.starts_at);
   const end = new Date(booking.ends_at);
   const status =
@@ -651,7 +650,7 @@ function BookingSideCard({
 
   const tagClass =
     tone === "warning"
-      ? "border-dashed border-warning/70 bg-warning-tint text-[#a34d00]"
+      ? "border-dashed border-warning/70 bg-warning-tint text-tint-fg-amber"
       : "border-electric/25 bg-electric-tint text-electric";
 
   return (
@@ -663,15 +662,15 @@ function BookingSideCard({
       }`}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className={`chip border text-[10px] uppercase tracking-[0.08em] ${tagClass}`}>
+        <span className={`chip border text-[11px] uppercase tracking-[0.08em] ${tagClass}`}>
           {tag}
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-pill bg-white px-2 py-0.5 text-[10px] font-bold text-obsidian ring-1 ring-border">
+        <span className="inline-flex items-center gap-1.5 rounded-pill bg-white px-2 py-0.5 text-[11px] font-bold text-obsidian ring-1 ring-border">
           <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} aria-hidden="true" />
           {status.label}
         </span>
       </div>
-      <h3 className="mt-2.5 text-[15px] font-extrabold leading-snug tracking-[-0.01em] text-obsidian">
+      <h3 className="mt-2.5 text-[15px] font-extrabold leading-snug tracking-[-0.02em] text-obsidian">
         {booking.title}
       </h3>
       <dl className="mt-2.5 grid gap-1.5 text-[12px] font-medium text-obsidian-light sm:grid-cols-2">
@@ -739,9 +738,9 @@ function TimelineStep({
                 : "border-border bg-white"
         }`}
       >
-        {done && <Check size={11} strokeWidth={3.4} />}
+        {done && <Check size={11} strokeWidth={2.4} aria-hidden="true" />}
         {active && <span className="h-1.5 w-1.5 rounded-full bg-obsidian" />}
-        {failed && <span className="text-[10px] font-black leading-none">×</span>}
+        {failed && <span className="text-[11px] font-black leading-none">×</span>}
       </span>
       <span className="min-w-0">
         <span
@@ -761,7 +760,6 @@ function TimelineStep({
 
 function OutcomeChip({ outcome }: { outcome: Outcome }) {
   const t = useTranslations("requests");
-  const intlLocale = appLocaleTag(useLocale());
   const meta = {
     pending: { label: t("statusPending"), dot: "bg-warning", ring: "ring-warning/40" },
     approved: { label: t("statusApproved"), dot: "bg-success", ring: "ring-success/40" },
@@ -797,7 +795,7 @@ function IncumbentActions({
   const intlLocale = appLocaleTag(useLocale());
   return (
     <div className="mt-5 border-t border-divider pt-4">
-      <p className="text-[12px] font-extrabold uppercase tracking-[0.1em] text-obsidian-light">
+      <p className="text-[12px] font-extrabold uppercase tracking-[0.08em] text-obsidian-light">
         {t("incumbentMove")}
       </p>
       <p className="mt-1 text-[12px] leading-snug text-muted">
@@ -813,14 +811,14 @@ function IncumbentActions({
           >
             <span className="flex min-w-0 items-center gap-2 text-[13px] font-bold text-electric">
               <CalendarClock size={16} strokeWidth={2} aria-hidden="true" className="shrink-0" />
-              <span className="truncate">{slotLabel(slot, intlLocale)}</span>
+              <span className="truncate" title={slotLabel(slot, intlLocale)}>{slotLabel(slot, intlLocale)}</span>
             </span>
             <button
               type="button"
               onClick={() => onApprove(slot)}
               className="btn btn-primary h-9 shrink-0 !px-4 !text-[12px]"
             >
-              <Check size={14} strokeWidth={3} aria-hidden="true" />
+              <Check size={14} strokeWidth={2.4} aria-hidden="true" />
               {t("approveAndMove")}
             </button>
           </li>
@@ -843,7 +841,7 @@ function IncumbentActions({
         <button
           type="button"
           onClick={onDecline}
-          className="btn btn-secondary mt-2 h-11 w-full border !border-error/30 text-error hover:!bg-error-tint"
+          className="btn btn-secondary mt-2 h-11 w-full border !border-error/30 text-error-fg hover:!bg-error-tint"
         >
           <XCircle size={17} strokeWidth={2} aria-hidden="true" />
           {t("declineRequest")}
@@ -867,7 +865,7 @@ function RequesterActions({
   return (
     <div className="mt-5 border-t border-divider pt-4">
       <div className="rounded-sm border border-border bg-canvas/60 p-4 text-center">
-        <Hourglass size={26} strokeWidth={1.8} className="mx-auto text-warning" aria-hidden="true" />
+        <Hourglass size={26} strokeWidth={1.8} className="mx-auto text-tint-fg-amber" aria-hidden="true" />
         <p className="mt-2 text-[14px] font-extrabold text-obsidian">
           {t("waitingOn", { incumbent })}
         </p>
@@ -876,7 +874,7 @@ function RequesterActions({
         </p>
       </div>
 
-      <p className="mt-4 text-[12px] font-extrabold uppercase tracking-[0.1em] text-obsidian-light">
+      <p className="mt-4 text-[12px] font-extrabold uppercase tracking-[0.08em] text-obsidian-light">
         {t("yourSuggestedSlot")}
       </p>
       <ul className="mt-2 space-y-1.5">
@@ -894,7 +892,7 @@ function RequesterActions({
       <button
         type="button"
         onClick={onCancel}
-        className="btn btn-secondary mt-4 h-11 w-full border !border-error/30 text-error hover:!bg-error-tint"
+        className="btn btn-secondary mt-4 h-11 w-full border !border-error/30 text-error-fg hover:!bg-error-tint"
       >
         <Ban size={17} strokeWidth={2} aria-hidden="true" />
         {t("cancelMyBooking")}
@@ -923,7 +921,6 @@ function OutcomePanel({
   onReset: () => void;
 }) {
   const t = useTranslations("requests");
-  const intlLocale = appLocaleTag(useLocale());
   const slot = approvedSlot ?? suggestedSlots[0] ?? null;
 
   if (outcome === "approved") {
@@ -933,7 +930,7 @@ function OutcomePanel({
         aria-live="polite"
         className="mt-5 flex-1 rounded-sm border border-success/40 bg-success-tint p-5 text-center"
       >
-        <CheckCircle2 size={38} strokeWidth={1.8} className="mx-auto text-success" aria-hidden="true" />
+        <CheckCircle2 size={38} strokeWidth={1.8} className="mx-auto text-tint-fg-green" aria-hidden="true" />
         <p className="mt-2 text-[16px] font-extrabold leading-snug text-obsidian">
           {t("approvedTitle")}
         </p>
@@ -964,7 +961,7 @@ function OutcomePanel({
         aria-live="polite"
         className="mt-5 flex-1 rounded-sm border border-error/30 bg-error-tint p-5 text-center"
       >
-        <XCircle size={38} strokeWidth={1.8} className="mx-auto text-error" aria-hidden="true" />
+        <XCircle size={38} strokeWidth={1.8} className="mx-auto text-error-fg" aria-hidden="true" />
         <p className="mt-2 text-[16px] font-extrabold leading-snug text-obsidian">
           {t("declinedTitle")}
         </p>
@@ -972,7 +969,7 @@ function OutcomePanel({
           {t("declinedBody", { room: roomName })}
           {declineReason.trim() ? (
             <>
-              {" "}— “<em>{declineReason.trim()}</em>”
+              {" "}· “<em>{declineReason.trim()}</em>”
             </>
           ) : (
             t("declinedWithAlternatives")

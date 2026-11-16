@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * ProgressRing — SVG ring, Electric arc on track tint, 600ms ease transition
+ * ProgressRing: SVG ring, Electric arc on track tint, 600ms ease transition
  * on stroke-dashoffset. role="progressbar" with full aria values.
  */
 export function ProgressRing({
@@ -55,14 +55,14 @@ export function ProgressRing({
           strokeDasharray={circumference}
           strokeDashoffset={circumference * (1 - clamped / 100)}
           transform={`rotate(-90 ${center} ${center})`}
-          style={{ transition: "stroke-dashoffset 600ms var(--ease-apple)" }}
+          style={{ transition: "stroke-dashoffset var(--transition-duration-slower) var(--ease-apple)" }}
         />
       </svg>
       <span
         aria-hidden="true"
         className="pointer-events-none absolute flex flex-col items-center"
       >
-        <span className="font-mono text-[24px] font-bold leading-none tracking-[-0.03em] text-obsidian tabular-nums">
+        <span className="font-mono text-[24px] font-bold leading-none tracking-[-0.05em] text-obsidian tabular-nums">
           {clamped}
           <span className="text-[13px] text-muted">%</span>
         </span>

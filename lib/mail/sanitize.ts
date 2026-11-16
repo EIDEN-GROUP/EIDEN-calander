@@ -1,5 +1,5 @@
 /**
- * sanitize.ts — untrusted mail HTML/plain-text sanitation (SERVER-ONLY).
+ * sanitize.ts: untrusted mail HTML/plain-text sanitation (SERVER-ONLY).
  *
  * Every message body rendered in the app passes through `sanitizeMessageHtml`
  * before it reaches an <iframe srcDoc>. Nothing is ever rendered raw.
@@ -22,7 +22,7 @@ import sanitizeHtml from "sanitize-html";
 /** Hard cap for a single message body. Anything longer is truncated. */
 export const MAX_HTML_LENGTH = 1_000_000;
 const TRUNCATION_MARKER =
-  '<hr><p><strong>This message was truncated — it exceeded the 1&nbsp;MB safety limit.</strong></p>';
+  '<hr><p><strong>This message was truncated: it exceeded the 1&nbsp;MB safety limit.</strong></p>';
 
 const ALLOWED_TAGS = [
   "p", "br", "b", "strong", "em", "i", "u", "s",
@@ -40,7 +40,7 @@ const OPTIONS: sanitizeHtml.IOptions = {
     a: ["href", "target", "rel"],
     img: ["src", "alt", "width", "height"],
   },
-  // Global protocol allowlist — http(s) + mailto only (covers a[href]).
+  // Global protocol allowlist: http(s) + mailto only (covers a[href]).
   allowedSchemes: ["http", "https", "mailto"],
   // img additionally may use data: (restricted to data:image/* by the regex above).
   allowedSchemesByTag: { img: ["http", "https", "data"] },

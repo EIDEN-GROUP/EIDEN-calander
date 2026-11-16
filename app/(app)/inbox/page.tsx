@@ -6,7 +6,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("inbox");
   return { title: t("metaInboxTitle") };
 }
-// searchParams (initial tab) is request-time data — block prerender.
+// searchParams (initial tab) is request-time data: block prerender.
 export const instant = false;
 
 export default async function Page({

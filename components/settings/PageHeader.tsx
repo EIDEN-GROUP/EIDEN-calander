@@ -36,7 +36,7 @@ export function PageHeader({
       </nav>
       <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl">
-          <h1 className="text-[24px] font-extrabold leading-tight tracking-[-0.03em] text-obsidian">
+          <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.05em] text-obsidian">
             {title}
           </h1>
           <p className="mt-1 text-[13px] font-medium leading-snug text-obsidian-light">{sub}</p>

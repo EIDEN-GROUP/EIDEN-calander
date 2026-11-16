@@ -1,5 +1,5 @@
 -- 0006_booking_status_paused.sql
--- CALENDAR. — add a `paused` booking lifecycle state.
+-- CALENDAR.: add a `paused` booking lifecycle state.
 -- A paused booking is on hold: it keeps its record and history but does NOT
 -- block the room (the availability guard only considers confirmed /
 -- pending_conflict). Resume flips it back to confirmed.

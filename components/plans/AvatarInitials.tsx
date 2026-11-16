@@ -1,7 +1,7 @@
 import { getStaff } from "./demo-staff";
 
 /**
- * AvatarInitials — brand-tint circle with initials. Decorative: the owner
+ * AvatarInitials: brand-tint circle with initials. Decorative: the owner
  * name is always rendered as adjacent text, so the avatar is aria-hidden.
  */
 export function AvatarInitials({
@@ -11,12 +11,12 @@ export function AvatarInitials({
   className = "",
   unassignedLabel,
 }: {
-  /** Staff id (resolves via demo directory) — or pass `name` directly. */
+  /** Staff id (resolves via demo directory): or pass `name` directly. */
   id?: string | null;
   name?: string;
   size?: number;
   className?: string;
-  /** Label used when there is no id — defaults to English "Unassigned". */
+  /** Label used when there is no id: defaults to English "Unassigned". */
   unassignedLabel?: string;
 }) {
   const resolved = name

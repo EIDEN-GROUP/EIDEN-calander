@@ -77,7 +77,7 @@ export function RoomsView({
   const t = useTranslations("settings");
   const router = useRouter();
   const isLive = live === true && !!initialRooms;
-  const { toasts, push } = useToast();
+  const { toasts, leaving, push } = useToast();
   const [rooms, setRooms] = useState<RoomVM[]>(initialRooms ?? INITIAL_ROOMS);
   const [addOpen, setAddOpen] = useState(false);
 
@@ -96,7 +96,7 @@ export function RoomsView({
     setRooms((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
   };
 
-  /** Persist live — optimistic local patch + best-effort server sync. */
+  /** Persist live: optimistic local patch + best-effort server sync. */
   const commitRoom = (id: string, patch: Partial<RoomVM>) => {
     updateRoom(id, patch);
     if (!isLive) return;
@@ -235,7 +235,7 @@ export function RoomsView({
 
           {!anyActive ? (
             <div className="card flex flex-col items-center px-6 py-12 text-center">
-              <DoorOpen size={28} strokeWidth={1.6} aria-hidden="true" className="text-muted" />
+              <DoorOpen size={28} strokeWidth={1.8} aria-hidden="true" className="text-muted" />
               <p className="mt-3 text-[14px] font-bold text-obsidian">{t("allRoomsDeactivatedTitle")}</p>
               <p className="mt-1 max-w-sm text-[12px] font-medium leading-snug text-muted">
                 {t("allRoomsDeactivatedBody")}
@@ -259,8 +259,8 @@ export function RoomsView({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h2 className="truncate text-[15px] font-extrabold leading-snug text-obsidian">{room.name}</h2>
-                      <p className="mt-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-muted">
+                      <h2 title={room.name} className="truncate text-[15px] font-extrabold leading-snug text-obsidian">{room.name}</h2>
+                      <p className="mt-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                         {room.is_active ? t("roomBookable") : t("roomDeactivatedHidden")}
                       </p>
                     </div>
@@ -306,7 +306,7 @@ export function RoomsView({
                           onChange={(e) => updateRoom(room.id, { hourly_rate: Math.max(0, Number(e.target.value) || 0) })}
                           onBlur={(e) => commitRoom(room.id, { hourly_rate: Math.max(0, Number(e.target.value) || 0) })}
                         />
-                        <span aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted">MAD</span>
+                        <span aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-muted">MAD</span>
                       </div>
                     </div>
                   </div>
@@ -352,7 +352,7 @@ export function RoomsView({
                     {!isLive && (
                       <>
                         <div className="flex items-baseline justify-between gap-2">
-                          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted">{t("utilization90d")}</span>
+                          <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{t("utilization90d")}</span>
                           <span className="font-mono text-[11px] font-semibold text-obsidian">{util}%</span>
                         </div>
                         <div
@@ -387,7 +387,7 @@ export function RoomsView({
 
         <aside className="space-y-4">
           <div className="card p-5">
-            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">{t("locationsHeading")}</h2>
+            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-muted">{t("locationsHeading")}</h2>
             <dl className="mt-3 divide-y divide-divider border-y border-divider">
               {[
                 { term: "Casablanca", value: t("roomsHqCount", { count: casaCount }) },
@@ -401,7 +401,7 @@ export function RoomsView({
             </dl>
           </div>
           <div className="card p-5">
-            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.1em] text-muted">{t("ratesBillingHeading")}</h2>
+            <h2 className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-muted">{t("ratesBillingHeading")}</h2>
             <ul className="mt-3 space-y-2.5 text-[12px] font-medium leading-snug text-obsidian-light">
               <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />{t("ratesVatNote")}</li>
               <li className="flex gap-2"><span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-pill bg-electric" aria-hidden="true" />{t("ratesSnapshotNote")}</li>
@@ -443,12 +443,12 @@ export function RoomsView({
             <div className="col-span-1">
               <label htmlFor="room-rate" className="label">{t("rateLabel")}</label>
               <div className="relative">
-                <input id="room-rate" type="number" min={0} step={10} className="input h-11 pl-2.5 pr-9 text-[13px]" value={draftRate} onChange={(e) => { setDraftRate(e.target.value); setDraftError(null); }} />
-                <span aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted">MAD</span>
+                <input id="room-rate" type="number" min={0} step={10} className="input h-11 pl-2.5 pr-9 text-[13px] tabular-nums" value={draftRate} onChange={(e) => { setDraftRate(e.target.value); setDraftError(null); }} />
+                <span aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-muted">MAD</span>
               </div>
             </div>
           </div>
-          {draftError ? <p role="alert" className="text-[12px] font-semibold text-error">{draftError}</p> : null}
+          {draftError ? <p role="alert" className="text-[12px] font-semibold text-error-fg">{draftError}</p> : null}
           <div>
             <span className="label" id="room-amenities-label">{t("amenitiesLabel")}</span>
             <div role="group" aria-labelledby="room-amenities-label" className="flex flex-wrap gap-1.5">
@@ -476,7 +476,7 @@ export function RoomsView({
         </form>
       </Modal>
 
-      <ToastViewport toasts={toasts} />
+      <ToastViewport toasts={toasts} leaving={leaving} />
     </div>
   );
 }

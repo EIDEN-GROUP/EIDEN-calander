@@ -1,5 +1,5 @@
 -- 0004_functions.sql
--- CALENDAR. — functions and triggers.
+-- CALENDAR.: functions and triggers.
 -- Security model:
 --   * trigger functions are SECURITY DEFINER with a fixed search_path so they
 --     behave identically regardless of the calling role (RLS included).
@@ -7,7 +7,7 @@
 --     are granted to authenticated/service_role in 0005_rls.sql, never to anon.
 
 -- ===========================================================================
--- set_updated_at() — generic BEFORE UPDATE trigger: stamps updated_at = now()
+-- set_updated_at(): generic BEFORE UPDATE trigger: stamps updated_at = now()
 -- ===========================================================================
 create or replace function public.set_updated_at()
 returns trigger
@@ -51,7 +51,7 @@ create trigger business_settings_set_updated_at
   for each row execute function public.set_updated_at();
 
 -- ===========================================================================
--- is_admin() — true when the current auth user is an ACTIVE admin profile.
+-- is_admin(): true when the current auth user is an ACTIVE admin profile.
 -- Used by RLS policies. SECURITY DEFINER so it can read profiles regardless
 -- of the caller's own policies (and so policies never recurse into profiles).
 -- ===========================================================================
@@ -72,7 +72,7 @@ as $$
 $$;
 
 -- ===========================================================================
--- guard_booking_overlap() — BEFORE INSERT OR UPDATE on bookings.
+-- guard_booking_overlap(): BEFORE INSERT OR UPDATE on bookings.
 -- Rejects a CONFIRMED booking when another CONFIRMED booking for the same
 -- room overlaps. Pending/cancelled bookings are exempt (they resolve through
 -- change_requests). Self is ignored on UPDATE.
@@ -113,7 +113,7 @@ create trigger bookings_guard_overlap
   for each row execute function public.guard_booking_overlap();
 
 -- ===========================================================================
--- recompute_plan_progress() — AFTER INSERT OR UPDATE OR DELETE on plan_tasks.
+-- recompute_plan_progress(): AFTER INSERT OR UPDATE OR DELETE on plan_tasks.
 -- sets plans.progress = round(100 * done_tasks / total_tasks); 0 tasks -> 0.
 -- SECURITY DEFINER: plan_tasks is shared operations data, so the roll-up must
 -- not depend on the caller's rights to the parent plan row.
@@ -169,7 +169,7 @@ create trigger plan_tasks_recompute_progress
   for each row execute function public.recompute_plan_progress();
 
 -- ===========================================================================
--- touch_formation_full() — AFTER INSERT OR UPDATE OR DELETE on
+-- touch_formation_full(): AFTER INSERT OR UPDATE OR DELETE on
 -- formation_participants. Counts active, non-waitlist participants
 -- (enrolled/confirmed) and flips formations.status between open and full.
 -- Only draft/open -> full and full -> open transitions are automated; ongoing
@@ -241,7 +241,7 @@ create trigger formation_participants_touch_full
   for each row execute function public.touch_formation_full();
 
 -- ===========================================================================
--- notify_user() — single canonical way to write notifications.
+-- notify_user(): single canonical way to write notifications.
 -- SECURITY DEFINER: notifications has NO insert policy for the authenticated
 -- role; every notification is written through this function (or the service
 -- role). revoked from anon in 0005_rls.sql.
@@ -275,7 +275,7 @@ end;
 $$;
 
 -- ===========================================================================
--- expire_change_requests() — marks stale pending change requests as expired,
+-- expire_change_requests(): marks stale pending change requests as expired,
 -- cancels their linked (new) bookings and notifies the requester.
 -- Called by an external scheduler (e.g. Vercel cron hitting an API route with
 -- the service role key); no pg_cron dependency. Returns the number of

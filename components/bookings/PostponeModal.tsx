@@ -8,9 +8,8 @@ import { postponeBookingAction } from "@/app/actions/bookings";
 import type { BookingRow } from "@/lib/types/db";
 import { formatTimeRange, relativeDayLabel, startOfDay } from "@/components/calendar/calendar-utils";
 import { useModalA11y } from "@/components/bookings/focus-trap";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import { useRef } from "react";
-import { appLocaleTag } from "@/lib/intl-locale";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const toDateInput = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -36,7 +35,6 @@ export function PostponeModal({
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const t = useTranslations("common");
-  const intlLocale = appLocaleTag(useLocale());
   useModalA11y(panelRef, onClose, true);
 
   const [date, setDate] = useState(() => toDateInput(new Date(booking.starts_at)));
@@ -131,7 +129,7 @@ export function PostponeModal({
               <h2 className="text-[17px] font-extrabold leading-snug tracking-[-0.02em] text-obsidian">
                 {t("postponeTitle")}
               </h2>
-              <p className="mt-0.5 line-clamp-1 text-[12px] font-medium text-obsidian-light">{booking.title}</p>
+              <p title={booking.title} className="mt-0.5 line-clamp-1 text-[12px] font-medium text-obsidian-light">{booking.title}</p>
             </div>
           </div>
           <button
@@ -164,11 +162,11 @@ export function PostponeModal({
           {/* Live conflict state */}
           {hasConflicts ? (
             <div role="status" className="mt-4 rounded-sm border border-warning/40 bg-warning-tint px-4 py-3">
-              <p className="flex items-center gap-2 text-[12px] font-bold text-[#a34d00]">
+              <p className="flex items-center gap-2 text-[12px] font-bold text-tint-fg-amber">
                 <TriangleAlert size={15} strokeWidth={2.2} aria-hidden="true" />
                 {t("postponeClashesWith", { title: conflicts[0]?.title ?? t("anotherBooking") })}
               </p>
-              <p className="mt-1.5 text-[11px] font-medium leading-snug text-[#a34d00]">
+              <p className="mt-1.5 text-[11px] font-medium leading-snug text-tint-fg-amber">
                 {t("postponePickSuggested", { range: conflicts[0] ? formatTimeRange(new Date(conflicts[0].starts_at), new Date(conflicts[0].ends_at)) : "" })}
               </p>
               {suggestions.length > 0 && (
@@ -184,7 +182,7 @@ export function PostponeModal({
                         setStartTime(toTimeInput(sStart));
                         setEndTime(toTimeInput(sEnd));
                       }}
-                      className="chip border border-warning/50 bg-white/80 px-2.5 py-1 text-[11px] font-bold text-[#a34d00] transition-all hover:-translate-y-px"
+                      className="chip border border-warning/50 bg-white/80 px-2.5 py-1 text-[11px] font-bold text-tint-fg-amber transition-all hover:-translate-y-px"
                     >
                       {relativeDayLabel(new Date(s.startsAt), today)} · {toTimeInput(new Date(s.startsAt))}
                     </button>
@@ -194,7 +192,7 @@ export function PostponeModal({
             </div>
           ) : (
             timesValid && (
-              <p role="status" className="mt-4 flex items-center gap-2 text-[12px] font-semibold text-success">
+              <p role="status" className="mt-4 flex items-center gap-2 text-[12px] font-semibold text-tint-fg-green">
                 <CheckCircle2 size={15} strokeWidth={2.2} aria-hidden="true" />
                 {t("postponeFreeSlot", { range: formatTimeRange(start, end) })}
               </p>
@@ -202,7 +200,7 @@ export function PostponeModal({
           )}
 
           {error && (
-            <p role="alert" className="mt-3 flex items-center gap-2 text-[12px] font-semibold text-error">
+            <p role="alert" className="mt-3 flex items-center gap-2 text-[12px] font-semibold text-error-fg">
               <TriangleAlert size={14} strokeWidth={2.2} aria-hidden="true" /> {error}
             </p>
           )}

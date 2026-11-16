@@ -1,11 +1,11 @@
 /**
- * send.ts — outbound SMTP via nodemailer (SERVER-ONLY).
+ * send.ts: outbound SMTP via nodemailer (SERVER-ONLY).
  *
  *  - getTransporter() caches a single transporter across invocations/lambda
  *    reuse in the same instance (module-scope cache).
  *  - secure=true for port 465 (implicit TLS), STARTTLS (secure=false) for 587.
  *  - Reads SMTP_* env ONLY. Credentials never leave this module, never logged.
- *  - sendMail NEVER throws — returns { ok, messageId?, error? }.
+ *  - sendMail NEVER throws: returns { ok, messageId?, error? }.
  *  - SMTP errors are classified; messages are human and credential-free.
  */
 import "server-only";
@@ -32,7 +32,7 @@ export function isSmtpConfigured(): boolean {
   return Boolean(SMTP_HOST && Number.isFinite(SMTP_PORT) && SMTP_USER && SMTP_PASSWORD && EMAIL_FROM);
 }
 
-/** The fixed sender identity — never caller-supplied (no spoofing). */
+/** The fixed sender identity: never caller-supplied (no spoofing). */
 export function getFromIdentity(): string {
   return EMAIL_FROM ?? "Eiden Group";
 }
@@ -64,7 +64,7 @@ export interface SendMailInput {
   text: string;
   html?: string;
   headers?: Record<string, string>;
-  /** Reply threading — sets In-Reply-To + References */
+  /** Reply threading: sets In-Reply-To + References */
   inReplyTo?: string;
   references?: string | string[];
 }
@@ -72,13 +72,13 @@ export interface SendMailInput {
 /**
  * Send one transactional email. Never throws.
  * On failure returns { ok: false, error: { code, message } } where message is
- * a sanitized, human string ("Mailbox rejected the message — check SMTP settings").
+ * a sanitized, human string ("Mailbox rejected the message: check SMTP settings").
  */
 export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
   if (!isSmtpConfigured()) {
     return {
       ok: false,
-      error: { code: "SMTP_UNCONFIGURED", message: "Mailbox rejected the message — check SMTP settings" },
+      error: { code: "SMTP_UNCONFIGURED", message: "Mailbox rejected the message: check SMTP settings" },
     };
   }
   const headers = { ...(input.headers ?? {}) };
@@ -103,7 +103,7 @@ export async function sendMail(input: SendMailInput): Promise<SendMailResult> {
     console.error(`[email] send failed (${code})`);
     return {
       ok: false,
-      error: { code, message: "Mailbox rejected the message — check SMTP settings" },
+      error: { code, message: "Mailbox rejected the message: check SMTP settings" },
     };
   }
 }

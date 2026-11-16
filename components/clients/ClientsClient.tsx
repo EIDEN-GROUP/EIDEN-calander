@@ -1,5 +1,5 @@
 /**
- * Clients list — CRM-lite directory.
+ * Clients list: CRM-lite directory.
  * Demo data (DEMO_CLIENTS) + local state.
  * Live mode: clients load from the server (Supabase). Mutations call server actions.
  * Demo mode persists locally via sessionStorage.
@@ -99,7 +99,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
   const live = data?.live === true;
   const liveClients = data?.clients;
   const liveBookings = data?.bookings;
-  const { toasts, push, dismiss } = useToast();
+  const { toasts, leaving, push, dismiss } = useToast();
   // Locally created clients (sessionStorage) on top of the demo dataset.
   const storedClients = useSyncExternalStore(
     subscribeClients,
@@ -135,7 +135,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
   const pageStart = (clampedPage - 1) * PAGE_SIZE;
   const pageItems = sorted.slice(pageStart, pageStart + PAGE_SIZE);
 
-  // All filter/sort setters reset pagination at the call site — no effects.
+  // All filter/sort setters reset pagination at the call site: no effects.
   function updateQuery(value: string) {
     setQuery(value);
     setPage(1);
@@ -174,7 +174,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
     setPage(1);
   }
 
-  /* ---------- new client ---------- */
+  /* new client */
   const [createOpen, setCreateOpen] = useState(false);
   const [form, setForm] = useState<NewClientForm>(EMPTY_FORM);
   const [formError, setFormError] = useState<string | null>(null);
@@ -250,7 +250,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
     push(t("toastClientAdded", { name: fullName }));
   }
 
-  /* ---------- quick actions ---------- */
+  /* quick actions */
   function quickBooking(client: ClientRow) {
     router.push('/calendar?client=' + encodeURIComponent(client.id));
   }
@@ -266,7 +266,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-5">
         <div className="max-w-2xl">
-          <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.04em] text-obsidian sm:text-[32px]">
+          <h1 className="text-[28px] font-extrabold leading-tight tracking-[-0.05em] text-obsidian sm:text-[32px]">
             {t("title")}
           </h1>
           <p className="mt-1.5 text-[14px] font-medium leading-snug text-obsidian-light">
@@ -321,7 +321,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
       {/* Tag chips */}
       {allTags.length > 0 && (
         <div className="mt-3 flex flex-wrap items-center gap-2" aria-label={t("filterByTag")}>
-          <span className="text-[11px] font-bold uppercase tracking-[0.09em] text-muted">{t("tags")}</span>
+          <span className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{t("tags")}</span>
           {allTags.map((tag) => {
             const active = activeTags.includes(tag);
             return (
@@ -342,7 +342,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
           })}
           {hasActiveFilters && (
             <button type="button" onClick={clearFilters} className="inline-flex items-center gap-1 rounded-pill px-2 py-1 text-[11px] font-bold text-electric hover:underline">
-              <X size={12} strokeWidth={3} aria-hidden="true" />
+              <X size={12} strokeWidth={2.4} aria-hidden="true" />
               {t("clearAll")}
             </button>
           )}
@@ -353,7 +353,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
       {pageItems.length === 0 ? (
         <div className="card mt-6 flex flex-col items-center px-6 py-16 text-center">
           <NowBarMark size={52} className="opacity-90" />
-          <h2 className="mt-5 text-[19px] font-extrabold tracking-[-0.03em] text-obsidian">{t("emptyTitle")}</h2>
+          <h2 className="mt-5 text-[19px] font-extrabold tracking-[-0.02em] text-obsidian">{t("emptyTitle")}</h2>
           <p className="mt-1.5 max-w-md text-[14px] leading-snug text-obsidian-light">
             {t("emptyBody")}
           </p>
@@ -377,7 +377,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
         <div className="card mt-6 overflow-x-auto">
           <table className="w-full min-w-[820px] border-collapse text-left text-[13px]">
             <thead>
-              <tr className="border-b border-border text-[10px] font-bold uppercase tracking-[0.09em] text-muted">
+              <tr className="border-b border-border text-[11px] font-bold uppercase tracking-[0.08em] text-muted">
                 <th scope="col" className="px-5 py-3" aria-sort={sort === "name-asc" ? "ascending" : sort === "name-desc" ? "descending" : "none"}>
                   <button type="button" onClick={cycleNameSort} className="inline-flex items-center gap-1.5 hover:text-obsidian">
                     {t("colName")}
@@ -403,7 +403,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
                 const tags = client.tags.slice(0, 2);
                 const extra = client.tags.length - tags.length;
                 return (
-                  <tr key={client.id} className="border-b border-divider align-middle transition-colors last:border-0 hover:bg-canvas">
+                  <tr key={client.id} className="border-b border-divider align-middle transition-colors last:border-0 hover:bg-canvas/60">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-2.5">
                         <Avatar name={client.full_name} kind={client.type} size={32} />
@@ -412,7 +412,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
                             {client.full_name}
                           </Link>
                           {client.company && client.company !== client.full_name && (
-                            <span className="block truncate text-[11px] font-medium text-muted">{client.company}</span>
+                            <span title={client.company} className="block truncate text-[11px] font-medium text-muted">{client.company}</span>
                           )}
                         </div>
                       </div>
@@ -426,8 +426,8 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
                     <td className="px-4 py-3"><StatusChip tone={meta.tone} dot>{t(meta.labelKey)}</StatusChip></td>
                     <td className="px-4 py-3">
                       <div className="flex max-w-[180px] flex-wrap gap-1">
-                        {tags.map((tag) => <span key={tag} className="chip bg-track px-2 py-0.5 text-[10px] font-semibold text-obsidian-light">{tag}</span>)}
-                        {extra > 0 && <span className="chip bg-track px-2 py-0.5 text-[10px] font-semibold text-muted">+{extra}</span>}
+                        {tags.map((tag) => <span key={tag} className="chip bg-track px-2 py-0.5 text-[11px] font-semibold text-obsidian-light">{tag}</span>)}
+                        {extra > 0 && <span className="chip bg-track px-2 py-0.5 text-[11px] font-semibold text-muted">+{extra}</span>}
                         {client.tags.length === 0 && <span className="text-muted">—</span>}
                       </div>
                     </td>
@@ -559,7 +559,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
               <textarea id="nc-notes" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder={t("placeholderNotes")} className="input h-auto min-h-[64px] py-3 leading-snug" />
             </div>
             {formError && (
-              <p role="alert" className="rounded-sm border border-error/30 bg-error-tint px-4 py-2.5 text-[13px] font-semibold text-error">
+              <p role="alert" className="rounded-sm border border-error/30 bg-error-tint px-4 py-2.5 text-[13px] font-semibold text-error-fg">
                 {formError}
               </p>
             )}
@@ -576,12 +576,12 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
         </Modal>
       )}
 
-      <ToastViewport toasts={toasts} onDismiss={dismiss} />
+      <ToastViewport toasts={toasts} leaving={leaving} onDismiss={dismiss} />
     </div>
   );
 }
 
-/* ---------------- client card (cards view) ---------------- */
+/* client card (cards view) */
 
 function ClientCard({
   client,
@@ -610,7 +610,7 @@ function ClientCard({
         <div className="flex min-w-0 items-center gap-3">
           <Avatar name={client.full_name} kind={client.type} size={48} />
           <div className="min-w-0">
-            <h2 className="truncate text-[15px] font-bold leading-tight tracking-[-0.01em] text-obsidian" title={client.full_name}>
+            <h2 className="truncate text-[15px] font-bold leading-tight tracking-[-0.02em] text-obsidian" title={client.full_name}>
               {client.full_name}
             </h2>
             {secondaryLine && (
@@ -628,12 +628,12 @@ function ClientCard({
       {tags.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {tags.map((tag) => (
-            <span key={tag} className="chip bg-track px-2 py-0.5 text-[10px] font-semibold text-obsidian-light">
+            <span key={tag} className="chip bg-track px-2 py-0.5 text-[11px] font-semibold text-obsidian-light">
               {tag}
             </span>
           ))}
           {extra > 0 && (
-            <span className="chip bg-track px-2 py-0.5 text-[10px] font-semibold text-muted" title={client.tags.slice(3).join(", ")}>
+            <span className="chip bg-track px-2 py-0.5 text-[11px] font-semibold text-muted" title={client.tags.slice(3).join(", ")}>
               +{extra}
             </span>
           )}
@@ -647,14 +647,14 @@ function ClientCard({
         </p>
         <p className="flex items-center gap-2">
           <Phone size={14} aria-hidden="true" className="shrink-0 text-muted" />
-          <span className="truncate tabular-nums">{client.phone ?? "—"}</span>
+          <span className="truncate tabular-nums" title={client.phone ?? undefined}>{client.phone ?? "—"}</span>
         </p>
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-2 border-t border-divider pt-4">
         <p className="flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-muted">
           <CalendarDays size={13} aria-hidden="true" className="shrink-0" />
-          <span className="truncate">{t("latestBooking", { date: formatShortDate(activity.at) })}</span>
+          <span className="truncate" title={t("latestBooking", { date: formatShortDate(activity.at) })}>{t("latestBooking", { date: formatShortDate(activity.at) })}</span>
         </p>
         <div className="flex shrink-0 items-center gap-1">
           <button

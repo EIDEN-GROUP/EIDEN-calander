@@ -1,5 +1,5 @@
 /**
- * Plans — live data loader (server-only).
+ * Plans: live data loader (server-only).
  */
 import "server-only";
 import { createClient } from "@/lib/supabase/server";

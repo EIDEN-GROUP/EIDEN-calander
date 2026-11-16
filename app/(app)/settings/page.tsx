@@ -42,10 +42,10 @@ const TABS: Tab[] = [
 export default async function SettingsPage() {
   const t = await getTranslations("settings");
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-[1440px]">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[28px] font-extrabold tracking-[-0.04em] text-obsidian">{t("hubTitle")}</h1>
+          <h1 className="text-[28px] font-extrabold tracking-[-0.05em] text-obsidian">{t("hubTitle")}</h1>
           <p className="mt-1 text-[14px] font-medium text-obsidian-light">
             {t("hubSub")}
           </p>
@@ -66,7 +66,7 @@ export default async function SettingsPage() {
               <span className="flex items-center gap-2">
                 <span className="text-[15px] font-bold text-obsidian">{t(nameKey)}</span>
                 {admin && (
-                  <span className="rounded-pill bg-canvas px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-muted">
+                  <span className="rounded-pill bg-canvas px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-muted">
                     {t("adminBadge")}
                   </span>
                 )}
@@ -76,7 +76,7 @@ export default async function SettingsPage() {
             <ChevronRight
               size={17}
               strokeWidth={2.2}
-              className="ml-auto mt-1 shrink-0 text-muted transition-transform duration-200 group-hover:translate-x-1"
+              className="ml-auto mt-1 shrink-0 text-muted transition-transform duration-base group-hover:translate-x-1"
               aria-hidden="true"
             />
           </Link>
