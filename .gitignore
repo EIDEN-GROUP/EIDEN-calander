@@ -47,6 +47,8 @@ next-env.d.ts
 .playwright-mcp/
 *.png
 !public/**/*.png
+!app/apple-icon.png
+!app/icon*.png
 
 # Playwright artifacts
 test-results/
