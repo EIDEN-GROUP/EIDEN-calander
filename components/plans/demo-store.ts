@@ -4,8 +4,7 @@
  * to all subscribers. Falls back to the canonical demo dataset when empty.
  * Server snapshot = DEMO_* constants (hydration-safe).
  *
- * TODO(WIRE): swap reads/writes for Supabase queries (plans + plan_tasks
- * tables, owner_id / assignee_id keys) behind the same function signatures.
+ * Demo fallback for offline preview. Live mode loads from and submits to Supabase.
  */
 
 import { DEMO_PLANS, DEMO_PLAN_TASKS } from "@/lib/demo-data";

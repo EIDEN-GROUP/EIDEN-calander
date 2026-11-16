@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import type { Metadata } from "next";
 import { RoomsView } from "@/components/settings/views/RoomsView";
 import { createClient } from "@/lib/supabase/server";
@@ -9,6 +10,7 @@ export const instant = false;
 type RoomVM = ComponentProps<typeof RoomsView> extends { initialRooms?: infer R } ? (R extends Array<infer V> ? V : never) : never;
 
 export default async function RoomsPage() {
+  await connection();
   let initialRooms: RoomVM[] | undefined;
   let live = false;
   const supabase = await createClient();

@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { PlansBoard } from "@/components/plans/PlansBoard";
@@ -21,6 +22,7 @@ function BoardFallback() {
 }
 
 export default async function PlansPage() {
+  await connection();
   const data = await loadPlans();
   return (
     <Suspense fallback={<BoardFallback />}>

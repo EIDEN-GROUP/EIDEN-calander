@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   applicationName: "CALENDAR.",
   appleWebApp: { capable: true, title: "CALENDAR.", statusBarStyle: "default" },
   formatDetection: { telephone: false },
+  manifest: "/manifest.webmanifest",
   icons: { icon: "/icon.svg" },
 };
 

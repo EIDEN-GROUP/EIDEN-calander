@@ -3,7 +3,7 @@
  * New id, dates shifted +7 days, title suffixed " (copy)". Demo-only: persists
  * to sessionStorage so the copy survives navigation.
  *
- * TODO(WIRE): a server action (duplicateFormation) should own id creation,
+ * Demo fallback only. Live duplication goes through createFormationAction (server), which generates the id.
  * booking cloning and participant-copy semantics.
  */
 

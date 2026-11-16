@@ -133,7 +133,7 @@ function buildBuckets(range: RangeKey, loc: LocationKey): DayBucket[] {
   });
 
   // Overlay the real demo bookings (bucketed by local day relative to today).
-  // TODO(WIRE): replace with bookings table aggregate (count + sum(price)) per day.
+  // Live mode: the buckets ARE the bookings table aggregated per day (UTC).
   for (const b of getDemoBookings()) {
     if (b.status === "cancelled") continue;
     const roomLoc = b.room_id ? ROOM_LOCATION[b.room_id] : null;
@@ -439,9 +439,9 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
     },
   ];
 
-  /* ----- CSV exports (TODO(WIRE): route-handler streaming when backend lands) ----- */
+  /* ----- CSV exports — stream from the live, currently-filtered dataset ----- */
   const exportBookings = useCallback(() => {
-    // TODO(WIRE): replace with GET /api/reports/bookings.csv (streamed, auth-checked).
+    // Streams the filtered daily buckets (live data when connected).
     downloadCsv("calendar-bookings-per-day.csv", [
       ["CALENDAR. — Bookings per day", RANGE_CAPTION[range], LOC_LABEL[location]],
       ["Date", "Bookings", "Revenue (MAD)"],
@@ -451,7 +451,7 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
   }, [buckets, range, location, totalBookingsInChart]);
 
   const exportRevenue = useCallback(() => {
-    // TODO(WIRE): replace with GET /api/reports/revenue-by-category.csv.
+    // Streams the filtered category revenue (live data when connected).
     downloadCsv("calendar-revenue-by-category.csv", [
       ["CALENDAR. — Revenue by category", RANGE_CAPTION[range], LOC_LABEL[location]],
       ["Category", "Revenue (MAD)", "Share (%)"],
@@ -461,7 +461,7 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
   }, [categoryDataWithShare, categoryTotal, range, location]);
 
   const exportUtilization = useCallback(() => {
-    // TODO(WIRE): replace with GET /api/reports/utilization-by-room.csv.
+    // Streams utilization per room (live data when connected).
     downloadCsv("calendar-utilization-by-room.csv", [
       ["CALENDAR. — Utilization by room", RANGE_CAPTION[range], LOC_LABEL[location]],
       ["Room", "Utilization (%)", "Booked hours"],
@@ -470,7 +470,7 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
   }, [utilData, range, location]);
 
   const exportFormations = useCallback(() => {
-    // TODO(WIRE): replace with GET /api/reports/formation-performance.csv.
+    // Streams formation performance (live data when connected).
     downloadCsv("calendar-formation-performance.csv", [
       ["CALENDAR. — Formation performance", RANGE_CAPTION[range], LOC_LABEL[location]],
       ["Formation", "Sessions", "Enrolled", "Capacity", "Fill (%)", "Attendance (%)", "No-shows"],
@@ -483,7 +483,7 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
     exportRevenue();
     exportUtilization();
     exportFormations();
-    showToast("4 CSVs downloaded (demo)", "Bookings · revenue · utilization · formations");
+    showToast("4 CSVs downloaded", "Bookings · revenue · utilization · formations");
   }, [exportBookings, exportRevenue, exportUtilization, exportFormations, showToast]);
 
   const segmentedButton = (active: boolean) =>
@@ -633,7 +633,13 @@ export function ReportsView({ live }: { live?: ReportsLive | null }) {
         >
           <div
             role="img"
-            aria-label={`Revenue by category donut chart, total MAD ${formatMoney(categoryTotal)}. Room rental ${categoryDataWithShare[0].share} percent, Formation ${categoryDataWithShare[1].share} percent, Event ${categoryDataWithShare[2].share} percent.`}
+            aria-label={
+              categoryDataWithShare.length === 0
+                ? `Revenue by category donut chart, total MAD ${formatMoney(categoryTotal)}. No bookings yet — no categories to display.`
+                : `Revenue by category donut chart, total MAD ${formatMoney(categoryTotal)}. ${categoryDataWithShare
+                    .map((c) => `${c.name} ${c.share}%`)
+                    .join(", ")}.`
+            }
             className="relative h-[196px] w-full"
           >
             <ResponsiveContainer width="100%" height="100%">

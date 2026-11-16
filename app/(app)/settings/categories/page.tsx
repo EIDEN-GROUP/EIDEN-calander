@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import type { Metadata } from "next";
 import { CategoriesView } from "@/components/settings/views/CategoriesView";
 import { createClient } from "@/lib/supabase/server";
@@ -6,6 +7,7 @@ export const metadata: Metadata = { title: "Categories · Settings" };
 export const instant = false;
 
 export default async function CategoriesPage() {
+  await connection();
   let initialCategories:
     | Array<{ id: string; name_en: string; name_fr: string | null; color: string; icon: string; type: "standard" | "formation"; is_system: boolean; is_active: boolean; sort: number }>
     | undefined;

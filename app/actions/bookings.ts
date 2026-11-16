@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { requireUser } from "@/lib/auth";
 import { findOverlaps, type OverlapCandidate } from "@/lib/conflict";
+import { notifyBookingEvent, notifyChangeRequestEvent } from "@/lib/email/notify";
 import { suggestSlots, type WorkingHoursEntry } from "@/lib/slots";
 import type { ActionResult, BookingRow, BookingStatus } from "@/lib/types/db";
 
@@ -142,6 +143,7 @@ export async function createBookingAction(raw: unknown): Promise<ActionResult<Cr
       entity_id: inserted.id,
       meta: { room_id: input.roomId ?? null, type: input.type },
     });
+    await notifyBookingEvent(supabase, inserted.id, "created");
     revalidatePath("/calendar");
     revalidatePath("/dashboard");
     return { ok: true, data: { bookingId: inserted.id, status: "confirmed" } };
@@ -273,7 +275,7 @@ export async function requestChangeAction(raw: unknown): Promise<ActionResult<{ 
       entity_id: request.id,
       meta: { new_booking_id: newBookingId, conflicting_booking_id: incumbent.id, suggested_count: suggested.length },
     });
-    // TODO(WIRE): send changeRequestReceived email via lib/email/send.ts (agent D deliverable)
+    await notifyChangeRequestEvent(supabase, request.id, "received");
 
     revalidatePath("/calendar");
     return { ok: true, data: { requestId: request.id, bookingId: newBookingId } };
@@ -347,7 +349,7 @@ export async function respondToChangeRequestAction(raw: unknown): Promise<Action
         actor_id: profile.id, action: "change_request.approve", entity_type: "change_request", entity_id: req.id,
         meta: { moved_to: chosenSlot },
       });
-      // TODO(WIRE): changeRequestApproved emails (agent D)
+      await notifyChangeRequestEvent(supabase, req.id, "approved");
     } else {
       await supabase.from("bookings").update({ status: "cancelled" }).eq("id", req.new_booking_id);
       await supabase
@@ -365,7 +367,7 @@ export async function respondToChangeRequestAction(raw: unknown): Promise<Action
       await supabase.from("audit_log").insert({
         actor_id: profile.id, action: "change_request.decline", entity_type: "change_request", entity_id: req.id,
       });
-      // TODO(WIRE): changeRequestDeclined emails (agent D)
+      await notifyChangeRequestEvent(supabase, req.id, "declined");
     }
     revalidatePath("/calendar");
     return { ok: true, data: { status: decision === "approve" ? "approved" : "declined" } };
@@ -399,7 +401,7 @@ export async function cancelChangeRequestAction(raw: unknown): Promise<ActionRes
   }
 }
 
-/** Cancel a booking (creator or admin). */
+/** Remove a booking entirely (creator or admin). Hard delete — audit log keeps the trail. */
 export async function cancelBookingAction(raw: unknown): Promise<ActionResult<{ status: "cancelled" }>> {
   try {
     const profile = await requireUser();
@@ -407,15 +409,37 @@ export async function cancelBookingAction(raw: unknown): Promise<ActionResult<{ 
     if (!parsed.success) return fail("validation", "Invalid input");
     const supabase = await createClient();
     if (!supabase) return notConfigured();
-    const { data: existing } = await supabase.from("bookings").select("id,created_by").eq("id", parsed.data.bookingId).single();
+    const { data: existing } = await supabase
+      .from("bookings")
+      .select("id,created_by,title,starts_at,ends_at,room_id,status")
+      .eq("id", parsed.data.bookingId)
+      .single();
     if (!existing) return fail("not_found", "Booking not found.");
-    if (existing.created_by !== profile.id && profile.role !== "admin") return fail("forbidden", "Only the creator or an admin can cancel.");
-    await supabase.from("bookings").update({ status: "cancelled" }).eq("id", parsed.data.bookingId);
+    if (existing.created_by !== profile.id && profile.role !== "admin") return fail("forbidden", "Only the creator or an admin can remove a booking.");
+
+    await notifyBookingEvent(supabase, parsed.data.bookingId, "cancelled");
+
+    // Audit FIRST — the row is about to vanish; the trail must survive.
     await supabase.from("audit_log").insert({
-      actor_id: profile.id, action: "booking.cancel", entity_type: "booking", entity_id: parsed.data.bookingId,
-      meta: { reason: parsed.data.reason ?? null },
+      actor_id: profile.id,
+      action: "booking.delete",
+      entity_type: "booking",
+      entity_id: parsed.data.bookingId,
+      meta: {
+        title: existing.title,
+        starts_at: existing.starts_at,
+        ends_at: existing.ends_at,
+        room_id: existing.room_id,
+        status: existing.status,
+        reason: parsed.data.reason ?? null,
+      },
     });
+
+    // Hard delete — cascades clear formations/participants/change-requests.
+    const { error } = await supabase.from("bookings").delete().eq("id", parsed.data.bookingId);
+    if (error) throw error;
     revalidatePath("/calendar");
+    revalidatePath("/reports");
     return { ok: true, data: { status: "cancelled" } };
   } catch (err) {
     return failUnexpected(err);
@@ -563,6 +587,7 @@ export async function updateBookingAction(raw: unknown): Promise<ActionResult<{ 
     await supabase.from("audit_log").insert({
       actor_id: profile.id, action: "booking.update", entity_type: "booking", entity_id: bookingId, meta: patch,
     });
+    await notifyBookingEvent(supabase, bookingId, "updated");
     revalidatePath("/calendar");
     return { ok: true, data: { bookingId } };
   } catch (err) {
@@ -666,6 +691,7 @@ export async function postponeBookingAction(raw: unknown): Promise<ActionResult<
       actor_id: profile.id, action: "booking.postpone", entity_type: "booking", entity_id: bookingId,
       meta: { starts_at: startsAt, ends_at: endsAt },
     });
+    await notifyBookingEvent(supabase, bookingId, "updated");
     revalidatePath("/calendar");
     return { ok: true, data: { bookingId } };
   } catch (err) {

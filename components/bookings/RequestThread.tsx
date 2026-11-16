@@ -65,8 +65,8 @@ interface ThreadMessage {
  * Negotiation thread between the requester (new booking) and the incumbent
  * (existing booking). Demo-only: every action applies local state.
  *
- * TODO(WIRE): data fetch seam — replace `resolveChangeRequest` with a Supabase
- * query on change_requests by id once the project is connected.
+ * Live mode receives the request from the server page (loadLiveRequest).
+ * Demo mode falls back to the built-in demo fixtures.
  */
 export function RequestThread({
   changeRequestId,
@@ -558,7 +558,7 @@ export function RequestThread({
 /* ================ helpers & subcomponents ================ */
 
 function resolveChangeRequest(id: string): ChangeRequestRow {
-  // TODO(WIRE): Supabase fetch — `select * from change_requests where id = ?`.
+  // Live mode: fetched server-side in page.tsx and passed down as props.
   // Demo: "demo" (and unknown ids) fall back to cr-1.
   if (id === "demo") return DEMO_CHANGE_REQUESTS[0];
   return DEMO_CHANGE_REQUESTS.find((r) => r.id === id) ?? DEMO_CHANGE_REQUESTS[0];

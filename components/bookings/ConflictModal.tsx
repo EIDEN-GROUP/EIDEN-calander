@@ -31,7 +31,8 @@ interface ConflictModalProps {
 /**
  * Standalone "This slot is taken" modal.
  * Used by the booking drawer for the full-screen conflict treatment.
- * Demo-only: actions are fully local; TODO(WIRE) seams marked at submit.
+ * Preview is client-side against loaded bookings (live or demo).
+ * Submit path goes through server actions (createBookingAction / requestChangeAction).
  */
 export function ConflictModal({
   roomName,

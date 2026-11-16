@@ -247,7 +247,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
     }
     setBookings((prev) => prev.map((b) => (b.id === target.id ? { ...b, status: "cancelled" } : b)));
     setRemoveFor(null);
-    setToast({ id: Date.now(), tone: "success", title: "Booking removed — room freed", detail: target.title });
+    setToast({ id: Date.now(), tone: "success", title: "Booking removed entirely", detail: target.title });
     router.refresh();
   }, [removeFor, router]);
 
@@ -541,7 +541,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null }: { se
           onClose={() => setRemoveFor(null)}
         >
           <div className="rounded-sm border border-border bg-canvas px-4 py-3 text-[13px] font-medium leading-snug text-obsidian-light">
-            This cancels the booking and frees the room immediately. The record is kept in history as <span className="font-bold text-obsidian">cancelled</span> — you will see it in Reports and the audit log.
+            The booking is <span className="font-bold text-obsidian">removed entirely</span> — the row is deleted, not archived. The audit log (Settings → Audit log) records who removed it, when, and the booking details.
           </div>
           <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-divider pt-4">
             <button type="button" onClick={() => setRemoveFor(null)} className="btn btn-ghost h-11 px-5 text-[14px]">

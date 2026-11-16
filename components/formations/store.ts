@@ -4,8 +4,8 @@
  * demo flow survives navigation (list → detail). Exposed to components via
  * useSyncExternalStore (an external system — no setState-in-effect).
  *
- * TODO(WIRE): replace sessionStorage with server-side persistence
- * (app/actions/formations.ts) — this module disappears then.
+ * Demo fallback only. Live mode: server loads VMs, mutations go through
+ * app/actions/formations.ts (enrollParticipantAction, createFormationAction, …).
  */
 
 import type { BookingRow, FormationRow } from "@/lib/types/db";

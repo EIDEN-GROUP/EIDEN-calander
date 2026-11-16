@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import type { Metadata } from "next";
 import { TeamView } from "@/components/settings/views/TeamView";
 import { createClient } from "@/lib/supabase/server";
@@ -6,6 +7,7 @@ export const metadata: Metadata = { title: "Team & Users · Settings" };
 export const instant = false;
 
 export default async function TeamPage() {
+  await connection();
   let members: Array<{ id: string; full_name: string; email: string; phone: string | null; role: "admin" | "staff"; is_active: boolean; created_at: string }> | null = null;
   let currentUserId: string | null = null;
   let live = false;

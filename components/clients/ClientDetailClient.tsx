@@ -1,8 +1,8 @@
 /**
  * Client detail — profile, contact, bookings and notes for one renting customer.
  * Demo data (DEMO_CLIENTS / getDemoBookings) + local state.
- * TODO(WIRE): swap for server actions (getClient / exportClientGdpr /
- * anonymizeClient / addClientNote) — every mutation site is marked.
+ * Live mode: data comes from the server; mutations call server actions
+ * (addClientNoteAction, anonymizeClientAction). Demo mode persists locally.
  */
 
 "use client";

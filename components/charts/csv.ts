@@ -1,8 +1,7 @@
 /**
  * Client-side CSV generation + download.
- * TODO(WIRE): replace Blob downloads with a route handler that streams the
- * CSV (server-side, auth-checked, shareable link) once exports land on the
- * backend. Filenames stay stable so automations can rely on them.
+ * Client-side CSV generation + download for the live, filtered dataset.
+ * If exports ever grow large, migrate to a streaming route handler under /api/reports.
  */
 
 export type CsvRow = Array<string | number | null | undefined>;

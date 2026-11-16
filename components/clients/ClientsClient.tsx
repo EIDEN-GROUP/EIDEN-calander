@@ -1,8 +1,8 @@
 /**
  * Clients list — CRM-lite directory.
  * Demo data (DEMO_CLIENTS) + local state.
- * TODO(WIRE): swap for server actions (listClients / createClient) — every
- * mutation site is marked.
+ * Live mode: clients load from the server (Supabase). Mutations call server actions.
+ * Demo mode persists locally via sessionStorage.
  */
 
 "use client";

@@ -1,8 +1,8 @@
 /**
  * Formations list — client component.
  * Demo data (getDemoBookings + DEMO_FORMATIONS) + local state.
- * TODO(WIRE): swap buildDemoVMs()/appendStoredFormation for server actions
- * (listFormations / createFormation) when the backend lands.
+ * Live mode: VMs come from the server (Supabase) via loadFormations().
+ * Demo mode: local sessionStorage fallback.
  */
 
 "use client";

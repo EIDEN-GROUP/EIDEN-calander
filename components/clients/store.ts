@@ -3,7 +3,7 @@
  * Locally created clients live in sessionStorage; exposed via
  * useSyncExternalStore (an external system — no setState-in-effect).
  *
- * TODO(WIRE): replace sessionStorage with server-side persistence
+ * Demo fallback only. Live mode reads/writes via server components + server actions.
  * (app/actions/clients.ts) — this module disappears then.
  */
 

@@ -1,7 +1,7 @@
 /**
  * Demo staff directory — the four selectable demo users.
- * TODO(WIRE): replace with profiles table lookup via server components once
- * Supabase is connected (owner_id / assignee_id foreign keys already match).
+ * Live directory: pass profiles from the server via setLiveStaff().
+ * This list is the offline fallback only.
  */
 
 export interface DemoStaffMember {

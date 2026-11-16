@@ -1,9 +1,9 @@
 /**
  * Formation detail — session info + roster management.
  * Demo data (DEMO_FORMATIONS / getDemoParticipants) + local state.
- * TODO(WIRE): swap state transitions for server actions
- * (enrollParticipant / bulkEnroll / cancelFormation / markAttendance) —
- * every mutation site is marked.
+ * Live mode talks to server actions (enrollParticipantAction, markAttendanceAction,
+ * importParticipantsAction, removeParticipantAction, setParticipantWaitlistAction, cancelBookingAction).
+ * Demo mode keeps sessionStorage persistence as an offline fallback.
  */
 
 "use client";

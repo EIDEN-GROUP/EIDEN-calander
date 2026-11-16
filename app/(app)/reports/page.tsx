@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { ReportsView } from "@/components/charts/ReportsView";
@@ -26,6 +27,7 @@ function ReportsFallback() {
 }
 
 export default async function ReportsPage() {
+  await connection();
   const live = await loadReports();
   return (
     <Suspense fallback={<ReportsFallback />}>

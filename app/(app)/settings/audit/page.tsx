@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import type { Metadata } from "next";
 import { ScrollText } from "lucide-react";
 import { AuditView, type AuditEntryLive } from "@/components/settings/views/AuditView";
@@ -33,6 +34,7 @@ function detailsOf(action: string, meta: unknown): string {
 }
 
 export default async function AuditPage() {
+  await connection();
   const supabase = await createClient();
   let isAdmin = false;
   let entries: AuditEntryLive[] | null = null;

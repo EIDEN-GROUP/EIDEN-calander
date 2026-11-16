@@ -91,6 +91,6 @@ export const config = {
      * Match everything except static assets and files with extensions.
      * Keeps session refresh + route guarding off the asset path.
      */
-    "/((?!_next/static|_next/image|icon.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json|txt)$).*)",
+    "/((?!_next/static|_next/image|icon.svg|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|json|txt)$).*)",
   ],
 };

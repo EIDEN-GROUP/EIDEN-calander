@@ -1,0 +1,13 @@
+{
+  "name": "CALENDAR. by Eiden Group",
+  "short_name": "CALENDAR.",
+  "description": "Architecture for Time. — Eiden Group's internal scheduling system: meeting rooms, formations and clients.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#F5F5F7",
+  "theme_color": "#0066CC",
+  "lang": "en",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
