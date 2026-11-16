@@ -4,7 +4,7 @@
 Use this before pointing the DNS record and after go-live. Everything reversible or auditable; nothing here leaves gaps.
 
 ## Pre-flight (before DNS cutover)
-- [ ] Production Supabase project created/linked; schema applied (0001–0008); demo seed **skipped** in prod
+- [ ] Production Supabase project created/linked; schema applied (0001–0009); demo seed **skipped** in prod
 - [ ] First admin created via `node scripts/create-admin.mjs --email makrich@eiden-group.com --name "Eiden Group"`: temp password delivered once, rotate immediately
 - [ ] Vercel project connected to GitHub repo `EIDEN-GROUP/EIDEN-calander`; **root = repo root**; framework preset Next.js
 - [ ] Environment variables set in Vercel (Production + Preview):

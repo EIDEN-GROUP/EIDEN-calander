@@ -120,7 +120,7 @@ The mail iframe uses `sandbox="allow-same-origin"` **without** `allow-scripts`, 
 ### 2.8 Uploads / storage
 
 - Scope: the logo in Settings → General is the only upload surface. No user-uploaded *documents* in v1.
-- Bucket `brand-assets`, **public read** (it's logos), writes **admin-only** via RLS on `storage.objects` (`is_admin()`). Created in `supabase/migrations/0008_notification_prefs_locale_brand.sql` with no server-side `file_size_limit`/`allowed_mime_types` set on the bucket itself.
+- Bucket `brand-assets`, **public read** (it's logos), writes **admin-only** via RLS on `storage.objects` (`is_admin()`). Created in `0008_notification_prefs_locale_brand.sql`; hardened in `0009_brand_assets_hardening.sql` (2 MB cap, image-only MIME allowlist). SVG is also sanitized client-side before upload (`lib/svg-sanitize.ts` strips `<script>`, handlers, `javascript:` URLs, external CSS references) — but SVG is still active content by nature, so treat the bucket as public-but-untrusted content and never render it inline as markup.
 - Types allowed by the **client**: `image/svg+xml`, `image/png`, `image/webp`; 2 MB cap checked client-side. These are client-side checks only: nothing in the bucket policy or a route handler enforces them (accepted gap).
 - **SVG is not sanitized.** Files go straight from the browser to the bucket and are served raw from the public URL. A crafted SVG could carry script; treat logo uploads as trusted-admin-only input (writes are admin-gated). Sanitizing or rasterizing SVGs before serving is the right fix (own PR).
 - Filenames: `logo-<epoch ms>.<ext>`, generated client-side; `<ext>` is taken from the uploaded file's extension, not allowlisted.

@@ -11,7 +11,7 @@ the identical migration set. `seed.sql` is for staging/local only.
 ## Applying the migrations
 
 Fresh, empty project required. Files live in `supabase/migrations/` and must run **in
-order**: `0001` → `0008`.
+order**: `0001` → `0009`.
 
 **Option A: Supabase dashboard SQL editor (recommended for staging/prod):**
 Project → SQL Editor → New query → paste each file, in order, and run one file per query.
@@ -27,6 +27,7 @@ psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/0005_rls.sql
 psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/0006_booking_status_paused.sql
 psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/0007_log_audit_event.sql
 psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/0008_notification_prefs_locale_brand.sql
+psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/0009_brand_assets_hardening.sql
 ```
 Connection string: Dashboard → Project Settings → Database → Connection string → URI.
 Use the direct connection or session pooler (transaction pooler does not support all
@@ -64,8 +65,9 @@ Creates the auth user (`email_confirm: true`), upserts the `profiles` row as
 | `0006_booking_status_paused.sql` | `booking_status` enum: adds `paused` (an on-hold booking that does not block the room) |
 | `0007_log_audit_event.sql` | `log_audit_event()` security-definer RPC (the canonical write path for `audit_log`) |
 | `0008_notification_prefs_locale_brand.sql` | `business_settings`: `notification_prefs` jsonb, `hour_cycle`, `date_format`; `brand-assets` Storage bucket (public read, admin-only write, for logos) |
+| `0009_brand_assets_hardening.sql` | `brand-assets`: 2MB cap, `image/svg+xml` / `image/png` / `image/webp` only — second line of defense behind client-side SVG sanitization |
 
-`0003`–`0008` are written to be re-runnable (`if not exists`, `on conflict do nothing`,
+`0003`–`0009` are written to be re-runnable (`if not exists`, `on conflict do nothing`,
 `create or replace`, `drop … if exists`). `0001`/`0002` are one-shot. Never edit an
 already-applied migration on an environment: add a new `0009_*.sql` instead.
 
