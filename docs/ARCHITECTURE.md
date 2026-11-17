@@ -20,7 +20,7 @@
 | Hosting | **Vercel** | Prod: `calendar.eiden-group.com`; staging: staging project alias |
 | Icons/dates | lucide-react, date-fns | |
 
-Not used (deliberately): OAuth/NextAuth (Supabase Auth only), Prisma/Drizzle (hand-written typed loaders in `lib/`), any state-management library (server state is the source of truth; minimal client state via `useState`/URL), Redis/queues (Supabase + Vercel Cron suffice at this scale).
+Not used (deliberately): OAuth/NextAuth (Supabase Auth only), Prisma/Drizzle (hand-written typed loaders in `lib/`), any state-management library (server state is the source of truth; minimal client state via `useState`/URL), Redis/queues (Supabase pg_cron + a daily Vercel cron fallback suffice at this scale).
 
 ## 2. Rendering strategy
 
@@ -29,7 +29,7 @@ Not used (deliberately): OAuth/NextAuth (Supabase Auth only), Prisma/Drizzle (ha
 - **Reads** happen in Server Components: direct calls to the typed loaders in `lib/` (e.g. `lib/live-data.ts`), streamed with `<Suspense>` boundaries and `loading.tsx` skeletons. No client-side fetch waterfalls; no `useEffect` data fetching.
 - **Mutations** are Server Actions (`"use server"`) in `app/actions/*.ts`. Every action: `requireUser()` → role re-check → zod-validate input → DB via typed loaders → `revalidatePath(...)` → return a discriminated union `{ ok: true, data } | { ok: false, error: string }`. **Never throw raw errors to the client** for expected failures (conflicts, validation).
 - **Route handlers** exist **only** for:
-  - `POST /api/cron/expire-requests`: Vercel Cron sweep of expiring change requests (requires `Authorization: Bearer ${CRON_SECRET}`).
+  - `GET /api/cron/expire-requests`: sweep of change requests past their TTL (default 72h). Hourly via Supabase pg_cron → pg_net with `Authorization: Bearer ${CRON_SECRET}`; a daily Vercel cron (`vercel.json`, 05:00 UTC) is the Hobby-legal fallback. Exactly-once emails via `change_requests.expired_notified_at`.
   - `/api/mail/*`: long-lived IMAP interactions that must not block a Server Action (`messages` list, `message` read, `reply`, `attachment` download forced to attachment, `test`/`test-send` connection checks).
   - There is no `/api/export/*`: CSV downloads are built client-side from the on-screen, currently-filtered dataset (`components/charts/csv.ts`, audit log export likewise).
 
@@ -97,8 +97,9 @@ There is **no silent double-booking**. A conflict never inserts; it returns a st
             │           │ ─────────────────────▶ │ DECLINED  │ → booking stays as-is, notify requester
             │           │                        └───────────┘
             │           │ ─── TTL elapses ─────▶ ┌───────────┐
-            │           │   (Vercel Cron:        │ EXPIRED   │ → /api/cron/expire-requests (default TTL 72h,
-            │           │    CRON_SECRET)        └───────────┘   configurable in settings)
+            │           │   (pg_cron → pg_net → │ EXPIRED   │ → /api/cron/expire-requests (default TTL 72h,
+            │           │    GET route + Vercel   └───────────┘   configurable in settings)
+            │           │    daily fallback)
             │           │ ─── requester cancels ▶ ┌───────────┐
             └───────────┘                         │ CANCELLED │
                                                   └───────────┘

@@ -15,7 +15,7 @@ Use this before pointing the DNS record and after go-live. Everything reversible
 - [ ] Preview deployment green end-to-end: login, conflict flow, CSV export, cron 401/200
 - [ ] Hostinger DKIM+SPF verified for outbound mail (hPanel → Emails); otherwise deliverability limits are accepted
 - [ ] Uptime monitor pinging `https://calendar.eiden-group.com/login` every 5 min (the free-tier Supabase pauses when idle)
-- [ ] Cron `/api/cron/expire-requests` registered and returning 200 with the bearer token (hourly)
+- [ ] Expiry sweep live: Supabase `cron.job` shows `expire-requests-sweep` (`3 * * * *`) and `expire-requests-mail` (`8 * * * *`); daily Vercel fallback in `vercel.json` (05:00 UTC); `curl -H "Authorization: Bearer $CRON_SECRET" https://calendar.eiden-group.com/api/cron/expire-requests` returns `{"ok":true,...}`
 - [ ] Backups: weekly `pg_dump` via `SUPABASE_DB_URL` stored off-machine (Google Drive / iCloud folder shared with admin)
 
 ## Go

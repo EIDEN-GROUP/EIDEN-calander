@@ -2,7 +2,10 @@
  * GET /api/cron/expire-requests: closes pending change requests past their
  * 72h deadline. Protected by CRON_SECRET bearer token. Idempotent.
  *
- * Schedule: hourly, via vercel.json.
+ * Scheduling: hourly via Supabase pg_cron → pg_net (see docs/RUNBOOK.md);
+ * daily 05:00 UTC fallback via vercel.json (Hobby accounts cannot run hourly
+ * crons). Exactly-once email is guaranteed by the expired_notified_at stamp:
+ * schedulers may overlap or repeat freely.
  */
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
@@ -27,12 +30,15 @@ export async function GET(request: Request) {
   try {
     const supabase = createServiceClient();
 
-    // Find the pending requests that are about to expire so we can email them.
+    // Rows needing the "expired" email: not mailed yet, and either still
+    // pending past their deadline (the rpc below flips them this run) or
+    // already flipped by the SQL sweeper. One stamp per row, forever.
+    const nowIso = new Date().toISOString();
     const { data: pending, error: listErr } = await supabase
       .from("change_requests")
       .select("id,requested_by")
-      .eq("status", "pending")
-      .lt("expires_at", new Date().toISOString())
+      .is("expired_notified_at", null)
+      .or(`and(status.eq.pending,expires_at.lt.${nowIso}),status.eq.expired`)
       .limit(50);
     if (listErr) throw listErr;
 
@@ -40,6 +46,7 @@ export async function GET(request: Request) {
     if (error) throw error;
 
     // Notify requesters whose requests were just expired.
+    const ids = (pending ?? []).map((row) => row.id as string);
     for (const row of pending ?? []) {
       try {
         await notifyChangeRequestEvent(supabase, row.id as string, "expired");
@@ -47,8 +54,15 @@ export async function GET(request: Request) {
         console.error("[cron] expiry mail failed for request", row.id, e);
       }
     }
+    if (ids.length > 0) {
+      const { error: stampErr } = await supabase
+        .from("change_requests")
+        .update({ expired_notified_at: new Date().toISOString() })
+        .in("id", ids);
+      if (stampErr) console.error("[cron] could not stamp expired_notified_at:", stampErr.message);
+    }
 
-    return NextResponse.json({ ok: true, expired: data ?? 0, notified: pending?.length ?? 0 });
+    return NextResponse.json({ ok: true, expired: data ?? 0, notified: ids.length });
   } catch (err) {
     console.error("[cron] expire-requests failed", err);
     return NextResponse.json(

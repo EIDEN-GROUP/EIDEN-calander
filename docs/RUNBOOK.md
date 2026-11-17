@@ -147,7 +147,7 @@ Older runbook notes referenced a `login_attempts` table and per-account lockout 
 - **Build fails on `NEXT_PUBLIC_*`**: inlined at build time; set in Vercel scope, then redeploy (a redeploy is required even for a "fixed" value).
 - **Runtime `undefined` on server vars**: check Vercel → Settings → Environment Variables scope (Production vs Preview); confirm a redeploy happened after the change; confirm no trailing newline (paste carefully: this has bitten us).
 - **`SUPABASE_SERVICE_ROLE_KEY` rejected**: key was rotated (see §9.6): update all scopes and redeploy; the app must fail closed, not fall back to the anon key.
-- **`CRON_SECRET` mismatch**: `/api/cron/expire-requests` 401s: Vercel Cron sends the header automatically; test manually with `curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://calendar.eiden-group.com/api/cron/expire-requests`.
+- **`CRON_SECRET` mismatch**: `/api/cron/expire-requests` 401s. The daily Vercel cron sends the header automatically; the hourly pg_net call sends whatever secret is stored in `cron.job` (see §9.7). Test manually with `curl -H "Authorization: Bearer $CRON_SECRET" https://calendar.eiden-group.com/api/cron/expire-requests`.
 
 ### 9.4 Supabase free-tier project paused (app 500s)
 
@@ -196,6 +196,53 @@ Also export `audit_log` to CSV monthly (Settings → Audit → Export) as a seco
 3. Settings → Mail → Test connection (SMTP + IMAP must both go green).
 4. Check Hostinger webmail Sent folder for anything the app didn't send; report to security@eiden-group.com if so.
 5. `CRON_SECRET` rotation: generate new secret, update Vercel, redeploy, verify `/api/cron/expire-requests` 200s with the new secret.
+6. Rotation of the **pg_net** copy (used by the hourly `expire-requests-mail` job): re-create job 2 with the new bearer (see §9.7). The daily Vercel cron needs no change (it reads Vercel's env).
+
+### 9.7 Change-request expiry sweep (pg_cron, since 0010)
+
+Vercel Hobby allows only **daily** crons, so the hourly sweep lives in the
+database as two `pg_cron` jobs (both currently active):
+
+| Job | Schedule | What it does |
+|---|---|---|
+| `expire-requests-sweep` | `3 * * * *` | `select public.expire_change_requests();` — flips past-TTL `pending` rows to `expired`, cancels their linked bookings, inserts in-app notifications, audits. No SMTP needed; works even if the app is down. |
+| `expire-requests-mail` | `8 * * * *` | `net.http_post(...)` to `https://calendar.eiden-group.com/api/cron/expire-requests` with the `CRON_SECRET` bearer — the route sends the “expired” email and stamps `expired_notified_at`. Exactly-once. |
+
+Safety nets: **daily Vercel cron** (`vercel.json`, 05:00 UTC) re-hits the same
+route (Vercel sends the bearer automatically); worst case with everything
+broken is a 24h delay on the *email*, never on the status flip / bell / audit
+(SQL sweep is independent of the network).
+
+Health checks (SQL editor):
+
+```sql
+select jobid, jobname, schedule, active from cron.job;
+select jobname, status, return_message, start_time
+  from cron.job_run_details order by start_time desc limit 10;
+```
+
+Re-create the jobs (e.g. after a project restore or secret rotation):
+
+```sql
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+select cron.schedule('expire-requests-sweep', '3 * * * *',
+  $$select public.expire_change_requests()$$);
+select cron.schedule('expire-requests-mail', '8 * * * *',
+  $$select net.http_post(
+      url := 'https://calendar.eiden-group.com/api/cron/expire-requests',
+      body := '{}'::jsonb,
+      headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer <CRON_SECRET>'),
+      timeout_milliseconds := 15000)$$);
+```
+
+`pg_net` calls are fire-and-forget (async): failures land in
+`net._http_response` and do not block the sweep. Pre-cutover, the mail job
+fails DNS silently — expected; it starts working when the domain is live.
+If Vercel's `CRON_SECRET` differs from the one stored in `cron.job`, job 2
+401s hourly (harmless, visible in `net._http_response`); the daily Vercel
+cron still guarantees one mail attempt per day. Align them by re-creating
+job 2 with the Vercel value.
 
 ## 10. Monitoring & alerting
 
@@ -205,7 +252,7 @@ Also export `audit_log` to CSV monthly (Settings → Audit → Export) as a seco
 | Uptime (staging) | Same, staging URL | 15 min | None |
 | SSL cert expiry | UptimeRobot SSL check (Vercel auto-renews; alert at 14 days as a safety net) | 1 day | makrich@eiden-group.com |
 | Mail path health | **Settings → Mail → Test connection** (SMTP verify + IMAP open) | On demand + before each prod deploy | None |
-| Cron health | Vercel → Cron Jobs logs; `change_requests` stuck in `pending` past TTL | Daily | makrich@eiden-group.com |
+| Cron health | Supabase SQL editor: `select jobname, schedule, active from cron.job;` and `select * from cron.job_run_details order by start_time desc limit 10;` — plus Vercel → Cron Jobs logs for the daily fallback; `change_requests` stuck in `pending` past TTL | Daily | makrich@eiden-group.com |
 | Audit review | Settings → Audit: eyeball `user.*`, `settings.notification_prefs`, `workspace.export`, `client.anonymize`, `booking.delete`, `change_request.*` | Weekly review | security@eiden-group.com |
 | Audit export archive | Settings → Audit → Export (CSV) | Monthly | secure vault |
 | Backup | `pg_dump` per §9.5 | Weekly | runbook owner |

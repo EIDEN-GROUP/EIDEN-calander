@@ -143,6 +143,8 @@ export interface ChangeRequestRow {
   response_message: string | null;
   created_at: string;
   expires_at: string;
+  /** Set by the cron route after the "expired" email went out. NULL = mail pending. */
+  expired_notified_at?: string | null;
 }
 
 export interface NotificationRow {
