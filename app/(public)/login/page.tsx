@@ -63,9 +63,9 @@ export default async function LoginPage({
   const nextPath = next?.startsWith("/") ? next : "/dashboard";
 
   return (
-    <main className="flex min-h-dvh items-stretch justify-center bg-canvas md:p-5">
-      {/* Auth shell — 1360px max, rounded white card, 1fr/1fr */}
-      <div className="grid min-h-dvh w-full max-w-[1360px] grid-cols-1 overflow-hidden bg-white md:min-h-[calc(100dvh-40px)] md:grid-cols-2 md:rounded-lg md:border md:border-border md:shadow-lg">
+    <main className="flex min-h-dvh items-stretch justify-center bg-canvas">
+      {/* Auth shell — full-bleed split-screen, 1fr/1fr */}
+      <div className="grid min-h-dvh w-full grid-cols-1 overflow-hidden bg-white md:grid-cols-2">
         {/* LEFT — “Ashlar” mosaic */}
         <LoginMosaic />
 
