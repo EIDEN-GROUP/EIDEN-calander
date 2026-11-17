@@ -56,3 +56,11 @@ playwright-report/
 
 # Impeccable audit screenshots (provenance for docs/agents/IMPECCABLE_FINDINGS.md)
 audit/
+
+# tutorial build artifacts (large binaries — regenerate with tutorial/build_video.py)
+CALENDAR-tutorial.mp4
+tutorial/frames/
+tutorial/audio/
+tutorial/_segments/
+tutorial/*.png
+tutorial/segments.json

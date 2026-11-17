@@ -614,6 +614,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null, autoNe
           clients={data.clients}
           workingHours={data.workingHours}
           live={data.live}
+          staff={data.staff}
         />
       )}
 

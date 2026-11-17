@@ -95,6 +95,8 @@ export interface BookingDrawerProps {
   clients?: Array<import("@/lib/types/db").ClientRow>;
   workingHours?: WorkingHoursEntry[];
   live?: boolean;
+  /** id → staff display name (for booking authorship rendering). */
+  staff?: Record<string, string>;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -160,6 +162,7 @@ export function BookingDrawer({
   clients = DEMO_CLIENTS,
   workingHours = DEFAULT_WH,
   live = false,
+  staff,
 }: BookingDrawerProps) {
   const t = useTranslations("calendar");
   const locale = useLocale();
@@ -272,12 +275,13 @@ export function BookingDrawer({
       label: `${relativeDayLabel(sStart, today, { today: t("today"), tomorrow: t("tomorrow") })} · ${formatTime(sStart, intlLocale)}`,
     };
   });
+  const staffName = (id: string | null | undefined) => (id && staff?.[id]) || undefined;
   const clashItems = conflicts.map((c) => ({
     id: c.id,
     title: c.title ?? t("existingBooking"),
     startsAt: c.starts_at,
     endsAt: c.ends_at,
-    requestedBy: creatorName(c.created_by, t("unknown")),
+    requestedBy: staffName(c.created_by) ?? creatorName(c.created_by, t("unknown")),
   }));
 
   const selectedRoom = roomId ? rooms.find((r) => r.id === roomId) : null;
@@ -288,7 +292,6 @@ export function BookingDrawer({
   const selectedCategory = categoryId
     ? categories.find((c) => c.id === categoryId)
     : null;
-
   const canSubmit = title.trim().length >= 2 && timesValid;
   const submitLabel = hasConflicts ? t("sendChangeRequest") : t("saveBooking");
   const incumbentName = clashItems[0]?.requestedBy ?? t("theIncumbent");
@@ -415,6 +418,7 @@ export function BookingDrawer({
             roomLocation={selectedRoom?.location}
             clientName={selectedClient?.full_name ?? null}
             categoryName={categoryName(selectedCategory, locale) || "—"}
+            staff={staff}
           />
         ) : (
           <form
@@ -818,6 +822,7 @@ function ViewBody({
   roomLocation,
   clientName,
   categoryName,
+  staff,
 }: {
   booking?: BookingRow | null;
   statusMeta: { label: string; dot: string };
@@ -825,6 +830,7 @@ function ViewBody({
   roomLocation?: string;
   clientName: string | null;
   categoryName: string;
+  staff?: Record<string, string>;
 }) {
   const t = useTranslations("calendar");
   const locale = useLocale();
@@ -862,7 +868,7 @@ function ViewBody({
           {booking.title}
         </h3>
         <p className="mt-1 text-[12px] font-medium text-muted">
-          {t("createdByLine", { name: creatorName(booking.created_by, t("unknown")), ref: shortRef(booking.id) })}
+          {t("createdByLine", { name: (booking.created_by && staff?.[booking.created_by]) || creatorName(booking.created_by, t("unknown")), ref: shortRef(booking.id) })}
         </p>
       </div>
 
