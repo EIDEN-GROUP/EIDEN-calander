@@ -140,10 +140,7 @@
     "chipInternal": "Interne",
     "seats": "places",
     "hourShort": "h",
-    "minuteShort": "min",
-    "mosaicShuffle": "Mélanger",
-    "mosaicLive": "En direct",
-    "mosaicControls": "Contrôles de la mosaïque"
+    "minuteShort": "min"
   },
   "notFound": {
     "title": "Cette page n’existe pas",

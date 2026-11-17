@@ -140,10 +140,7 @@
     "chipInternal": "Internal",
     "seats": "seats",
     "hourShort": "h",
-    "minuteShort": "m",
-    "mosaicShuffle": "Shuffle",
-    "mosaicLive": "Live",
-    "mosaicControls": "Artwork controls"
+    "minuteShort": "m"
   },
   "notFound": {
     "title": "That page doesn’t exist",

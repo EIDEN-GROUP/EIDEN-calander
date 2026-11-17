@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { useTranslations } from "next-intl";
-import { Shuffle, Activity } from "lucide-react";
 import "./login-mosaic.css";
 
 /**
@@ -40,8 +39,6 @@ export function LoginMosaic() {
   const timersRef = useRef<number[]>([]);
   const waveRef = useRef<(forceFull?: boolean) => void>(() => {});
 
-  const [live, setLive] = useState(true);
-
   /* Live preference tracked via matchMedia (server snapshot: no-preference → motion allowed). */
   const reducedMotion = useSyncExternalStore(
     (onStoreChange) => {
@@ -52,7 +49,8 @@ export function LoginMosaic() {
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     () => false,
   );
-  const liveOn = live && !reducedMotion;
+  // Ambient motion is always on (unless reduced-motion); no user control.
+  const liveOn = !reducedMotion;
 
   /* Build the tile model once + wire interactions. */
   useEffect(() => {
@@ -373,24 +371,6 @@ export function LoginMosaic() {
         </svg>
       </div>
 
-      {/* Kinetic controls — frosted pill, bottom-left */}
-      <div className="lm-controls" role="group" aria-label={t("mosaicControls")}>
-        <span className={liveOn ? "lm-pulse-dot" : "lm-pulse-dot lm-pulse-dot-paused"} aria-hidden="true" />
-        <button type="button" className="lm-ctrl-btn" onClick={() => waveRef.current(true)}>
-          <Shuffle size={12} strokeWidth={2.4} aria-hidden="true" />
-          {t("mosaicShuffle")}
-        </button>
-        <span className="lm-divider" aria-hidden="true" />
-        <button
-          type="button"
-          className={liveOn ? "lm-ctrl-btn lm-ctrl-btn-active" : "lm-ctrl-btn"}
-          onClick={() => setLive((v) => !v)}
-          aria-pressed={liveOn}
-        >
-          <Activity size={12} strokeWidth={2.4} aria-hidden="true" />
-          {t("mosaicLive")}
-        </button>
-      </div>
     </div>
   );
 }
