@@ -1029,7 +1029,7 @@ function FormationDetailView({
           description={full ? t("enrollDescFull") : t("enrollDescOpen")}
           onClose={() => setEnrollOpen(false)}
         >
-          <form onSubmit={submitEnroll} noValidate className="grid gap-4">
+          <form onSubmit={submitEnroll} noValidate className="grid grid-cols-1 gap-4">
             {full && (
               <div role="status" className="rounded-sm border border-warning/30 bg-warning-tint px-4 py-2.5 text-[12px] font-semibold leading-snug text-tint-fg-amber">
                 {t("sessionFullNote", { capacity })}

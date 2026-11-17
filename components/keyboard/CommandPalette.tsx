@@ -150,7 +150,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-label={t("paletteTitle")}
-        className="modal-enter absolute left-1/2 top-[16vh] w-[min(92vw,560px)] -translate-x-1/2 overflow-hidden rounded-md border border-border bg-surface shadow-lg"
+        className="modal-enter absolute left-1/2 top-[8dvh] flex max-h-[84dvh] w-[min(92vw,560px)] -translate-x-1/2 flex-col overflow-hidden rounded-md border border-border bg-surface shadow-lg sm:top-[16vh]"
       >
         {/* Input */}
         <div className="flex items-center gap-3 border-b border-divider px-4">
@@ -182,7 +182,7 @@ export function CommandPalette({ onClose }: { onClose: () => void }) {
           ref={listRef}
           role="listbox"
           aria-label={t("paletteTitle")}
-          className="max-h-[46vh] overflow-y-auto py-2"
+          className="min-h-0 flex-1 overflow-y-auto py-2"
         >
           {sections.length === 0 && (
             <li className="px-4 py-6 text-center text-[13px] font-medium text-muted">

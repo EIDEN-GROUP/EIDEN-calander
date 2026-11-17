@@ -87,7 +87,7 @@ export function MailView({ mailboxAddress }: { mailboxAddress: string }) {
       />
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {/* Account */}
           <div className="card flex flex-wrap items-center justify-between gap-4 p-5">
             <div className="flex min-w-0 items-center gap-3">

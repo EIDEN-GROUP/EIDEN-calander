@@ -88,6 +88,8 @@ export interface BookingDrawerProps {
   onTogglePause?: (booking: BookingRow) => void;
   onPostpone?: (booking: BookingRow) => void;
   onRemove?: (booking: BookingRow) => void;
+  /** A higher overlay (postpone / remove) is open: swallow Escape so the drawer stays put. */
+  blockingOverlay?: boolean;
   /** All active bookings (used by the live conflict preview). */
   bookings?: BookingRow[];
   rooms?: Array<import("@/lib/types/db").RoomRow>;
@@ -155,6 +157,7 @@ export function BookingDrawer({
   onTogglePause,
   onPostpone,
   onRemove,
+  blockingOverlay = false,
   initialClientId = null,
   bookings,
   rooms = DEMO_ROOMS,
@@ -227,7 +230,7 @@ export function BookingDrawer({
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  useModalA11y(panelRef, requestClose, !conflictModalOpen);
+  useModalA11y(panelRef, requestClose, !conflictModalOpen && !blockingOverlay);
 
   const isView = view === "view";
 
@@ -424,7 +427,7 @@ export function BookingDrawer({
           <form
             id="booking-form"
             onSubmit={handleSubmit}
-            className="flex-1 overflow-y-auto px-5 py-5"
+            className="min-h-0 flex-1 overflow-y-auto px-5 py-5"
             noValidate
           >
             <div className="space-y-4">
@@ -837,7 +840,7 @@ function ViewBody({
   const intlLocale = appLocaleTag(locale);
   if (!booking) {
     return (
-      <div className="flex-1 overflow-y-auto px-5 py-5">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
         <p className="text-[14px] text-obsidian-light">{t("noBookingSelected")}</p>
       </div>
     );
@@ -847,7 +850,7 @@ function ViewBody({
   const isFormation = booking.type === "formation";
 
   return (
-    <div className="flex-1 overflow-y-auto px-5 py-5">
+    <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
       {/* Summary card */}
       <div className="rounded-md border border-border bg-canvas/60 p-4">
         <div className="flex flex-wrap items-center gap-2">

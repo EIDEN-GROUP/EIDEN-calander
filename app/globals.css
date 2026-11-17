@@ -116,22 +116,20 @@
 
   /* Fade+rise for route/view content swaps */
   .view-enter {
-    animation: view-enter var(--transition-duration-slow) var(--ease-apple) both;
-    will-change: transform, opacity;
+    animation: view-enter var(--transition-duration-slow) var(--ease-apple) backwards;
   }
 
   /* Modal/dialog panel entrance (exit handled by the two-phase close in the component) */
   .overlay-enter {
-    animation: overlay-in var(--transition-duration-slow) var(--ease-apple) both;
+    animation: overlay-in var(--transition-duration-slow) var(--ease-apple) backwards;
   }
   .modal-enter {
-    animation: modal-in var(--transition-duration-slower) var(--ease-apple) both;
-    will-change: transform, opacity;
+    animation: modal-in var(--transition-duration-slower) var(--ease-apple) backwards;
   }
 
   /* Toast enter/exit */
   .toast-in {
-    animation: toast-in var(--transition-duration-base) var(--ease-apple) both;
+    animation: toast-in var(--transition-duration-base) var(--ease-apple) backwards;
   }
   .toast-leave {
     animation: toast-out var(--transition-duration-base) var(--ease-apple) both;
@@ -139,7 +137,7 @@
 
   /* Bell badge — pops when a new unread count lands */
   .badge-pop {
-    animation: badge-pop var(--transition-duration-slow) var(--ease-apple) both;
+    animation: badge-pop var(--transition-duration-slow) var(--ease-apple) backwards;
     transform-origin: center;
   }
 
@@ -261,7 +259,7 @@
   .segment-active {
     background: #fff;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.04);
-    animation: segment-in var(--transition-duration-base) var(--ease-apple);
+    animation: segment-in var(--transition-duration-base) var(--ease-apple) backwards;
   }
 
   /* Chips */
@@ -290,13 +288,13 @@
   /* Context menu entrance */
   @keyframes menuPop {
     from { opacity: 0; transform: scale(0.94) translateY(-4px); }
-    to { opacity: 1; transform: scale(1) translateY(0); }
+    to { opacity: 1; transform: none; }
   }
 
   /* Route/view fade+rise */
   @keyframes view-enter {
     from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    to { opacity: 1; transform: none; }
   }
   /* Overlay fade */
   @keyframes overlay-in {
@@ -306,12 +304,12 @@
   /* Dialog panel entrance — rise + settle, never bouncy */
   @keyframes modal-in {
     from { opacity: 0; transform: translateY(12px) scale(0.98); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 1; transform: none; }
   }
   /* Toast enter/exit */
   @keyframes toast-in {
     from { opacity: 0; transform: translateY(10px) scale(0.97); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
+    to { opacity: 1; transform: none; }
   }
   @keyframes toast-out {
     from { opacity: 1; transform: translateY(0) scale(1); }
@@ -321,7 +319,7 @@
   @keyframes badge-pop {
     0% { opacity: 0; transform: scale(0.5); }
     55% { opacity: 1; transform: scale(1.18); }
-    100% { opacity: 1; transform: scale(1); }
+    100% { opacity: 1; transform: none; }
   }
   /* Focus rings animate in */
   @keyframes focus-ring-in {
@@ -331,7 +329,7 @@
   /* Segmented control — newly-active segment eases in */
   @keyframes segment-in {
     from { opacity: 0.4; transform: scale(0.96); }
-    to { opacity: 1; transform: scale(1); }
+    to { opacity: 1; transform: none; }
   }
 
   /* Press states — physical, 0.97 on :active (declared last so :active wins over :hover lifts) */
@@ -399,4 +397,23 @@
       scroll-behavior: auto !important;
     }
   }
+}
+
+/* Chromium propagates clipped table overflow out of static scroll
+   containers into the document's scrollWidth; a positioned wrapper
+   contains it. Applied to every horizontal scroll region. */
+.overflow-x-auto {
+  position: relative;
+}
+
+/* iOS auto-zooms when a focused input is under 16px — keep the brand size on desktop, prevent zoom on phones. */
+@media (max-width: 640px) {
+  .input {
+    font-size: 16px;
+  }
+}
+
+/* Replaced inputs carry an intrinsic min-width (size attribute); allow them to shrink inside tracks. */
+.input {
+  min-width: 0;
 }

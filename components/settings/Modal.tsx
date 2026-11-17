@@ -86,7 +86,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`modal-enter relative flex max-h-[92vh] w-full ${maxWidth} flex-col overflow-hidden rounded-md border border-border bg-white shadow-lg`}
+        className={`modal-enter relative flex max-h-[92dvh] w-full ${maxWidth} flex-col overflow-hidden rounded-md border border-border bg-white shadow-lg`}
       >
         <div className="flex items-start justify-between gap-4 border-b border-divider px-5 pb-3.5 pt-4">
           <div className="min-w-0">

@@ -122,7 +122,7 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
-        className={`relative z-10 max-h-[92vh] w-full overflow-y-auto rounded-t-md bg-white p-6 shadow-lg transition-all duration-slow ease-apple sm:m-6 sm:rounded-md ${SIZE_CLASS[size]} ${
+        className={`relative z-10 max-h-[92dvh] w-full overflow-y-auto rounded-t-md bg-white p-6 shadow-lg transition-all duration-slow ease-apple sm:m-6 sm:rounded-md ${SIZE_CLASS[size]} ${
           closing ? "translate-y-3 opacity-0 sm:translate-y-2 sm:scale-[0.98]" : "modal-enter"
         }`}
       >

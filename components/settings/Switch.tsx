@@ -23,7 +23,7 @@ export function Switch({
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-pill transition-colors duration-base disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-pill transition-colors duration-base before:absolute before:-inset-2.5 disabled:cursor-not-allowed disabled:opacity-40 ${
         checked ? "bg-electric" : "bg-track"
       }`}
     >

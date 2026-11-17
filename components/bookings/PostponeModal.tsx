@@ -107,7 +107,7 @@ export function PostponeModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[65]" role="dialog" aria-modal="true" aria-label={t("postponeTitle")}>
+    <div className="fixed inset-0 z-[65] flex items-end justify-center sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label={t("postponeTitle")}>
       <button
         type="button"
         aria-label={t("close")}
@@ -117,10 +117,10 @@ export function PostponeModal({
       />
       <div
         ref={panelRef}
-        className="absolute left-1/2 top-1/2 w-[min(480px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-md border border-border bg-white shadow-lg"
+        className="modal-enter relative z-10 flex max-h-[92dvh] w-full max-w-[480px] flex-col overflow-hidden rounded-t-md border border-border bg-white shadow-lg sm:rounded-md"
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 border-b border-divider p-5">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-divider p-5">
           <div className="flex items-start gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-sm bg-electric-tint text-electric">
               <CalendarClock size={20} strokeWidth={2} aria-hidden="true" />
@@ -142,9 +142,9 @@ export function PostponeModal({
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={submit} className="p-5">
-          <div className="grid grid-cols-[1fr_1fr_1fr] gap-3">
+        {/* Form — the panel body scrolls when content or the keyboard need it */}
+        <form onSubmit={submit} className="min-h-0 flex-1 overflow-y-auto p-5">
+          <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-3">
             <div className="col-span-1">
               <label htmlFor="pp-date" className="label">{t("postponeDate")}</label>
               <input id="pp-date" type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} />

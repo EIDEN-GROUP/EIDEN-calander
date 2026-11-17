@@ -506,7 +506,7 @@ export function ClientsClient({ data }: { data?: ClientsListData | null }) {
           onClose={() => setCreateOpen(false)}
           size="lg"
         >
-          <form onSubmit={submitNewClient} noValidate className="grid gap-4">
+          <form onSubmit={submitNewClient} noValidate className="grid grid-cols-1 gap-4">
             <div>
               <span id="nc-type-label" className="label">{t("accountType")}</span>
               <div className="segmented" role="group" aria-labelledby="nc-type-label">

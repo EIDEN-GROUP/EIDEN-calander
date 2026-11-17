@@ -350,7 +350,7 @@ export function FormationsClient({ data }: { data?: FormationListData | null }) 
           onClose={() => setCreateOpen(false)}
           size="lg"
         >
-          <form onSubmit={submitCreate} noValidate className="grid gap-4">
+          <form onSubmit={submitCreate} noValidate className="grid grid-cols-1 gap-4">
             <div>
               <label htmlFor="nf-title" className="label">{t("labelTitle")}</label>
               <input

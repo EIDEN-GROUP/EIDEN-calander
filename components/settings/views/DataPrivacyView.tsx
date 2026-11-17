@@ -131,7 +131,7 @@ export function DataPrivacyView({
       />
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {/* Success banner after anonymization */}
           {banner ? (
             <div role="status" aria-live="polite" className="flex items-start justify-between gap-3 rounded-sm border border-success/40 bg-success-tint px-4 py-3">

@@ -495,15 +495,17 @@ export function CalendarClient({ serverNow, data, prefillClientId = null, autoNe
         )}
         {view === "day" && (
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-            <TimeGrid
-              days={[anchor]}
-              bookings={filtered}
-              lookup={lookup}
-              serverNow={serverNow}
-              onBookingClick={openView}
-              onCreateRange={openForRange}
-              onBookingContextMenu={openContextMenu}
-            />
+            <div className="min-w-0">
+              <TimeGrid
+                days={[anchor]}
+                bookings={filtered}
+                lookup={lookup}
+                serverNow={serverNow}
+                onBookingClick={openView}
+                onCreateRange={openForRange}
+                onBookingContextMenu={openContextMenu}
+              />
+            </div>
             <DayTimeline
               day={anchor}
               bookings={filtered}
@@ -607,6 +609,7 @@ export function CalendarClient({ serverNow, data, prefillClientId = null, autoNe
           onTogglePause={(b) => void togglePauseFor(b)}
           onPostpone={(b) => setPostponeFor(b)}
           onRemove={(b) => setRemoveFor(b)}
+          blockingOverlay={Boolean(postponeFor) || Boolean(removeFor)}
           initialClientId={drawer.clientId ?? null}
           bookings={bookings}
           rooms={data.rooms}

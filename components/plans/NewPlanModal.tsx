@@ -100,7 +100,7 @@ export function NewPlanModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="new-plan-heading"
-        className="relative max-h-[94vh] w-full max-w-lg overflow-y-auto rounded-md border border-border bg-white p-5 shadow-lg sm:p-6"
+        className="relative max-h-[94dvh] w-full max-w-lg overflow-y-auto rounded-md border border-border bg-white p-5 shadow-lg sm:p-6"
       >
         <div className="flex items-start justify-between gap-4">
           <div>

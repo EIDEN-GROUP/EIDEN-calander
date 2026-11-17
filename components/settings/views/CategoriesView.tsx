@@ -295,7 +295,7 @@ export function CategoriesView({
       </PageHeader>
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="card overflow-hidden">
+        <div className="card min-w-0 overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider px-4 py-3 sm:px-5">
             <p className="text-[12px] font-semibold text-obsidian-light">
               <span className="font-mono text-obsidian">{categories.length}</span> {t("categoriesCountBefore", { count: categories.length })} <span className="font-mono text-obsidian">{activeCount}</span> {t("categoriesActiveSuffix", { count: activeCount })}

@@ -130,7 +130,7 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
       />
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {/* Week table */}
           <div className="card overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-divider px-4 py-3 sm:px-5">
@@ -160,7 +160,7 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                 const errorId = `err-${day.key}`;
                 return (
                   <li key={day.key} className="px-4 py-3 transition-colors hover:bg-canvas/60 sm:px-5">
-                    <div className="grid grid-cols-[110px_auto_1fr_auto] items-center gap-2 sm:grid-cols-[150px_auto_1fr_auto] sm:gap-3">
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[150px_auto_1fr_auto] sm:gap-3">
                       <div className="min-w-0">
                         <p className="text-[13px] font-bold text-obsidian">{t(day.labelKey)}</p>
                         <p className={`text-[11px] font-bold uppercase tracking-[0.08em] ${day.isOpen ? "text-tint-fg-green" : "text-muted"}`}>
@@ -172,7 +172,7 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                         onChange={(next) => updateDay(day.key, { isOpen: next })}
                         label={day.isOpen ? t("markDayClosed", { day: t(day.labelKey) }) : t("markDayOpen", { day: t(day.labelKey) })}
                       />
-                      <div className="flex flex-wrap items-center gap-1.5">
+                      <div className="col-span-2 flex flex-wrap items-center gap-1.5 sm:col-span-1">
                         <input
                           type="time"
                           className={`input h-10 w-[6.6rem] px-2 font-mono text-[13px] disabled:cursor-not-allowed disabled:opacity-40 ${invalid ? "border-error/60" : ""}`}
@@ -195,7 +195,7 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                           onChange={(e) => updateDay(day.key, { close: e.target.value })}
                         />
                       </div>
-                      <div className="flex w-[76px] justify-end">
+                      <div className="col-span-2 flex justify-end sm:col-span-1 sm:w-[76px]">
                         {day.key !== "mon" ? (
                           <button
                             type="button"
@@ -212,7 +212,7 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
                       </div>
                     </div>
                     {invalid ? (
-                      <p id={errorId} role="alert" className="mt-2 flex items-center gap-1.5 pl-[118px] text-[11px] font-semibold text-error-fg sm:pl-[162px]">
+                      <p id={errorId} role="alert" className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-error-fg sm:pl-[162px]">
                         <CircleExclamationPoint size={12} strokeWidth={2.4} aria-hidden="true" />
                         {t("hoursOrderError", { day: t(day.labelKey) })}
                       </p>
@@ -243,7 +243,7 @@ export function WorkingHoursView({ initial = null }: { initial?: WorkingHoursIni
           <div className="card p-5 sm:p-6">
             <h2 className="text-[15px] font-extrabold text-obsidian">{t("bookingRulesHeading")}</h2>
             <p className="mt-0.5 text-[11px] font-medium text-muted">{t("bookingRulesDesc")}</p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <span className="label" id="slot-label">{t("slotIncrementLabel")}</span>
                 <div role="group" aria-labelledby="slot-label" className="segmented">

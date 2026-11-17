@@ -64,7 +64,7 @@ export function ConflictModal({
         aria-modal="true"
         aria-labelledby="conflict-modal-title"
         aria-describedby="conflict-modal-desc"
-        className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-md bg-surface p-6 shadow-lg sm:max-w-md sm:rounded-md"
+        className="relative max-h-[92dvh] w-full overflow-y-auto rounded-t-md bg-surface p-6 shadow-lg sm:max-w-md sm:rounded-md"
       >
         <button
           type="button"

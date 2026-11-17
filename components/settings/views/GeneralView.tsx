@@ -209,7 +209,7 @@ export function GeneralView({ initial = null, live = false }: { initial?: Genera
       />
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <form onSubmit={onSubmit} className="card space-y-6 p-5 sm:p-6">
+        <form onSubmit={onSubmit} className="card min-w-0 space-y-6 p-5 sm:p-6">
           <div className="flex items-center gap-2.5 border-b border-divider pb-4">
             <span className="flex h-9 w-9 items-center justify-center rounded-sm bg-tint-blue text-electric">
               <Building2 size={18} strokeWidth={1.9} aria-hidden="true" />

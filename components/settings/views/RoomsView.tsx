@@ -230,7 +230,7 @@ export function RoomsView({
       </PageHeader>
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <div
             role="note"
             className="flex items-start gap-2 rounded-sm border border-warning/30 bg-warning-tint px-3.5 py-2.5 text-[12px] font-semibold leading-snug text-tint-fg-amber"

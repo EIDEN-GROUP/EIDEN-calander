@@ -117,7 +117,7 @@ export function NotificationsView({
       />
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {/* Transactional email */}
           <section className="card overflow-hidden" aria-labelledby="transactional-heading">
             <div className="flex items-center justify-between gap-3 border-b border-divider px-4 py-3.5 sm:px-5">

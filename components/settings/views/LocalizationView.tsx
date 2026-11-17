@@ -87,7 +87,7 @@ export function LocalizationView({
       />
 
       <div className="mt-5 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="card divide-y divide-divider p-5 sm:p-6">
+        <div className="card min-w-0 divide-y divide-divider p-5 sm:p-6">
           {/* Locale */}
           <div className="grid gap-3 py-4 first:pt-0 sm:grid-cols-[210px_1fr] sm:gap-6">
             <div>

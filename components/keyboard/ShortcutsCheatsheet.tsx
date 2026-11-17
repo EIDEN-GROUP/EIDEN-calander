@@ -95,7 +95,7 @@ export function ShortcutsCheatsheet({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="modal-enter relative z-10 max-h-[88vh] w-full max-w-md overflow-y-auto rounded-md border border-border bg-surface p-5 shadow-lg"
+        className="modal-enter relative z-10 max-h-[88dvh] w-full max-w-md overflow-y-auto rounded-md border border-border bg-surface p-5 shadow-lg"
       >
         <div className="flex items-start justify-between gap-4">
           <div>

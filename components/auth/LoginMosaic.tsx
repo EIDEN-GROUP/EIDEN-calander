@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
-import { useTranslations } from "next-intl";
+import { useEffect, useRef, useSyncExternalStore, type CSSProperties } from "react";
 import "./login-mosaic.css";
 
 /**
@@ -31,7 +30,6 @@ type TileState = {
 };
 
 export function LoginMosaic() {
-  const t = useTranslations("login");
   const stageRef = useRef<HTMLDivElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const tilesRef = useRef<TileState[]>([]);
