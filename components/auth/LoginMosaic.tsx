@@ -242,6 +242,7 @@ export function LoginMosaic() {
         <svg
           className="lm-svg"
           viewBox="0 0 600 800"
+          preserveAspectRatio="xMidYMid slice"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
           role="presentation"
